@@ -10,17 +10,24 @@
         <SolidColorBrush x:Key="AccentColor" Color="#E2156B"/>
         <SolidColorBrush x:Key="AccentBrush" Color="#FF1AB4CC"/>
         <SolidColorBrush x:Key="TextSecondaryBrush" Color="#999999"/>
+        <SolidColorBrush x:Key="NavBarTextBrush" Color="#FFFFFF"/>
+        <SolidColorBrush x:Key="NavBarHoverBackground" Color="#18FFFFFF"/>
         <Style x:Key="TopNavButtonStyle" TargetType="Button">
             <Setter Property="Background" Value="Transparent"/>
-            <Setter Property="Foreground" Value="{StaticResource TextSecondaryBrush}"/>
+            <Setter Property="Foreground" Value="{StaticResource NavBarTextBrush}"/>
             <Setter Property="BorderThickness" Value="0"/>
             <Setter Property="Cursor" Value="Hand"/>
             <Setter Property="Template">
                 <Setter.Value>
                     <ControlTemplate TargetType="Button">
-                        <Border Background="{TemplateBinding Background}" Padding="{TemplateBinding Padding}">
+                        <Border x:Name="border" Background="{TemplateBinding Background}" Padding="{TemplateBinding Padding}" CornerRadius="10">
                             <ContentPresenter HorizontalAlignment="Center" VerticalAlignment="Center"/>
                         </Border>
+                        <ControlTemplate.Triggers>
+                            <Trigger Property="IsMouseOver" Value="True">
+                                <Setter TargetName="border" Property="Background" Value="{StaticResource NavBarHoverBackground}"/>
+                            </Trigger>
+                        </ControlTemplate.Triggers>
                     </ControlTemplate>
                 </Setter.Value>
             </Setter>
@@ -28,9 +35,25 @@
         <Style x:Key="TopNavSelectedButtonStyle" TargetType="Button" BasedOn="{StaticResource TopNavButtonStyle}">
             <Setter Property="Foreground" Value="{StaticResource AccentBrush}"/>
         </Style>
-        <!-- Code-behind uses FindResource("SelectedTopNavButtonStyle") -->
         <Style x:Key="SelectedTopNavButtonStyle" TargetType="Button" BasedOn="{StaticResource TopNavButtonStyle}">
             <Setter Property="Foreground" Value="{StaticResource AccentBrush}"/>
+            <Setter Property="Template">
+                <Setter.Value>
+                    <ControlTemplate TargetType="Button">
+                        <Border x:Name="border" Background="{TemplateBinding Background}" Padding="{TemplateBinding Padding}" CornerRadius="10">
+                            <Border.Effect>
+                                <DropShadowEffect Color="#1AB4CC" BlurRadius="12" ShadowDepth="0" Opacity="0.7"/>
+                            </Border.Effect>
+                            <ContentPresenter HorizontalAlignment="Center" VerticalAlignment="Center"/>
+                        </Border>
+                        <ControlTemplate.Triggers>
+                            <Trigger Property="IsMouseOver" Value="True">
+                                <Setter TargetName="border" Property="Background" Value="{StaticResource NavBarHoverBackground}"/>
+                            </Trigger>
+                        </ControlTemplate.Triggers>
+                    </ControlTemplate>
+                </Setter.Value>
+            </Setter>
         </Style>
     </UserControl.Resources>
     <Border Background="{StaticResource NavBarBackground}" 
@@ -60,16 +83,16 @@
                 <ColumnDefinition Width="*"/>
             </Grid.ColumnDefinitions>
 
-            <!-- Home Button -->
+            <!-- Home Button (icon and text inherit Foreground from button style: white when unselected, accent when selected) -->
             <Button Grid.Column="0" 
-                    Style="{StaticResource TopNavSelectedButtonStyle}"
+                    Style="{StaticResource TopNavButtonStyle}"
                     Click="Home_Click"
                     x:Name="HomeNavButton"
                     VerticalAlignment="Center"
-                    Padding="4,4,4,4" Grid.ColumnSpan="2" Margin="0,0,95,0" Grid.Row="1">
+                    Padding="8,6" Grid.ColumnSpan="2" Margin="0,0,95,0" Grid.Row="1">
                 <StackPanel Orientation="Vertical" HorizontalAlignment="Center">
                     <TextBlock Text="🏠" FontSize="12" HorizontalAlignment="Center" VerticalAlignment="Center" Margin="0,0,0,1"/>
-                    <TextBlock Text="Home" FontSize="10" FontWeight="Medium" Foreground="{StaticResource AccentBrush}" HorizontalAlignment="Center"/>
+                    <TextBlock Text="Home" FontSize="10" FontWeight="Medium" HorizontalAlignment="Center"/>
                 </StackPanel>
             </Button>
 
@@ -79,10 +102,10 @@
                     Click="Results_Click"
                     x:Name="ResultsNavButton"
                     VerticalAlignment="Center"
-                    Padding="4,4,4,4" Grid.Row="1">
+                    Padding="8,6" Grid.Row="1">
                 <StackPanel Orientation="Vertical" HorizontalAlignment="Center">
                     <TextBlock Text="📄" FontSize="12" HorizontalAlignment="Center" VerticalAlignment="Center" Margin="0,0,0,1"/>
-                    <TextBlock Text="Results" FontSize="10" FontWeight="Medium" Foreground="{StaticResource TextSecondaryBrush}" HorizontalAlignment="Center"/>
+                    <TextBlock Text="Results" FontSize="10" FontWeight="Medium" HorizontalAlignment="Center"/>
                 </StackPanel>
             </Button>
 
@@ -92,10 +115,10 @@
                     Click="Profile_Click"
                     x:Name="ProfileNavButton"
                     VerticalAlignment="Center"
-                    Padding="4,4,4,4" Grid.Row="1">
+                    Padding="8,6" Grid.Row="1">
                 <StackPanel Orientation="Vertical" HorizontalAlignment="Center">
                     <TextBlock Text="👤" FontSize="12" HorizontalAlignment="Center" VerticalAlignment="Center" Margin="0,0,0,1"/>
-                    <TextBlock Text="Profile" FontSize="10" FontWeight="Medium" Foreground="{StaticResource TextSecondaryBrush}" HorizontalAlignment="Center"/>
+                    <TextBlock Text="Profile" FontSize="10" FontWeight="Medium" HorizontalAlignment="Center"/>
                 </StackPanel>
             </Button>
 
@@ -105,10 +128,10 @@
                     Click="Settings_Click"
                     x:Name="SettingsNavButton"
                     VerticalAlignment="Center"
-                    Padding="4,4,4,4" Grid.ColumnSpan="2" Margin="95,0,0,0" Grid.Row="1">
+                    Padding="8,6" Grid.ColumnSpan="2" Margin="95,0,0,0" Grid.Row="1">
                 <StackPanel Orientation="Vertical" HorizontalAlignment="Center">
                     <TextBlock Text="⚙️" FontSize="12" HorizontalAlignment="Center" VerticalAlignment="Center" Margin="0,0,0,1"/>
-                    <TextBlock Text="Settings" FontSize="10" FontWeight="Medium" Foreground="{StaticResource TextSecondaryBrush}" HorizontalAlignment="Center"/>
+                    <TextBlock Text="Settings" FontSize="10" FontWeight="Medium" HorizontalAlignment="Center"/>
                 </StackPanel>
             </Button>
         </Grid>

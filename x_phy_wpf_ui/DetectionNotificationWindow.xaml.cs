@@ -12,6 +12,8 @@ namespace x_phy_wpf_ui
         private DispatcherTimer _autoCloseTimer;
         private string _resultPath;
         private Action _openResultsFolder;
+        /// <summary>When set, "Stop & View Results" calls this (stop detection, then open results when saved) instead of only opening folder.</summary>
+        private Action _stopDetectionAndOpenResults;
 
         public DetectionNotificationWindow()
         {
@@ -76,8 +78,11 @@ namespace x_phy_wpf_ui
             CompletedThreatEvidenceRight.Source = evidenceImageRight ?? evidenceImageLeft;
         }
 
-        /// <summary>Set content for deepfake alert: confidence, result path, evidence images. Stop &amp; View Results will open folder and show path.</summary>
+        /// <summary>Set content for deepfake alert: confidence, result path, evidence images. Stop &amp; View Results stops detection, saves results, then opens folder.</summary>
+        /// <param name="openResultsFolder">Opens the results folder (used when no stop-and-save flow).</param>
+        /// <param name="stopDetectionAndOpenResults">If set, "Stop & View Results" calls this to stop detection and open results when saved; otherwise uses openResultsFolder.</param>
         public void SetDeepfakeContent(int confidencePercent, string resultPath, Action openResultsFolder,
+            Action stopDetectionAndOpenResults = null,
             ImageSource evidenceImageLeft = null, ImageSource evidenceImageRight = null)
         {
             SimpleContentPanel.Visibility = Visibility.Collapsed;
@@ -92,6 +97,7 @@ namespace x_phy_wpf_ui
 
             _resultPath = resultPath ?? "";
             _openResultsFolder = openResultsFolder;
+            _stopDetectionAndOpenResults = stopDetectionAndOpenResults;
 
             EvidenceImageLeft.Source = evidenceImageLeft;
             EvidenceImageRight.Source = evidenceImageRight ?? evidenceImageLeft;
@@ -128,18 +134,28 @@ namespace x_phy_wpf_ui
 
         private void StopAndViewResults_Click(object sender, RoutedEventArgs e)
         {
+            _autoCloseTimer?.Stop();
+            _autoCloseTimer = null;
             try
             {
-                _openResultsFolder?.Invoke();
-                string pathMessage = string.IsNullOrEmpty(_resultPath)
-                    ? "Results folder opened."
-                    : "Results folder opened.\n\nPath: " + _resultPath;
-                MessageBox.Show(pathMessage, "Results", MessageBoxButton.OK, MessageBoxImage.Information);
+                if (_stopDetectionAndOpenResults != null)
+                {
+                    _stopDetectionAndOpenResults.Invoke();
+                }
+                else
+                {
+                    _openResultsFolder?.Invoke();
+                    string pathMessage = string.IsNullOrEmpty(_resultPath)
+                        ? "Results folder opened."
+                        : "Results folder opened.\n\nPath: " + _resultPath;
+                    MessageBox.Show(pathMessage, "Results", MessageBoxButton.OK, MessageBoxImage.Information);
+                }
             }
             catch (Exception ex)
             {
-                MessageBox.Show("Failed to open results folder: " + ex.Message, "Error", MessageBoxButton.OK, MessageBoxImage.Warning);
+                MessageBox.Show("Failed: " + ex.Message, "Error", MessageBoxButton.OK, MessageBoxImage.Warning);
             }
+            Close();
         }
 
         private void CriticalThreatButton_Click(object sender, RoutedEventArgs e)

@@ -12,5 +12,7 @@ namespace x_phy_wpf_ui
         public string StatusText { get; set; }
         public Brush StatusColor { get; set; }
         public string PercentageText { get; set; }
+        /// <summary>Model confidence that this face is fake (0–100). Used for notification "Confidence %".</summary>
+        public double ConfidencePercent { get; set; }
     }
 }

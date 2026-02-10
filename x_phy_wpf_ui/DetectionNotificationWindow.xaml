@@ -10,7 +10,7 @@
         ShowInTaskbar="False"
         ResizeMode="NoResize"
         MouseLeftButtonDown="Window_MouseLeftButtonDown">
-    <Border Background="White" CornerRadius="12" Padding="0" BorderThickness="0" ClipToBounds="True">
+    <Border Background="White" CornerRadius="12" Padding="0,0,0,14" BorderThickness="0" ClipToBounds="True">
         <Grid>
             <Grid.RowDefinitions>
                 <RowDefinition Height="Auto"/>
@@ -229,7 +229,7 @@
                 </Border>
 
                 <!-- Buttons: Stop & View Results, then Critical Threat (expandable) -->
-                <StackPanel Margin="14,0,14,0">
+                <StackPanel Margin="14,0,14,8">
                     <Button x:Name="StopAndViewResultsButton" Content="Stop &amp; View Results"
                         Background="#E5E5E5" Foreground="#1A1A1A" FontSize="12" FontWeight="SemiBold"
                         Padding="14,8" Margin="0,0,0,6" Cursor="Hand" BorderThickness="0"
@@ -256,7 +256,7 @@
                     </Button>
                     <Button x:Name="CriticalThreatButton" Content="Critical / Active Threat Detected"
                         Background="#E8A0A0" Foreground="#1A1A1A" FontSize="12" FontWeight="SemiBold"
-                        Padding="14,8" Margin="0,0,0,0" Cursor="Hand" BorderThickness="0"
+                        Padding="14,10" Margin="0,0,0,0" Cursor="Hand" BorderThickness="0"
                         Click="CriticalThreatButton_Click"
                         HorizontalAlignment="Stretch">
                         <Button.Style>
@@ -280,39 +280,37 @@
                     </Button>
                 </StackPanel>
 
-                <!-- Expandable red warning section (hidden by default, scrollable to fit screen) -->
+                <!-- Expandable red warning section (hidden by default; no scroll – window grows to fit) -->
                 <Border x:Name="WarningSection" Margin="14,8,14,12" Visibility="Collapsed"
-                    Background="#FFE8E8" CornerRadius="6" Padding="10,8" BorderBrush="#E8A0A0" BorderThickness="1" MaxHeight="160">
-                    <ScrollViewer VerticalScrollBarVisibility="Auto" HorizontalScrollBarVisibility="Disabled" Padding="0,0,4,0">
+                    Background="#FFE8E8" CornerRadius="6" Padding="10,8" BorderBrush="#E8A0A0" BorderThickness="1">
+                    <StackPanel>
+                        <TextBlock Text="(immediate action required): * Security Warning"
+                               FontSize="11" Foreground="#C41E3A" Margin="0,0,0,4"/>
+                        <TextBlock Text="This video shows signs of synthetic or manipulated media. Please proceed with caution and avoid sharing sensitive information."
+                               FontSize="12" Foreground="#C41E3A" FontWeight="SemiBold" TextWrapping="Wrap" Margin="0,0,0,6"/>
                         <StackPanel>
-                            <TextBlock Text="(immediate action required): * Security Warning"
-                                   FontSize="11" Foreground="#C41E3A" Margin="0,0,0,4"/>
-                            <TextBlock Text="This video shows signs of synthetic or manipulated media. Please proceed with caution and avoid sharing sensitive information."
-                                   FontSize="12" Foreground="#C41E3A" FontWeight="SemiBold" TextWrapping="Wrap" Margin="0,0,0,6"/>
-                            <StackPanel>
-                                <TextBlock Foreground="#C41E3A" FontSize="11" Margin="0,1,0,0">
-                                <Run Text="✓ " FontWeight="Bold"/>
-                                <Run Text="Avoid directly accusing a person (&quot;this speaker is fake&quot;)"/>
-                                </TextBlock>
-                                <TextBlock Foreground="#C41E3A" FontSize="11" Margin="0,1,0,0">
-                                <Run Text="✓ " FontWeight="Bold"/>
-                                <Run Text="Use probabilistic language (&quot;may be manipulated&quot;)"/>
-                                </TextBlock>
-                                <TextBlock Foreground="#C41E3A" FontSize="11" Margin="0,1,0,0">
-                                <Run Text="✓ " FontWeight="Bold"/>
-                                <Run Text="Do not expose detection methods"/>
-                                </TextBlock>
-                                <TextBlock Foreground="#C41E3A" FontSize="11" Margin="0,1,0,0">
-                                <Run Text="✓ " FontWeight="Bold"/>
-                                <Run Text="Clearly state recommended user actions"/>
-                                </TextBlock>
-                                <TextBlock Foreground="#C41E3A" FontSize="11" Margin="0,1,0,0">
-                                <Run Text="✓ " FontWeight="Bold"/>
-                                <Run Text="Keep in-call messaging short and non-disruptive"/>
-                                </TextBlock>
-                            </StackPanel>
+                            <TextBlock Foreground="#C41E3A" FontSize="11" Margin="0,1,0,0">
+                            <Run Text="✓ " FontWeight="Bold"/>
+                            <Run Text="Avoid directly accusing a person (&quot;this speaker is fake&quot;)"/>
+                            </TextBlock>
+                            <TextBlock Foreground="#C41E3A" FontSize="11" Margin="0,1,0,0">
+                            <Run Text="✓ " FontWeight="Bold"/>
+                            <Run Text="Use probabilistic language (&quot;may be manipulated&quot;)"/>
+                            </TextBlock>
+                            <TextBlock Foreground="#C41E3A" FontSize="11" Margin="0,1,0,0">
+                            <Run Text="✓ " FontWeight="Bold"/>
+                            <Run Text="Do not expose detection methods"/>
+                            </TextBlock>
+                            <TextBlock Foreground="#C41E3A" FontSize="11" Margin="0,1,0,0">
+                            <Run Text="✓ " FontWeight="Bold"/>
+                            <Run Text="Clearly state recommended user actions"/>
+                            </TextBlock>
+                            <TextBlock Foreground="#C41E3A" FontSize="11" Margin="0,1,0,0">
+                            <Run Text="✓ " FontWeight="Bold"/>
+                            <Run Text="Keep in-call messaging short and non-disruptive"/>
+                            </TextBlock>
                         </StackPanel>
-                    </ScrollViewer>
+                    </StackPanel>
                 </Border>
             </StackPanel>
         </Grid>

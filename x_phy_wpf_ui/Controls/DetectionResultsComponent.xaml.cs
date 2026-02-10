@@ -4,6 +4,7 @@ using System.Linq;
 using System.Windows;
 using System.Windows.Controls;
 using System.Windows.Media;
+using System.Windows.Media.Animation;
 using System.Windows.Threading;
 using XPhyWrapper;
 using x_phy_wpf_ui;
@@ -17,11 +18,34 @@ namespace x_phy_wpf_ui.Controls
         public event EventHandler DeepfakeDetected;
 
         private readonly ObservableCollection<FaceViewModel> _detectedFaces;
-        private DispatcherTimer _fakeProgressTimer;
         private DispatcherTimer _deepfakeNotificationTimer;
         private DateTime _detectionStartTime;
         private bool _hasReceivedFaceResults;
-        private bool _deepfakeNotificationRaised;
+
+        // Arc loader (same as LoaderComponent)
+        private const double ArcCenterX = 60;
+        private const double ArcCenterY = 60;
+        private const double ArcRadius = 48;
+        private const double ArcSweepDegrees = 100;
+        private Storyboard _detectionArcStoryboard;
+        public static readonly DependencyProperty DetectionArcOffsetAngleProperty = DependencyProperty.Register(
+            nameof(DetectionArcOffsetAngle), typeof(double), typeof(DetectionResultsComponent),
+            new PropertyMetadata(0.0, OnDetectionArcOffsetAngleChanged));
+
+        private double DetectionArcOffsetAngle
+        {
+            get => (double)GetValue(DetectionArcOffsetAngleProperty);
+            set => SetValue(DetectionArcOffsetAngleProperty, value);
+        }
+
+        // At most 4 notifications in 60s: windows 0-15s, 15-30s, 30-45s, 45-60s
+        private const int NotificationWindowSeconds = 15;
+        private const int NotificationWindowCount = 4;
+        private int _lastNotificationWindowIndex = -1;
+        private double _windowSumScore;
+        private int _windowCount;
+        private bool _windowHadFake;
+        private System.Windows.Media.Imaging.BitmapSource _windowEvidenceImage;
 
         /// <summary>Last average fake percentage (0-100) when deepfake was detected. Used by deepfake notification.</summary>
         public int LastConfidencePercent { get; private set; }
@@ -33,6 +57,48 @@ namespace x_phy_wpf_ui.Controls
             InitializeComponent();
             _detectedFaces = new ObservableCollection<FaceViewModel>();
             FacesItemsControl.ItemsSource = _detectedFaces;
+            Loaded += (s, e) => { };
+            Unloaded += (s, e) => StopDetectionArcAnimation();
+        }
+
+        private static void OnDetectionArcOffsetAngleChanged(DependencyObject d, DependencyPropertyChangedEventArgs e)
+        {
+            if (d is DetectionResultsComponent c)
+                c.UpdateDetectionArcGeometry();
+        }
+
+        private void UpdateDetectionArcGeometry()
+        {
+            if (DetectionRollingArcPath == null) return;
+            double angle = DetectionArcOffsetAngle * Math.PI / 180.0;
+            double endAngle = (DetectionArcOffsetAngle + ArcSweepDegrees) * Math.PI / 180.0;
+            double startX = ArcCenterX + ArcRadius * Math.Cos(angle);
+            double startY = ArcCenterY + ArcRadius * Math.Sin(angle);
+            double endX = ArcCenterX + ArcRadius * Math.Cos(endAngle);
+            double endY = ArcCenterY + ArcRadius * Math.Sin(endAngle);
+            var pathFigure = new PathFigure(
+                new Point(startX, startY),
+                new PathSegment[] { new ArcSegment(new Point(endX, endY), new Size(ArcRadius, ArcRadius), 0, ArcSweepDegrees > 180, SweepDirection.Clockwise, true) },
+                false);
+            DetectionRollingArcPath.Data = new PathGeometry(new[] { pathFigure });
+        }
+
+        private void StartDetectionArcAnimation()
+        {
+            StopDetectionArcAnimation();
+            UpdateDetectionArcGeometry();
+            _detectionArcStoryboard = new Storyboard { RepeatBehavior = RepeatBehavior.Forever };
+            var animation = new DoubleAnimation(0, 360, new Duration(TimeSpan.FromMilliseconds(1200)));
+            Storyboard.SetTarget(animation, this);
+            Storyboard.SetTargetProperty(animation, new PropertyPath(DetectionArcOffsetAngleProperty));
+            _detectionArcStoryboard.Children.Add(animation);
+            _detectionArcStoryboard.Begin(this, true);
+        }
+
+        private void StopDetectionArcAnimation()
+        {
+            _detectionArcStoryboard?.Stop(this);
+            _detectionArcStoryboard = null;
         }
 
         private SolidColorBrush GetBrush(string key)
@@ -40,70 +106,45 @@ namespace x_phy_wpf_ui.Controls
             return (SolidColorBrush)Resources[key];
         }
 
-        /// <summary>Call when detection starts. Resets UI and starts fake progress timer.</summary>
+        /// <summary>Call when detection starts. Shows lock+arc loader only; hides classification/stats/face list.</summary>
         public void StartDetection(bool isAudioMode)
         {
             _hasReceivedFaceResults = false;
-            _deepfakeNotificationRaised = false;
             _detectedFaces.Clear();
+            _lastNotificationWindowIndex = -1;
+            _windowSumScore = 0;
+            _windowCount = 0;
+            _windowHadFake = false;
+            _windowEvidenceImage = null;
 
             DuringDetectionPanel.Visibility = Visibility.Visible;
-            FakeProgressPercentText.Text = "Analyzing... 0%";
-            DuringDetectionSubtext.Text = "Detection in progress (60s)";
-            try
-            {
-                DetectionLiveImage.Source = new System.Windows.Media.Imaging.BitmapImage(new Uri("pack://application:,,,/face.png"));
-            }
-            catch { }
+            if (ClassificationIndicator != null) ClassificationIndicator.Visibility = Visibility.Collapsed;
+            if (StatisticsCardsGrid != null) StatisticsCardsGrid.Visibility = Visibility.Collapsed;
+            if (FaceListScrollViewer != null) FaceListScrollViewer.Visibility = Visibility.Collapsed;
 
             StopButtonPanel.Visibility = Visibility.Visible;
             BackButtonPanel.Visibility = Visibility.Collapsed;
             StopButtonAlways.IsEnabled = true;
-
-            ClassificationIndicator.Visibility = Visibility.Visible;
-            ClassificationIcon.Text = "⏳";
-            ClassificationText.Text = "ANALYZING";
-            ClassificationText.Foreground = GetBrush("AnalyzingColor");
-            ClassificationPercentage.Text = "";
-            string type = isAudioMode ? "Audio" : "Video";
-            ClassificationSubtext.Text = $"Starting {type} detection for 60 seconds...";
 
             TotalFacesText.Text = "0";
             FakeFacesText.Text = "0";
             AvgFakePercentText.Text = "0%";
 
             _detectionStartTime = DateTime.UtcNow;
-            _fakeProgressTimer?.Stop();
-            _fakeProgressTimer = new DispatcherTimer { Interval = TimeSpan.FromSeconds(1) };
-            _fakeProgressTimer.Tick += FakeProgressTimer_Tick;
-            _fakeProgressTimer.Start();
             StopDeepfakeNotificationTimer();
+            StartDetectionArcAnimation();
         }
 
-        private void FakeProgressTimer_Tick(object sender, EventArgs e)
-        {
-            if (_hasReceivedFaceResults) return;
-            var elapsed = (DateTime.UtcNow - _detectionStartTime).TotalSeconds;
-            int percent = Math.Min(100, (int)(elapsed / 60.0 * 100.0));
-            FakeProgressPercentText.Text = $"Analyzing... {percent}%";
-            if (percent >= 100)
-            {
-                _fakeProgressTimer?.Stop();
-                _fakeProgressTimer = null;
-            }
-        }
-
-        /// <summary>Update UI from face callback. Dynamic percentage and image.</summary>
+        /// <summary>Update from face callback. At most 4 notifications in 60s (windows 0-15, 15-30, 30-45, 45-60). Each notification uses average ProbFakeScore*100 and the evidence image from that window.</summary>
         public void UpdateDetectedFaces(DetectedFace[] faces, Func<string, SolidColorBrush> getResourceBrush)
         {
             if (faces == null || faces.Length == 0) return;
 
             _hasReceivedFaceResults = true;
+            var elapsed = (DateTime.UtcNow - _detectionStartTime).TotalSeconds;
+            int currentWindow = Math.Min(NotificationWindowCount - 1, (int)(elapsed / NotificationWindowSeconds));
 
-            double avgFake = faces.Average(f => f.ProbFakeScore * 100);
-            FakeProgressPercentText.Text = $"Live — Avg suspicious: {avgFake:F1}%";
-            DuringDetectionSubtext.Text = $"{faces.Length} face(s) detected";
-
+            // Evidence image for this batch (same instance as this face data)
             DetectedFace? latestWithImage = null;
             for (int i = faces.Length - 1; i >= 0; i--)
             {
@@ -119,11 +160,7 @@ namespace x_phy_wpf_ui.Controls
                 try
                 {
                     var bitmap = ImageHelper.ConvertToBitmapSource(latestWithImage.Value);
-                    if (bitmap != null)
-                    {
-                        currentFrameBitmap = bitmap;
-                        DetectionLiveImage.Source = bitmap;
-                    }
+                    if (bitmap != null) currentFrameBitmap = bitmap;
                 }
                 catch (Exception ex)
                 {
@@ -131,91 +168,84 @@ namespace x_phy_wpf_ui.Controls
                 }
             }
 
-            _detectedFaces.Clear();
-            int fakeCount = 0;
-            double totalFakePercent = 0;
+            // When crossing into a new window: flush previous window and show at most one notification with that window's confidence and image
+            if (currentWindow > _lastNotificationWindowIndex && _lastNotificationWindowIndex >= 0)
+            {
+                if (_windowHadFake && _windowCount > 0)
+                {
+                    double avgScore = _windowSumScore / _windowCount;
+                    LastConfidencePercent = (int)Math.Round(Math.Min(100, Math.Max(0, avgScore * 100)));
+                    LatestEvidenceImage = _windowEvidenceImage;
+                    DeepfakeDetected?.Invoke(this, EventArgs.Empty);
+                }
+                _windowSumScore = 0;
+                _windowCount = 0;
+                _windowHadFake = false;
+                _windowEvidenceImage = null;
+            }
+            _lastNotificationWindowIndex = currentWindow;
 
+            // Accumulate this batch into current window (confidence = average ProbFakeScore; image = from this instance)
+            double batchSum = 0;
+            int fakeCount = 0;
             foreach (var face in faces)
             {
-                var vm = new FaceViewModel
+                batchSum += face.ProbFakeScore;
+                if (face.IsFake) fakeCount++;
+            }
+            _windowSumScore += batchSum;
+            _windowCount += faces.Length;
+            if (fakeCount > 0) _windowHadFake = true;
+            if (currentFrameBitmap != null) _windowEvidenceImage = currentFrameBitmap;
+
+            // Keep _detectedFaces for final result when detection completes
+            _detectedFaces.Clear();
+            double totalFakePercent = 0;
+            foreach (var face in faces)
+            {
+                double confidencePercent = face.ProbFakeScore * 100;
+                _detectedFaces.Add(new FaceViewModel
                 {
                     Image = null,
                     StatusText = face.IsFake ? "FAKE" : "REAL",
                     StatusColor = face.IsFake ? getResourceBrush("FakeColor") : getResourceBrush("RealColor"),
-                    PercentageText = $"{(face.ProbFakeScore * 100):F1}%"
-                };
-                _detectedFaces.Add(vm);
-                if (face.IsFake) fakeCount++;
+                    PercentageText = $"{confidencePercent:F1}%",
+                    ConfidencePercent = confidencePercent
+                });
                 totalFakePercent += face.ProbFakeScore * 100;
             }
-
             TotalFacesText.Text = faces.Length.ToString();
             FakeFacesText.Text = fakeCount.ToString();
             AvgFakePercentText.Text = faces.Length > 0 ? $"{(totalFakePercent / faces.Length):F1}%" : "0%";
-
-            if (fakeCount > 0)
-            {
-                double avgPct = faces.Length > 0 ? (totalFakePercent / faces.Length) : 0;
-                LastConfidencePercent = (int)Math.Round(Math.Min(100, avgPct));
-                if (currentFrameBitmap != null)
-                    LatestEvidenceImage = currentFrameBitmap;
-                ClassificationIcon.Text = "⚠️";
-                ClassificationText.Text = "DEEPFAKE DETECTED";
-                ClassificationText.Foreground = GetBrush("FakeColor");
-                if (!_deepfakeNotificationRaised)
-                {
-                    _deepfakeNotificationRaised = true;
-                    DeepfakeDetected?.Invoke(this, EventArgs.Empty);
-                }
-                StartDeepfakeNotificationTimer();
-            }
-            else
-            {
-                ClassificationIcon.Text = "✓";
-                ClassificationText.Text = "REAL";
-                ClassificationText.Foreground = GetBrush("RealColor");
-                StopDeepfakeNotificationTimer();
-            }
-
-            double overallPct = faces.Length > 0 ? (totalFakePercent / faces.Length) : 0;
-            ClassificationPercentage.Text = $"({overallPct:F1}% Suspicious)";
-            ClassificationSubtext.Text = $"Detected {faces.Length} face(s): {fakeCount} fake, {faces.Length - fakeCount} real";
         }
 
-        /// <summary>Update classification from video callback.</summary>
+        /// <summary>Update classification from video callback. Notifications are only sent from UpdateDetectedFaces (4 windows in 60s).</summary>
         public void UpdateOverallClassification(bool isDeepfake)
         {
-            ClassificationIndicator.Visibility = Visibility.Visible;
+            if (ClassificationIndicator != null) ClassificationIndicator.Visibility = Visibility.Visible;
             if (isDeepfake)
             {
                 if (_detectedFaces.Count > 0)
                 {
-                    int fakeCount = _detectedFaces.Count(f => f.StatusText == "FAKE");
-                    LastConfidencePercent = (int)Math.Round((double)fakeCount / _detectedFaces.Count * 100);
+                    double avgConfidence = _detectedFaces.Average(f => f.ConfidencePercent);
+                    LastConfidencePercent = (int)Math.Round(Math.Min(100, Math.Max(0, avgConfidence)));
                 }
                 ClassificationIcon.Text = "⚠️";
                 ClassificationText.Text = "DEEPFAKE DETECTED";
                 ClassificationText.Foreground = GetBrush("FakeColor");
-                if (!_deepfakeNotificationRaised)
-                {
-                    _deepfakeNotificationRaised = true;
-                    DeepfakeDetected?.Invoke(this, EventArgs.Empty);
-                }
-                StartDeepfakeNotificationTimer();
             }
             else
             {
                 ClassificationIcon.Text = "✓";
                 ClassificationText.Text = "REAL";
                 ClassificationText.Foreground = GetBrush("RealColor");
-                StopDeepfakeNotificationTimer();
             }
 
             if (_detectedFaces.Count > 0)
             {
                 int fakeCount = _detectedFaces.Count(f => f.StatusText == "FAKE");
-                double pct = (double)fakeCount / _detectedFaces.Count * 100;
-                ClassificationPercentage.Text = $"({pct:F1}% Suspicious)";
+                double avgConfidence = _detectedFaces.Average(f => f.ConfidencePercent);
+                ClassificationPercentage.Text = $"({avgConfidence:F1}% Suspicious)";
                 ClassificationSubtext.Text = $"Detected {_detectedFaces.Count} face(s): {fakeCount} fake, {_detectedFaces.Count - fakeCount} real";
             }
             else
@@ -246,12 +276,7 @@ namespace x_phy_wpf_ui.Controls
                     ClassificationText.Foreground = GetBrush("FakeColor");
                     ClassificationPercentage.Text = "";
                     ClassificationSubtext.Text = "Audio classified as deepfake";
-                    if (!_deepfakeNotificationRaised)
-                    {
-                        _deepfakeNotificationRaised = true;
-                        DeepfakeDetected?.Invoke(this, EventArgs.Empty);
-                    }
-                    StartDeepfakeNotificationTimer();
+                    DeepfakeDetected?.Invoke(this, EventArgs.Empty);
                     break;
                 case 2:
                     ClassificationIcon.Text = "⏳";
@@ -280,6 +305,18 @@ namespace x_phy_wpf_ui.Controls
             }
         }
 
+        /// <summary>Flush the last 15s window so the 4th notification (45-60s) can be shown if that window had fake.</summary>
+        private void FlushLastNotificationWindow()
+        {
+            if (_windowHadFake && _windowCount > 0)
+            {
+                double avgScore = _windowSumScore / _windowCount;
+                LastConfidencePercent = (int)Math.Round(Math.Min(100, Math.Max(0, avgScore * 100)));
+                LatestEvidenceImage = _windowEvidenceImage;
+                DeepfakeDetected?.Invoke(this, EventArgs.Empty);
+            }
+        }
+
         private void StartDeepfakeNotificationTimer()
         {
             // Only start if not already running - otherwise we'd reset the 10-sec countdown on every face update
@@ -303,16 +340,16 @@ namespace x_phy_wpf_ui.Controls
         /// <summary>Show final result and Back to Home button after 60s.</summary>
         public void ShowFinalResult(string resultPath)
         {
-            _fakeProgressTimer?.Stop();
-            _fakeProgressTimer = null;
+            StopDetectionArcAnimation();
             StopDeepfakeNotificationTimer();
+            FlushLastNotificationWindow();
             DuringDetectionPanel.Visibility = Visibility.Collapsed;
 
             if (_detectedFaces.Count > 0)
             {
                 int fakeCount = _detectedFaces.Count(f => f.StatusText == "FAKE");
-                double pct = (double)fakeCount / _detectedFaces.Count * 100;
-                ClassificationPercentage.Text = $"({pct:F1}% Suspicious)";
+                double avgConfidence = _detectedFaces.Average(f => f.ConfidencePercent);
+                ClassificationPercentage.Text = $"({avgConfidence:F1}% Suspicious)";
                 if (fakeCount > 0)
                 {
                     ClassificationIcon.Text = "⚠️";
@@ -346,8 +383,7 @@ namespace x_phy_wpf_ui.Controls
         /// <summary>Reset and hide during-detection panel; call when stopping early.</summary>
         public void Reset()
         {
-            _fakeProgressTimer?.Stop();
-            _fakeProgressTimer = null;
+            StopDetectionArcAnimation();
             StopDeepfakeNotificationTimer();
             DuringDetectionPanel.Visibility = Visibility.Collapsed;
             _detectedFaces.Clear();

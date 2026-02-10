@@ -48,33 +48,41 @@
             <RowDefinition Height="Auto"/>
         </Grid.RowDefinitions>
 
-        <!-- During detection: image + live percentage -->
+        <!-- During detection: lock icon + arc loader (same style as LoaderComponent) -->
         <Border Grid.Row="0" x:Name="DuringDetectionPanel" Background="{StaticResource CardBackground}"
-                CornerRadius="8" Padding="10" Margin="0,0,0,8">
-            <Grid>
-                <Grid.ColumnDefinitions>
-                    <ColumnDefinition Width="Auto"/>
-                    <ColumnDefinition Width="*"/>
-                </Grid.ColumnDefinitions>
-                <Border Background="#1A1A1A" CornerRadius="6" Width="88" Height="88" Margin="0,0,14,0">
-                    <Image x:Name="DetectionLiveImage" Source="pack://application:,,,/face.png" Stretch="Uniform" Opacity="0.9"/>
-                </Border>
-                <StackPanel Grid.Column="1" VerticalAlignment="Center">
-                    <TextBlock x:Name="FakeProgressPercentText" Text="Analyzing... 0%"
-                               FontSize="16" FontWeight="SemiBold" Foreground="{StaticResource PrimaryPink}"/>
-                    <TextBlock x:Name="DuringDetectionSubtext" Text="Detection in progress (60s)" FontSize="12"
-                               Foreground="{StaticResource TextSecondary}" Margin="0,4,0,0"/>
-                </StackPanel>
-            </Grid>
+                CornerRadius="8" Padding="24" Margin="0,0,0,8">
+            <StackPanel VerticalAlignment="Center" HorizontalAlignment="Center">
+                <Grid Width="120" Height="120" Margin="0,0,0,24" HorizontalAlignment="Center">
+                    <Path x:Name="DetectionRollingArcPath" Fill="Transparent" Width="120" Height="120" StrokeThickness="4"
+                          StrokeStartLineCap="Round" StrokeEndLineCap="Round" Stretch="None"
+                          HorizontalAlignment="Center" VerticalAlignment="Center">
+                        <Path.Stroke>
+                            <LinearGradientBrush EndPoint="0.5,1" StartPoint="0.5,0">
+                                <GradientStop Color="#FF2D0314" Offset="0"/>
+                                <GradientStop Color="#FFE2156B" Offset="1"/>
+                            </LinearGradientBrush>
+                        </Path.Stroke>
+                    </Path>
+                    <Grid Width="72" Height="72" HorizontalAlignment="Center" VerticalAlignment="Center">
+                        <Grid.Effect>
+                            <DropShadowEffect Color="#FF1AB4CC" BlurRadius="30" ShadowDepth="0" Opacity="0.6"/>
+                        </Grid.Effect>
+                        <Image Source="/xphy_lock_icon.png" Stretch="Uniform"/>
+                    </Grid>
+                </Grid>
+                <TextBlock Text="Detection in progress (60s)"
+                           Foreground="{StaticResource TextPrimary}" FontSize="16" HorizontalAlignment="Center"/>
+                <TextBlock Text="Analyzing..."
+                           Foreground="{StaticResource TextSecondary}" FontSize="14" HorizontalAlignment="Center" Margin="0,4,0,0"/>
+            </StackPanel>
         </Border>
 
-        <!-- Overall Classification Indicator -->
-        <Border Grid.Row="1"
+        <!-- Overall Classification Indicator (hidden during detection; show only after if needed) -->
+        <Border Grid.Row="1" x:Name="ClassificationIndicator"
                 Background="{StaticResource CardBackground}"
                 CornerRadius="8"
                 Padding="12"
-                Margin="0,0,0,10"
-                x:Name="ClassificationIndicator">
+                Margin="0,0,0,10">
             <StackPanel HorizontalAlignment="Center">
                 <StackPanel Orientation="Horizontal" HorizontalAlignment="Center" Margin="0,0,0,4">
                     <TextBlock x:Name="ClassificationIcon" FontSize="18" Margin="0,0,8,0" VerticalAlignment="Center"/>
@@ -88,8 +96,8 @@
             </StackPanel>
         </Border>
 
-        <!-- Statistics Cards -->
-        <Grid Grid.Row="2" Margin="0,0,0,10">
+        <!-- Statistics Cards (hidden during detection) -->
+        <Grid Grid.Row="2" x:Name="StatisticsCardsGrid" Margin="0,0,0,10">
             <Grid.ColumnDefinitions>
                 <ColumnDefinition Width="*"/>
                 <ColumnDefinition Width="*"/>
@@ -118,8 +126,8 @@
             </Border>
         </Grid>
 
-        <!-- Face list -->
-        <ScrollViewer Grid.Row="3" VerticalScrollBarVisibility="Auto" HorizontalScrollBarVisibility="Disabled">
+        <!-- Face list (hidden during detection) -->
+        <ScrollViewer Grid.Row="3" x:Name="FaceListScrollViewer" VerticalScrollBarVisibility="Auto" HorizontalScrollBarVisibility="Disabled">
             <ItemsControl x:Name="FacesItemsControl" Margin="0,0,0,8">
                 <ItemsControl.ItemsPanel>
                     <ItemsPanelTemplate>

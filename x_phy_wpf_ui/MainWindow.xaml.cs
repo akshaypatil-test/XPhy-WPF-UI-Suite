@@ -30,6 +30,8 @@ namespace x_phy_wpf_ui
         private bool _deepfakeDetectedDuringRun = false;
         private bool isWebSurfingMode = false; // Track if current detection is Web Surfing mode
         private bool isStoppingDetection = false; // Track if we're in the process of stopping
+        /// <summary>When true, open results folder after stop completes (e.g. after "Stop & View Results" from notification).</summary>
+        private bool openResultsFolderAfterStop = false;
         private bool isAudioDetection = false; // Track if current detection is Audio mode (vs Video mode)
         private LicenseManager licenseManager;
         private bool controllerInitializationAttempted = false; // Track if we've already tried to initialize
@@ -832,6 +834,11 @@ videoLiveFakeProportionThreshold = 0.7
                                             if (isStoppingDetection)
                                             {
                                                 isStoppingDetection = false;
+                                                if (openResultsFolderAfterStop)
+                                                {
+                                                    openResultsFolderAfterStop = false;
+                                                    try { controller?.OpenResultsFolder(); } catch { }
+                                                }
                                             }
                                         }
                                     }
@@ -878,6 +885,11 @@ videoLiveFakeProportionThreshold = 0.7
                                             if (isStoppingDetection)
                                             {
                                                 isStoppingDetection = false;
+                                                if (openResultsFolderAfterStop)
+                                                {
+                                                    openResultsFolderAfterStop = false;
+                                                    try { controller?.OpenResultsFolder(); } catch { }
+                                                }
                                             }
                                         }
                                     }
@@ -923,10 +935,14 @@ videoLiveFakeProportionThreshold = 0.7
                                     if (isLast)
                                     {
                                         ShowFinalResult(resultPath ?? "");
-                                        // If we were stopping, the result is now shown, so we can clear the stopping flag
                                         if (isStoppingDetection)
                                         {
                                             isStoppingDetection = false;
+                                            if (openResultsFolderAfterStop)
+                                            {
+                                                openResultsFolderAfterStop = false;
+                                                try { controller?.OpenResultsFolder(); } catch { }
+                                            }
                                         }
                                     }
                                 }
@@ -968,10 +984,14 @@ videoLiveFakeProportionThreshold = 0.7
                                     if (isLast)
                                     {
                                         ShowFinalResult(resultPath ?? "");
-                                        // If we were stopping, the result is now shown, so we can clear the stopping flag
                                         if (isStoppingDetection)
                                         {
                                             isStoppingDetection = false;
+                                            if (openResultsFolderAfterStop)
+                                            {
+                                                openResultsFolderAfterStop = false;
+                                                try { controller?.OpenResultsFolder(); } catch { }
+                                            }
                                         }
                                     }
                                 }
@@ -1077,7 +1097,8 @@ videoLiveFakeProportionThreshold = 0.7
             switch (page)
             {
                 case "Home":
-                    // Home is already shown by default
+                    ShowDetectionContent();
+                    ResetAppContentToHome();
                     break;
                 case "Results":
                     OpenResultsFolder_Click(sender, new RoutedEventArgs());
@@ -1392,7 +1413,10 @@ videoLiveFakeProportionThreshold = 0.7
                                 waitTime += checkInterval;
                             }
                             if (isStoppingDetection)
+                            {
                                 isStoppingDetection = false;
+                                openResultsFolderAfterStop = false;
+                            }
                             else
                                 await Task.Delay(500);
                         }
@@ -1406,7 +1430,11 @@ videoLiveFakeProportionThreshold = 0.7
             }
             finally
             {
-                // Always return to home screen when user clicks Stop
+                if (openResultsFolderAfterStop)
+                {
+                    openResultsFolderAfterStop = false;
+                    try { controller?.OpenResultsFolder(); } catch { }
+                }
                 ResetAppContentToHome();
                 RefreshLicenseDisplayAfterDetectionAsync();
             }
@@ -1695,19 +1723,22 @@ videoLiveFakeProportionThreshold = 0.7
                 var evidenceImage = DetectionResultsComponent?.LatestEvidenceImage;
 
                 var popup = new DetectionNotificationWindow();
-                popup.SetDeepfakeContent(confidence, resultPath, () =>
-                {
-                    try
+                popup.SetDeepfakeContent(
+                    confidence,
+                    resultPath,
+                    openResultsFolder: () =>
                     {
-                        if (controller != null) controller.OpenResultsFolder();
-                    }
-                    catch (Exception ex)
+                        try { if (controller != null) controller.OpenResultsFolder(); }
+                        catch (Exception ex) { MessageBox.Show($"Failed to open results folder: {ex.Message}", "Error", MessageBoxButton.OK, MessageBoxImage.Error); }
+                    },
+                    stopDetectionAndOpenResults: () =>
                     {
-                        MessageBox.Show($"Failed to open results folder: {ex.Message}", "Error",
-                            MessageBoxButton.OK, MessageBoxImage.Error);
-                    }
-                }, evidenceImage, null);
-                popup.ShowAtBottomRight(autoCloseSeconds: 0);
+                        openResultsFolderAfterStop = true;
+                        StopDetection_Click(null, EventArgs.Empty);
+                    },
+                    evidenceImageLeft: evidenceImage,
+                    evidenceImageRight: null);
+                popup.ShowAtBottomRight(autoCloseSeconds: 4);
             }));
         }
 

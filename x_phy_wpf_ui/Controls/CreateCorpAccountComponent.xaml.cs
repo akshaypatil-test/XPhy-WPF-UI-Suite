@@ -2,6 +2,7 @@ using System;
 using System.Text.RegularExpressions;
 using System.Windows;
 using System.Windows.Controls;
+using System.Windows.Media;
 using x_phy_wpf_ui.Services;
 
 namespace x_phy_wpf_ui.Controls
@@ -35,6 +36,38 @@ namespace x_phy_wpf_ui.Controls
                 UpdatePlaceholders();
                 UpdateCreateButtonState();
             };
+            ActivationDatePicker.Loaded += ActivationDatePicker_Loaded;
+        }
+
+        private void ActivationDatePicker_Loaded(object sender, RoutedEventArgs e)
+        {
+            // Style the DatePicker's inner text box so the selected date is visible (dark theme).
+            // Run after template is applied (one layout pass later).
+            Dispatcher.BeginInvoke(new Action(() =>
+            {
+                var tb = FindVisualChild<TextBox>(ActivationDatePicker);
+                if (tb != null)
+                {
+                    tb.Background = new SolidColorBrush(Color.FromRgb(0x1A, 0x1A, 0x1A));
+                    tb.Foreground = new SolidColorBrush(Colors.White);
+                    tb.CaretBrush = new SolidColorBrush(Colors.White);
+                    tb.BorderThickness = new Thickness(0);
+                }
+            }), System.Windows.Threading.DispatcherPriority.Loaded);
+        }
+
+        private static T FindVisualChild<T>(DependencyObject parent) where T : DependencyObject
+        {
+            for (int i = 0; i < VisualTreeHelper.GetChildrenCount(parent); i++)
+            {
+                var child = VisualTreeHelper.GetChild(parent, i);
+                if (child is T found)
+                    return found;
+                var descendant = FindVisualChild<T>(child);
+                if (descendant != null)
+                    return descendant;
+            }
+            return null;
         }
 
         public void ClearInputs()
@@ -57,7 +90,7 @@ namespace x_phy_wpf_ui.Controls
             CountryCodeTextBox.Text = "";
             ContactNumberTextBox.Text = "";
             OrderNumberTextBox.Text = "";
-            ActivationDateTextBox.Text = "";
+            ActivationDatePicker.SelectedDate = null;
             ErrorMessageText.Text = "";
             ErrorMessageText.Visibility = Visibility.Collapsed;
             FirstNameErrorText.Visibility = Visibility.Collapsed;
@@ -67,6 +100,8 @@ namespace x_phy_wpf_ui.Controls
             ConfirmPasswordErrorText.Visibility = Visibility.Collapsed;
             MaxDevicesErrorText.Visibility = Visibility.Collapsed;
             PolicyNumberErrorText.Visibility = Visibility.Collapsed;
+            CountryCodeErrorText.Visibility = Visibility.Collapsed;
+            ContactNumberErrorText.Visibility = Visibility.Collapsed;
             ActivationDateErrorText.Visibility = Visibility.Collapsed;
             _isFirstNameValid = _isLastNameValid = _isEmailValid = _isPasswordValid = _isConfirmPasswordValid = false;
             _isMaxDevicesValid = _isPolicyNumberValid = _isOrganizationNameValid = _isContactPersonNameValid = false;
@@ -98,7 +133,7 @@ namespace x_phy_wpf_ui.Controls
         private void CountryCodeTextBox_TextChanged(object sender, TextChangedEventArgs e) { ValidateCountryCode(); UpdateCreateButtonState(); }
         private void ContactNumberTextBox_TextChanged(object sender, TextChangedEventArgs e) { ValidateContactNumber(); UpdateCreateButtonState(); }
         private void OrderNumberTextBox_TextChanged(object sender, TextChangedEventArgs e) { ValidateOrderNumber(); UpdateCreateButtonState(); }
-        private void ActivationDateTextBox_TextChanged(object sender, TextChangedEventArgs e) { ValidateActivationDate(); UpdateCreateButtonState(); }
+        private void ActivationDatePicker_SelectedDateChanged(object sender, SelectionChangedEventArgs e) { ValidateActivationDate(); UpdateCreateButtonState(); }
 
         private void PasswordEyeButton_Click(object sender, RoutedEventArgs e)
         {
@@ -123,10 +158,38 @@ namespace x_phy_wpf_ui.Controls
         private void ValidatePolicyNumber() { var t = PolicyNumberTextBox?.Text?.Trim() ?? ""; _isPolicyNumberValid = t.Length >= 1; PolicyNumberErrorText.Visibility = _isPolicyNumberValid ? Visibility.Collapsed : Visibility.Visible; PolicyNumberErrorText.Text = _isPolicyNumberValid ? "" : "Required."; }
         private void ValidateOrganizationName() { var t = OrganizationNameTextBox?.Text?.Trim() ?? ""; _isOrganizationNameValid = t.Length >= 1; }
         private void ValidateContactPersonName() { var t = ContactPersonNameTextBox?.Text?.Trim() ?? ""; _isContactPersonNameValid = t.Length >= 1; }
-        private void ValidateCountryCode() { var t = CountryCodeTextBox?.Text?.Trim() ?? ""; _isCountryCodeValid = t.Length >= 1; }
-        private void ValidateContactNumber() { var t = ContactNumberTextBox?.Text?.Trim() ?? ""; _isContactNumberValid = t.Length >= 1; }
+        private void ValidateCountryCode()
+        {
+            var t = CountryCodeTextBox?.Text?.Trim() ?? "";
+            _isCountryCodeValid = t.Length >= 1;
+            CountryCodeErrorText.Visibility = _isCountryCodeValid ? Visibility.Collapsed : Visibility.Visible;
+            CountryCodeErrorText.Text = _isCountryCodeValid ? "" : "Required.";
+        }
+
+        private void ValidateContactNumber()
+        {
+            var t = (ContactNumberTextBox?.Text ?? "").Trim();
+            if (string.IsNullOrEmpty(t))
+            {
+                _isContactNumberValid = false;
+                ContactNumberErrorText.Text = "Required.";
+                ContactNumberErrorText.Visibility = Visibility.Visible;
+                return;
+            }
+            var digitsOnly = Regex.Replace(t, @"\D", "");
+            var hasLetter = Regex.IsMatch(t, @"[A-Za-z]");
+            if (digitsOnly.Length == 0 || hasLetter)
+            {
+                _isContactNumberValid = false;
+                ContactNumberErrorText.Text = "Contact number must contain only numbers.";
+                ContactNumberErrorText.Visibility = Visibility.Visible;
+                return;
+            }
+            _isContactNumberValid = true;
+            ContactNumberErrorText.Visibility = Visibility.Collapsed;
+        }
         private void ValidateOrderNumber() { var t = OrderNumberTextBox?.Text?.Trim() ?? ""; _isOrderNumberValid = t.Length >= 1; }
-        private void ValidateActivationDate() { var t = ActivationDateTextBox?.Text?.Trim() ?? ""; _isActivationDateValid = t.Length >= 1; ActivationDateErrorText.Visibility = _isActivationDateValid ? Visibility.Collapsed : Visibility.Visible; ActivationDateErrorText.Text = _isActivationDateValid ? "" : "e.g. 2025-02-15 or 2025-02-15T00:00:00Z"; }
+        private void ValidateActivationDate() { _isActivationDateValid = ActivationDatePicker.SelectedDate.HasValue; ActivationDateErrorText.Visibility = _isActivationDateValid ? Visibility.Collapsed : Visibility.Visible; ActivationDateErrorText.Text = _isActivationDateValid ? "" : "Select a date."; }
 
         private void UpdateCreateButtonState()
         {
@@ -162,19 +225,18 @@ namespace x_phy_wpf_ui.Controls
             var countryCode = CountryCodeTextBox.Text.Trim();
             var contactNumber = ContactNumberTextBox.Text.Trim();
             var orderNumber = OrderNumberTextBox.Text.Trim();
-            var activationDateRaw = ActivationDateTextBox.Text.Trim();
             if (string.IsNullOrWhiteSpace(policyNumber)) { ShowError("Policy Number is required."); return; }
             if (string.IsNullOrWhiteSpace(organizationName)) { ShowError("Organization Name is required."); return; }
             if (string.IsNullOrWhiteSpace(contactPersonName)) { ShowError("Contact Person Name is required."); return; }
-            if (string.IsNullOrWhiteSpace(countryCode)) { ShowError("Country Code is required."); return; }
-            if (string.IsNullOrWhiteSpace(contactNumber)) { ShowError("Contact Number is required."); return; }
+            if (string.IsNullOrWhiteSpace(countryCode)) { ShowError("Country code is required."); return; }
+            if (string.IsNullOrWhiteSpace(contactNumber)) { ShowError("Contact number is required."); return; }
+            var contactDigits = Regex.Replace(contactNumber, @"\D", "");
+            if (contactDigits.Length == 0 || Regex.IsMatch(contactNumber, @"[A-Za-z]"))
+                { ShowError("Contact number must contain only numbers."); return; }
             if (string.IsNullOrWhiteSpace(orderNumber)) { ShowError("Order Number is required."); return; }
-            if (string.IsNullOrWhiteSpace(activationDateRaw)) { ShowError("Activation Date is required (e.g. 2025-02-15 or 2025-02-15T00:00:00Z)."); return; }
+            if (!ActivationDatePicker.SelectedDate.HasValue) { ShowError("Activation Date is required."); return; }
 
-            // Normalize activation date to ISO 8601 if user entered date only
-            var activationDate = activationDateRaw;
-            if (activationDate.Length == 10 && activationDate.IndexOf('T') < 0)
-                activationDate = activationDate + "T00:00:00Z";
+            var activationDate = ActivationDatePicker.SelectedDate.Value.ToString("yyyy-MM-dd") + "T00:00:00Z";
 
             CreateButton.Content = "Please wait...";
             CreateButton.IsEnabled = false;

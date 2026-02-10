@@ -64,6 +64,8 @@ namespace x_phy_wpf_ui.Controls
             ResultsNavButton.Style = (Style)FindResource("TopNavButtonStyle");
             ProfileNavButton.Style = (Style)FindResource("TopNavButtonStyle");
             SettingsNavButton.Style = (Style)FindResource("TopNavButtonStyle");
+            if (AddCorpUserButton != null)
+                AddCorpUserButton.Style = (Style)FindResource("TopNavButtonStyle");
 
             // Set selected button style
             Button selectedButton = selectedPage switch
@@ -72,10 +74,12 @@ namespace x_phy_wpf_ui.Controls
                 "Results" => ResultsNavButton,
                 "Profile" => ProfileNavButton,
                 "Settings" => SettingsNavButton,
+                "CorpUser" => AddCorpUserButton,
                 _ => HomeNavButton
             };
 
-            selectedButton.Style = (Style)FindResource("SelectedTopNavButtonStyle");
+            if (selectedButton != null)
+                selectedButton.Style = (Style)FindResource("SelectedTopNavButtonStyle");
         }
 
         private void Home_Click(object sender, RoutedEventArgs e)
@@ -104,6 +108,7 @@ namespace x_phy_wpf_ui.Controls
 
         private void AddCorpUser_Click(object sender, RoutedEventArgs e)
         {
+            SelectedPage = "CorpUser";
             AddCorpUserClicked?.Invoke(this, EventArgs.Empty);
         }
     }

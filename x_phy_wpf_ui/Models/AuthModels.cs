@@ -21,6 +21,9 @@ namespace x_phy_wpf_ui.Models
         public string Username { get; set; } = string.Empty;
         public string Password { get; set; } = string.Empty;
         public string DeviceFingerprint { get; set; } = string.Empty;
+        /// <summary>Optional license key for corporate sign-in.</summary>
+        [JsonProperty("licenseKey")]
+        public string? LicenseKey { get; set; }
     }
 
     public class RegisterRequest
@@ -67,9 +70,25 @@ namespace x_phy_wpf_ui.Models
         public bool LicenseValid { get; set; }
         [JsonProperty("license")]
         public LicenseInfo? License { get; set; }
-        /// <summary>License key if API returns it at top level (e.g. "licenseKey").</summary>
-        [JsonProperty("licenseKey")]
-        public string? LicenseKey { get; set; }
+        /// <summary>When true, show Update Password screen after login (e.g. first-time corporate login).</summary>
+        [JsonProperty("requiresPasswordChange")]
+        public bool RequiresPasswordChange { get; set; }
+    }
+
+    public class ChangePasswordRequest
+    {
+        [JsonProperty("currentPassword")]
+        public string CurrentPassword { get; set; } = string.Empty;
+        [JsonProperty("newPassword")]
+        public string NewPassword { get; set; } = string.Empty;
+    }
+
+    public class ChangePasswordResponse
+    {
+        [JsonProperty("message")]
+        public string Message { get; set; } = string.Empty;
+        [JsonProperty("success")]
+        public bool Success { get; set; }
     }
 
     public class UserInfo

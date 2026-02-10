@@ -8,6 +8,7 @@ namespace x_phy_wpf_ui.Controls
     {
         public event EventHandler NavigateToSignIn;
         public event EventHandler NavigateToCreateAccount;
+        public event EventHandler NavigateToCorporateSignIn;
 
         public LaunchComponent()
         {
@@ -26,7 +27,7 @@ namespace x_phy_wpf_ui.Controls
 
         private void CorporateSignIn_Click(object sender, System.Windows.Input.MouseButtonEventArgs e)
         {
-            NavigateToSignIn?.Invoke(this, EventArgs.Empty);
+            NavigateToCorporateSignIn?.Invoke(this, EventArgs.Empty);
         }
     }
 }

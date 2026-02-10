@@ -109,18 +109,19 @@
                         Click="CreateAccount_Click" FontWeight="Normal"/>
             </StackPanel>
             
-            <!-- Corporate User Link (disabled) -->
+            <!-- Corporate User Link -->
             <StackPanel Orientation="Horizontal" 
                        HorizontalAlignment="Center"
                        Margin="0,0,0,0"
-                       IsEnabled="False"
-                       Opacity="0.6">
+                       Cursor="Hand"
+                       MouseLeftButtonDown="CorporateSignIn_Click">
                 <TextBlock Text="Corporate user? " 
                            FontSize="14" 
                            Foreground="{StaticResource TextSecondary}"/>
                 <TextBlock Text="Sign in here" 
                            FontSize="14" 
-                           Foreground="{StaticResource TextSecondary}"/>
+                           Foreground="{StaticResource PrimaryPink}"
+                           FontWeight="SemiBold"/>
             </StackPanel>
         </StackPanel>
     </Grid>

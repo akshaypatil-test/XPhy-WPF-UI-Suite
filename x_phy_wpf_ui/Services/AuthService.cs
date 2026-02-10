@@ -411,7 +411,7 @@ namespace x_phy_wpf_ui.Services
         {
             try
             {
-                var request = new ChangePasswordRequest { CurrentPassword = currentPassword, NewPassword = newPassword };
+                var request = new ChangePasswordRequest { CurrentPassword = currentPassword, UpdatedPassword = newPassword };
                 var json = JsonConvert.SerializeObject(request);
                 var content = new StringContent(json, Encoding.UTF8, "application/json");
                 using var msg = new HttpRequestMessage(HttpMethod.Post, "/api/auth/change-password") { Content = content };

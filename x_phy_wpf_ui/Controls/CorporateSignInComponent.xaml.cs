@@ -315,7 +315,7 @@ namespace x_phy_wpf_ui.Controls
                         response.User,
                         licenseInfo
                     );
-                    if (response.RequiresPasswordChange)
+                    if (response.FirstTimeLogin)
                         SignInRequiresPasswordChange?.Invoke(this, true);
                     else
                         SignInSuccessful?.Invoke(this, EventArgs.Empty);

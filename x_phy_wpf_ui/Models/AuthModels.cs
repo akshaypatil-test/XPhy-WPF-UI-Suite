@@ -70,17 +70,17 @@ namespace x_phy_wpf_ui.Models
         public bool LicenseValid { get; set; }
         [JsonProperty("license")]
         public LicenseInfo? License { get; set; }
-        /// <summary>When true, show Update Password screen after login (e.g. first-time corporate login).</summary>
-        [JsonProperty("requiresPasswordChange")]
-        public bool RequiresPasswordChange { get; set; }
+        /// <summary>True on first successful login; show Update Password screen for corp user.</summary>
+        [JsonProperty("firstTimeLogin")]
+        public bool FirstTimeLogin { get; set; }
     }
 
     public class ChangePasswordRequest
     {
         [JsonProperty("currentPassword")]
         public string CurrentPassword { get; set; } = string.Empty;
-        [JsonProperty("newPassword")]
-        public string NewPassword { get; set; } = string.Empty;
+        [JsonProperty("updatedPassword")]
+        public string UpdatedPassword { get; set; } = string.Empty;
     }
 
     public class ChangePasswordResponse

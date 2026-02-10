@@ -281,44 +281,52 @@ namespace x_phy_wpf_ui.Controls
 
                 if (response != null && response.User != null)
                 {
-                    var licenseInfo = response.License;
-                    if (licenseInfo == null && response.User != null)
-                    {
-                        licenseInfo = new LicenseInfo
-                        {
-                            Status = string.IsNullOrEmpty(response.User.LicenseStatus) ? "Trial" : response.User.LicenseStatus,
-                            TrialEndsAt = response.User.TrialEndsAt,
-                            Key = string.IsNullOrWhiteSpace(licenseKey) ? null : licenseKey
-                        };
-                    }
-                    else if (licenseInfo != null && !string.IsNullOrWhiteSpace(licenseKey))
-                    {
-                        licenseInfo = new LicenseInfo
-                        {
-                            Key = licenseKey,
-                            Status = licenseInfo.Status,
-                            MaxDevices = licenseInfo.MaxDevices,
-                            PlanId = licenseInfo.PlanId,
-                            PlanName = licenseInfo.PlanName,
-                            TrialEndsAt = licenseInfo.TrialEndsAt,
-                            PurchaseDate = licenseInfo.PurchaseDate,
-                            ExpiryDate = licenseInfo.ExpiryDate,
-                            TrialAttemptsRemaining = licenseInfo.TrialAttemptsRemaining
-                        };
-                    }
-                    _tokenStorage.SaveTokens(
-                        response.AccessToken,
-                        response.RefreshToken,
-                        response.ExpiresIn,
-                        response.User.Id,
-                        response.User.Username,
-                        response.User,
-                        licenseInfo
-                    );
+                    // Use license key from input for config.toml and native Keygen validation (same as normal sign-in).
+                    var keyForConfig = string.IsNullOrWhiteSpace(licenseKey) ? null : licenseKey.Trim();
                     if (response.FirstTimeLogin)
+                    {
+                        // Save tokens so update-password flow has a session; license key stored for validation after password update.
+                        var licenseInfo = response.License;
+                        if (licenseInfo == null)
+                        {
+                            licenseInfo = new LicenseInfo
+                            {
+                                Status = string.IsNullOrEmpty(response.User.LicenseStatus) ? "Trial" : response.User.LicenseStatus,
+                                TrialEndsAt = response.User.TrialEndsAt,
+                                Key = keyForConfig
+                            };
+                        }
+                        else if (!string.IsNullOrWhiteSpace(keyForConfig))
+                        {
+                            licenseInfo = new LicenseInfo
+                            {
+                                Key = keyForConfig,
+                                Status = licenseInfo.Status,
+                                MaxDevices = licenseInfo.MaxDevices,
+                                PlanId = licenseInfo.PlanId,
+                                PlanName = licenseInfo.PlanName,
+                                TrialEndsAt = licenseInfo.TrialEndsAt,
+                                PurchaseDate = licenseInfo.PurchaseDate,
+                                ExpiryDate = licenseInfo.ExpiryDate,
+                                TrialAttemptsRemaining = licenseInfo.TrialAttemptsRemaining
+                            };
+                        }
+                        _tokenStorage.SaveTokens(
+                            response.AccessToken,
+                            response.RefreshToken,
+                            response.ExpiresIn,
+                            response.User.Id,
+                            response.User.Username,
+                            response.User,
+                            licenseInfo
+                        );
                         SignInRequiresPasswordChange?.Invoke(this, true);
+                    }
                     else
-                        SignInSuccessful?.Invoke(this, EventArgs.Empty);
+                    {
+                        // Same flow as normal sign-in: do not save tokens here; MainWindow will write config, run Keygen, then save and show app.
+                        SignInSuccessful?.Invoke(this, new x_phy_wpf_ui.SignInSuccessfulEventArgs(keyForConfig, response, fromCorporateSignIn: true));
+                    }
                 }
                 else
                 {

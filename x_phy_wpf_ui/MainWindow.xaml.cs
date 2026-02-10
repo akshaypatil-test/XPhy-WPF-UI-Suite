@@ -225,9 +225,12 @@ namespace x_phy_wpf_ui
         {
             if (e is not SignInSuccessfulEventArgs args || args.LoginResponse == null)
             {
-                Dispatcher.Invoke(() => { AuthPanel.SetContent(_signInComponent); });
+                // PasswordUpdated from corporate first-time: validate using stored tokens and show app.
+                Dispatcher.Invoke(() => TryValidateStoredTokensAndShowApp());
                 return;
             }
+
+            UserControl signInComponentOnError = args.FromCorporateSignIn ? _corporateSignInComponent : _signInComponent;
 
             // 1. Write/override config.toml with the user's license key (AppData, no admin needed).
             if (!string.IsNullOrWhiteSpace(args.LicenseKey))
@@ -237,7 +240,7 @@ namespace x_phy_wpf_ui
                 Dispatcher.Invoke(() =>
                 {
                     MessageBox.Show("No license key received. Cannot validate license.", "License Error", MessageBoxButton.OK, MessageBoxImage.Error);
-                    AuthPanel.SetContent(_signInComponent);
+                    AuthPanel.SetContent(signInComponentOnError);
                 });
                 return;
             }
@@ -281,7 +284,7 @@ namespace x_phy_wpf_ui
                     bool isLicenseError = IsLicenseValidationFailure(ex);
                     string title = isLicenseError ? "License Error" : "Validation Failed";
                     MessageBox.Show(message, title, MessageBoxButton.OK, MessageBoxImage.Error);
-                    AuthPanel.SetContent(_signInComponent);
+                    AuthPanel.SetContent(signInComponentOnError);
                     return;
                 }
 
@@ -306,6 +309,51 @@ namespace x_phy_wpf_ui
                 );
                 ShowAppView();
             });
+        }
+
+        /// <summary>Used after corporate first-time password update: validate license from stored tokens and show app.</summary>
+        private void TryValidateStoredTokensAndShowApp()
+        {
+            var tokenStorage = new TokenStorage();
+            var storedTokens = tokenStorage.GetTokens();
+            string? licenseKey = storedTokens?.LicenseInfo?.Key;
+            if (string.IsNullOrWhiteSpace(licenseKey))
+            {
+                AuthPanel.SetContent(_signInComponent);
+                return;
+            }
+            WriteLicenseKeyToExeConfig(licenseKey.Trim());
+            try
+            {
+                string appData = Environment.GetFolderPath(Environment.SpecialFolder.ApplicationData);
+                string outputDir = Path.Combine(appData, "X-PHY", "X-PHY Deepfake Detector");
+                Directory.CreateDirectory(outputDir);
+                string configPath = GetAppDataConfigPath();
+                controller = new ApplicationControllerWrapper(outputDir, configPath);
+                controllerInitializationAttempted = true;
+                var ctrl = controller;
+                _inferenceWarmUpTask = Task.Run(() =>
+                {
+                    try
+                    {
+                        System.Threading.Thread.Sleep(3000);
+                        var method = ctrl?.GetType().GetMethod("PrepareInferenceEnvironment", Type.EmptyTypes);
+                        if (method != null) method.Invoke(ctrl, null);
+                    }
+                    catch (Exception ex) { System.Diagnostics.Debug.WriteLine($"Warm-up: {ex.Message}"); }
+                });
+                ShowAppView();
+            }
+            catch (Exception ex)
+            {
+                controller = null;
+                controllerInitializationAttempted = true;
+                string message = GetControllerInitFailureMessage(ex);
+                bool isLicenseError = IsLicenseValidationFailure(ex);
+                string title = isLicenseError ? "License Error" : "Validation Failed";
+                MessageBox.Show(message, title, MessageBoxButton.OK, MessageBoxImage.Error);
+                AuthPanel.SetContent(_corporateSignInComponent);
+            }
         }
 
         private void AuthHostView_CloseRequested(object sender, EventArgs e)

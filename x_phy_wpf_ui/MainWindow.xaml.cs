@@ -1101,7 +1101,7 @@ videoLiveFakeProportionThreshold = 0.7
                     ResetAppContentToHome();
                     break;
                 case "Results":
-                    OpenResultsFolder_Click(sender, new RoutedEventArgs());
+                    MessageBox.Show("Results page coming soon!", "Results", MessageBoxButton.OK, MessageBoxImage.Information);
                     break;
                 case "Profile":
                     // TODO: Show profile page

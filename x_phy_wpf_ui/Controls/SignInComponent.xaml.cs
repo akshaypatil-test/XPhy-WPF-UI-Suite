@@ -301,7 +301,7 @@ namespace x_phy_wpf_ui.Controls
                             TrialEndsAt = response.User.TrialEndsAt
                         };
                     }
-                    var licenseKey = response.LicenseKey ?? response.License?.Key ?? licenseInfo?.Key;
+                    var licenseKey = response.License?.Key ?? licenseInfo?.Key;
                     SignInSuccessful?.Invoke(this, new SignInSuccessfulEventArgs(licenseKey, response));
                 }
                 else

@@ -268,11 +268,13 @@
                 <Border x:Name="CountryCodeFieldBorder" Background="{StaticResource InputBackground}" BorderBrush="{StaticResource InputBorder}" BorderThickness="1" CornerRadius="6" MinHeight="38" Margin="0,0,0,6">
                     <TextBox x:Name="CountryCodeTextBox" Style="{StaticResource ModernTextBoxInnerStyleFullWidth}" TextChanged="CountryCodeTextBox_TextChanged"/>
                 </Border>
+                <TextBlock x:Name="CountryCodeErrorText" Text="" FontSize="10" Foreground="{StaticResource ErrorText}" Margin="2,0,0,2" Visibility="Collapsed" TextWrapping="Wrap"/>
 
                 <TextBlock Text="Contact Number" FontSize="11" FontWeight="Bold" Foreground="{StaticResource TextSecondary}" Margin="0,0,0,4"/>
                 <Border x:Name="ContactNumberFieldBorder" Background="{StaticResource InputBackground}" BorderBrush="{StaticResource InputBorder}" BorderThickness="1" CornerRadius="6" MinHeight="38" Margin="0,0,0,6">
                     <TextBox x:Name="ContactNumberTextBox" Style="{StaticResource ModernTextBoxInnerStyleFullWidth}" TextChanged="ContactNumberTextBox_TextChanged"/>
                 </Border>
+                <TextBlock x:Name="ContactNumberErrorText" Text="" FontSize="10" Foreground="{StaticResource ErrorText}" Margin="2,0,0,2" Visibility="Collapsed" TextWrapping="Wrap"/>
 
                 <TextBlock Text="Order Number" FontSize="11" FontWeight="Bold" Foreground="{StaticResource TextSecondary}" Margin="0,0,0,4"/>
                 <Border x:Name="OrderNumberFieldBorder" Background="{StaticResource InputBackground}" BorderBrush="{StaticResource InputBorder}" BorderThickness="1" CornerRadius="6" MinHeight="38" Margin="0,0,0,6">
@@ -281,7 +283,14 @@
 
                 <TextBlock Text="Activation Date" FontSize="11" FontWeight="Bold" Foreground="{StaticResource TextSecondary}" Margin="0,0,0,4"/>
                 <Border x:Name="ActivationDateFieldBorder" Background="{StaticResource InputBackground}" BorderBrush="{StaticResource InputBorder}" BorderThickness="1" CornerRadius="6" MinHeight="38" Margin="0,0,0,6">
-                    <TextBox x:Name="ActivationDateTextBox" Style="{StaticResource ModernTextBoxInnerStyleFullWidth}" TextChanged="ActivationDateTextBox_TextChanged"/>
+                    <DatePicker x:Name="ActivationDatePicker"
+                                Background="Transparent"
+                                Foreground="{StaticResource TextPrimary}"
+                                BorderThickness="0"
+                                Padding="12,8"
+                                FontSize="14"
+                                SelectedDateChanged="ActivationDatePicker_SelectedDateChanged"
+                                VerticalAlignment="Center"/>
                 </Border>
                 <TextBlock x:Name="ActivationDateErrorText" Text="" FontSize="10" Foreground="{StaticResource ErrorText}" Margin="2,0,0,2" Visibility="Collapsed" TextWrapping="Wrap"/>
             </StackPanel>

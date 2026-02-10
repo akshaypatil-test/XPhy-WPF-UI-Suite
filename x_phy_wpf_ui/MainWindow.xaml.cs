@@ -52,6 +52,8 @@ namespace x_phy_wpf_ui
         private ForgotPasswordComponent _forgotPasswordComponent;
         private ForgotPasswordVerifyOtpComponent _forgotPasswordVerifyOtpComponent;
         private ResetPasswordComponent _resetPasswordComponent;
+        private CorporateSignInComponent _corporateSignInComponent;
+        private UpdatePasswordComponent _updatePasswordComponent;
         private bool _appViewShownOnce = false;
         private FloatingWidgetWindow _floatingWidget;
         /// <summary>Set to true to show the floating app launcher when minimized. Disabled for now; re-enable later.</summary>
@@ -118,11 +120,14 @@ namespace x_phy_wpf_ui
             _forgotPasswordComponent = new ForgotPasswordComponent();
             _forgotPasswordVerifyOtpComponent = new ForgotPasswordVerifyOtpComponent();
             _resetPasswordComponent = new ResetPasswordComponent();
-            
-            // Initial app start: Welcome → Get Started (Launch) → Sign In / Create Account
+            _corporateSignInComponent = new CorporateSignInComponent();
+            _updatePasswordComponent = new UpdatePasswordComponent();
+
+            // Initial app start: Welcome → Get Started (Launch) → Sign In / Create Account / Corporate Sign In
             _welcomeComponent.NavigateToLaunch += (s, e) => { AuthPanel.SetContent(_launchComponent); };
             _launchComponent.NavigateToSignIn += (s, e) => { _signInComponent.ClearInputs(); AuthPanel.SetContent(_signInComponent); };
             _launchComponent.NavigateToCreateAccount += (s, e) => { _createAccountComponent.ClearInputs(); AuthPanel.SetContent(_createAccountComponent); };
+            _launchComponent.NavigateToCorporateSignIn += (s, e) => { _corporateSignInComponent.ClearInputs(); AuthPanel.SetContent(_corporateSignInComponent); };
             
             _signInComponent.NavigateToCreateAccount += (s, e) => { _createAccountComponent.ClearInputs(); AuthPanel.SetContent(_createAccountComponent); };
             _signInComponent.NavigateToRecoverUsername += (s, e) => { _recoverUsernameComponent.ClearInputs(); AuthPanel.SetContent(_recoverUsernameComponent); };
@@ -176,7 +181,30 @@ namespace x_phy_wpf_ui
             };
             _resetPasswordComponent.NavigateBack += (s, e) => { _signInComponent.ClearInputs(); AuthPanel.SetContent(_signInComponent); };
             _resetPasswordComponent.NavigateToSignIn += (s, e) => { _signInComponent.ClearInputs(); AuthPanel.SetContent(_signInComponent); };
-            
+
+            _corporateSignInComponent.NavigateBack += (s, e) => { AuthPanel.SetContent(_launchComponent); };
+            _corporateSignInComponent.NavigateToRecoverUsername += (s, e) => { _recoverUsernameComponent.ClearInputs(); AuthPanel.SetContent(_recoverUsernameComponent); };
+            _corporateSignInComponent.NavigateToForgotPassword += (s, e) => { _forgotPasswordComponent.ClearInputs(); AuthPanel.SetContent(_forgotPasswordComponent); };
+            _corporateSignInComponent.ShowLoaderRequested += (s, e) =>
+            {
+                _loaderShownAt = DateTime.UtcNow;
+                AuthPanel.SetContent(_loaderComponent);
+            };
+            _corporateSignInComponent.SignInSuccessful += SignInComponent_SignInSuccessful;
+            _corporateSignInComponent.SignInRequiresPasswordChange += (s, required) =>
+            {
+                _updatePasswordComponent.ClearInputs();
+                AuthPanel.SetContent(_updatePasswordComponent);
+            };
+            _corporateSignInComponent.SignInFailed += (s, e) =>
+            {
+                AuthPanel.SetContent(_corporateSignInComponent);
+                if (e != null && !string.IsNullOrEmpty(e.Message))
+                    _corporateSignInComponent.SetError(e.Message);
+            };
+
+            _updatePasswordComponent.PasswordUpdated += (s, e) => SignInComponent_SignInSuccessful(s, e);
+
             // First app start: show Welcome, then it auto-navigates to Get Started, then user picks Sign In / Create Account
             AuthPanel.SetContent(_welcomeComponent);
             AuthPanel.CloseRequested += AuthHostView_CloseRequested;
@@ -204,7 +232,10 @@ namespace x_phy_wpf_ui
             AppPanel.Visibility = Visibility.Visible;
 
             // Always show home screen when entering app (e.g. after login or re-login)
+            ShowDetectionContent();
             ResetAppContentToHome();
+            if (TopNavBar != null)
+                TopNavBar.SelectedPage = "Home";
 
             // Initialize stats and license display when showing App view
             StatisticsCardsControl.TotalDetections = "0";
@@ -1678,6 +1709,8 @@ videoLiveFakeProportionThreshold = 0.7
 
         private void TopNavBar_AddCorpUserClicked(object sender, EventArgs e)
         {
+            if (TopNavBar != null)
+                TopNavBar.SelectedPage = "CorpUser";
             DetectionContentGrid.Visibility = Visibility.Collapsed;
             StatisticsCardsGrid.Visibility = Visibility.Collapsed;
             PlansComponent.Visibility = Visibility.Collapsed;
@@ -1689,12 +1722,16 @@ videoLiveFakeProportionThreshold = 0.7
         private void CorpRegisterComponent_BackRequested(object sender, EventArgs e)
         {
             CorpRegisterComponent.Visibility = Visibility.Collapsed;
+            if (TopNavBar != null)
+                TopNavBar.SelectedPage = "Home";
             ShowDetectionContent();
         }
 
         private void CorpRegisterComponent_CorpAccountCreated(object sender, EventArgs e)
         {
             CorpRegisterComponent.Visibility = Visibility.Collapsed;
+            if (TopNavBar != null)
+                TopNavBar.SelectedPage = "Home";
             ShowDetectionContent();
         }
 

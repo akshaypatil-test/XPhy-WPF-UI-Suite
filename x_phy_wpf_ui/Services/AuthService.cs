@@ -33,7 +33,7 @@ namespace x_phy_wpf_ui.Services
                 (sender, certificate, chain, sslPolicyErrors) => true;
         }
 
-        public async Task<LoginResponse?> LoginAsync(string username, string password)
+        public async Task<LoginResponse?> LoginAsync(string username, string password, string? licenseKey = null)
         {
             try
             {
@@ -42,7 +42,8 @@ namespace x_phy_wpf_ui.Services
                 {
                     Username = username,
                     Password = password,
-                    DeviceFingerprint = deviceFingerprint
+                    DeviceFingerprint = deviceFingerprint,
+                    LicenseKey = string.IsNullOrWhiteSpace(licenseKey) ? null : licenseKey!.Trim()
                 };
 
                 var json = JsonConvert.SerializeObject(request);
@@ -390,6 +391,43 @@ namespace x_phy_wpf_ui.Services
                 var errorJson = await response.Content.ReadAsStringAsync();
                 var errorResponse = JsonConvert.DeserializeObject<ApiErrorResponse>(errorJson);
                 throw new Exception(errorResponse?.Message ?? "Password reset failed.");
+            }
+            catch (HttpRequestException ex)
+            {
+                throw new Exception($"Network error: {ex.Message}");
+            }
+            catch (TaskCanceledException)
+            {
+                throw new Exception("Request timeout. Please check your connection.");
+            }
+            catch (Exception ex)
+            {
+                throw new Exception(ex.Message);
+            }
+        }
+
+        /// <summary>Change password when logged in (e.g. first-time corporate login). Requires Bearer token.</summary>
+        public async Task<ChangePasswordResponse> ChangePasswordAsync(string currentPassword, string newPassword, string accessToken)
+        {
+            try
+            {
+                var request = new ChangePasswordRequest { CurrentPassword = currentPassword, NewPassword = newPassword };
+                var json = JsonConvert.SerializeObject(request);
+                var content = new StringContent(json, Encoding.UTF8, "application/json");
+                using var msg = new HttpRequestMessage(HttpMethod.Post, "/api/auth/change-password") { Content = content };
+                msg.Headers.Add("Authorization", "Bearer " + accessToken);
+                var response = await _httpClient.SendAsync(msg);
+
+                if (response.IsSuccessStatusCode)
+                {
+                    var responseJson = await response.Content.ReadAsStringAsync();
+                    var changeResponse = JsonConvert.DeserializeObject<ChangePasswordResponse>(responseJson);
+                    return changeResponse ?? new ChangePasswordResponse { Success = true, Message = "Password updated." };
+                }
+
+                var errorJson = await response.Content.ReadAsStringAsync();
+                var errorResponse = JsonConvert.DeserializeObject<ApiErrorResponse>(errorJson);
+                throw new Exception(errorResponse?.Message ?? "Password change failed.");
             }
             catch (HttpRequestException ex)
             {

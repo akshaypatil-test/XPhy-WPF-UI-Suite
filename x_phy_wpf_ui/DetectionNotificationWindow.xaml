@@ -1,0 +1,320 @@
+<Window x:Class="x_phy_wpf_ui.DetectionNotificationWindow"
+        xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
+        xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+        Title="X-PHY Notification"
+        Width="350" SizeToContent="Height"
+        WindowStyle="None"
+        AllowsTransparency="True"
+        Background="Transparent"
+        Topmost="True"
+        ShowInTaskbar="False"
+        ResizeMode="NoResize"
+        MouseLeftButtonDown="Window_MouseLeftButtonDown">
+    <Border Background="White" CornerRadius="12" Padding="0" BorderThickness="0" ClipToBounds="True">
+        <Grid>
+            <Grid.RowDefinitions>
+                <RowDefinition Height="Auto"/>
+                <RowDefinition Height="Auto"/>
+            </Grid.RowDefinitions>
+
+            <!-- Header: logo, version, close (shared) -->
+            <Border Grid.Row="0" Background="#E8F4FC" CornerRadius="10,10,0,0" Padding="12,8,10,8">
+                <Grid>
+                    <Grid.ColumnDefinitions>
+                        <ColumnDefinition Width="Auto"/>
+                        <ColumnDefinition Width="*"/>
+                        <ColumnDefinition Width="Auto"/>
+                    </Grid.ColumnDefinitions>
+                    <Image Grid.Column="0" Source="/x-phy-inverted-logo.png" Height="24" Stretch="Uniform" VerticalAlignment="Center" Grid.ColumnSpan="2" Margin="0,0,238,0"/>
+                    <TextBlock x:Name="VersionText" Grid.Column="1" Text="Version: 1.0.10"
+                               Foreground="#666666" FontSize="11" VerticalAlignment="Center" Margin="73,0,0,0" HorizontalAlignment="Left"/>
+                    <Button Grid.Column="2" Content="✕" Width="24" Height="24"
+                            Background="Transparent" Foreground="#333333" FontSize="14"
+                            Cursor="Hand" BorderThickness="0" Click="CloseButton_Click"
+                            VerticalAlignment="Center" Padding="0">
+                        <Button.Style>
+                            <Style TargetType="Button">
+                                <Setter Property="Template">
+                                    <Setter.Value>
+                                        <ControlTemplate TargetType="Button">
+                                            <Border Background="{TemplateBinding Background}" CornerRadius="4" Padding="4">
+                                                <ContentPresenter HorizontalAlignment="Center" VerticalAlignment="Center"/>
+                                            </Border>
+                                        </ControlTemplate>
+                                    </Setter.Value>
+                                </Setter>
+                                <Style.Triggers>
+                                    <Trigger Property="IsMouseOver" Value="True">
+                                        <Setter Property="Background" Value="#D0E8F4"/>
+                                    </Trigger>
+                                </Style.Triggers>
+                            </Style>
+                        </Button.Style>
+                    </Button>
+                </Grid>
+            </Border>
+
+            <!-- Simple notification content (for Detection Started only) -->
+            <StackPanel x:Name="SimpleContentPanel" Grid.Row="1" Margin="20,16,20,20" Visibility="Collapsed">
+                <TextBlock x:Name="TitleText" Text="Detection started" FontWeight="Bold" FontSize="15" Foreground="#1A1A1A" Margin="0,0,0,6"/>
+                <TextBlock x:Name="MessageText" Text="Monitoring for deepfakes." FontSize="13" Foreground="#333333" TextWrapping="Wrap"/>
+            </StackPanel>
+
+            <!-- Detection Completed: title, message, Close + View Result buttons -->
+            <StackPanel x:Name="CompletedContentPanel" Grid.Row="1" Visibility="Collapsed">
+                <StackPanel Margin="20,20,20,16">
+                    <TextBlock x:Name="CompletedTitleText" Text="Detection Completed" FontWeight="Bold" FontSize="16" Foreground="#1A1A1A" Margin="0,0,0,8"/>
+                    <TextBlock x:Name="CompletedMessageText" Text="No AI Manipulation Found" FontSize="14" Foreground="#333333" TextWrapping="Wrap" Margin="0,0,0,20"/>
+                    <Grid>
+                        <Grid.ColumnDefinitions>
+                            <ColumnDefinition Width="*"/>
+                            <ColumnDefinition Width="12"/>
+                            <ColumnDefinition Width="*"/>
+                        </Grid.ColumnDefinitions>
+                        <Button x:Name="CompletedCloseButton" Grid.Column="0" Content="Close"
+                                Background="#E5E5E5" Foreground="#1A1A1A" FontSize="14"
+                                Padding="24,12" Cursor="Hand" BorderThickness="1" BorderBrush="#D0D0D0"
+                                Click="CompletedClose_Click" HorizontalAlignment="Stretch">
+                            <Button.Style>
+                                <Style TargetType="Button">
+                                    <Setter Property="Template">
+                                        <Setter.Value>
+                                            <ControlTemplate TargetType="Button">
+                                                <Border Background="{TemplateBinding Background}" BorderBrush="{TemplateBinding BorderBrush}" BorderThickness="{TemplateBinding BorderThickness}" CornerRadius="8" Padding="{TemplateBinding Padding}">
+                                                    <ContentPresenter HorizontalAlignment="Center" VerticalAlignment="Center"/>
+                                                </Border>
+                                            </ControlTemplate>
+                                        </Setter.Value>
+                                    </Setter>
+                                    <Style.Triggers>
+                                        <Trigger Property="IsMouseOver" Value="True">
+                                            <Setter Property="Background" Value="#D8D8D8"/>
+                                        </Trigger>
+                                    </Style.Triggers>
+                                </Style>
+                            </Button.Style>
+                        </Button>
+                        <Button x:Name="CompletedViewResultButton" Grid.Column="2" Content="View Result"
+                                Background="#2563EB" Foreground="White" FontSize="14" FontWeight="SemiBold"
+                                Padding="24,12" Cursor="Hand" BorderThickness="0"
+                                Click="CompletedViewResult_Click" HorizontalAlignment="Stretch">
+                            <Button.Style>
+                                <Style TargetType="Button">
+                                    <Setter Property="Template">
+                                        <Setter.Value>
+                                            <ControlTemplate TargetType="Button">
+                                                <Border Background="{TemplateBinding Background}" CornerRadius="8" Padding="{TemplateBinding Padding}">
+                                                    <ContentPresenter HorizontalAlignment="Center" VerticalAlignment="Center"/>
+                                                </Border>
+                                            </ControlTemplate>
+                                        </Setter.Value>
+                                    </Setter>
+                                    <Style.Triggers>
+                                        <Trigger Property="IsMouseOver" Value="True">
+                                            <Setter Property="Background" Value="#1D4ED8"/>
+                                        </Trigger>
+                                    </Style.Triggers>
+                                </Style>
+                            </Button.Style>
+                        </Button>
+                    </Grid>
+                </StackPanel>
+            </StackPanel>
+
+            <!-- Detection Completed (AI Manipulated): title, AI Detected + confidence + timestamp, evidence, Close + View Result -->
+            <StackPanel x:Name="CompletedWithThreatContentPanel" Grid.Row="1" Visibility="Collapsed">
+                <StackPanel Margin="20,16,20,16">
+                    <TextBlock Text="Detection Completed" FontWeight="Bold" FontSize="16" Foreground="#1A1A1A" Margin="0,0,0,12"/>
+                    <TextBlock x:Name="CompletedThreatAlertText" Text="AI Manipulated Content Detected" FontWeight="Bold" FontSize="14" Foreground="#C41E3A" Margin="0,0,0,4"/>
+                    <TextBlock x:Name="CompletedThreatConfidenceText" Text="Confidence 97%" FontWeight="Bold" FontSize="13" Foreground="#C41E3A" Margin="0,0,0,4"/>
+                    <TextBlock x:Name="CompletedThreatTimestampText" Text="14:20 Jan 5, 2026" FontSize="12" Foreground="#333333" Margin="0,0,0,12"/>
+                    <Border Margin="0,0,0,12" Background="#1A1A1A" CornerRadius="8" Padding="4" BorderBrush="#333" BorderThickness="1" MaxHeight="120">
+                        <Grid>
+                            <Grid.ColumnDefinitions>
+                                <ColumnDefinition Width="*"/>
+                                <ColumnDefinition Width="Auto"/>
+                                <ColumnDefinition Width="*"/>
+                            </Grid.ColumnDefinitions>
+                            <Border Grid.Column="0" Margin="0,4,2,4" CornerRadius="4" ClipToBounds="True">
+                                <Image x:Name="CompletedThreatEvidenceLeft" Stretch="Uniform" RenderOptions.BitmapScalingMode="HighQuality"/>
+                            </Border>
+                            <Rectangle Grid.Column="1" Width="1" Fill="#555555" Margin="0,8"/>
+                            <Border Grid.Column="2" Margin="2,4,0,4" CornerRadius="4" ClipToBounds="True">
+                                <Image x:Name="CompletedThreatEvidenceRight" Stretch="Uniform" RenderOptions.BitmapScalingMode="HighQuality"/>
+                            </Border>
+                        </Grid>
+                    </Border>
+                    <Grid>
+                        <Grid.ColumnDefinitions>
+                            <ColumnDefinition Width="*"/>
+                            <ColumnDefinition Width="12"/>
+                            <ColumnDefinition Width="*"/>
+                        </Grid.ColumnDefinitions>
+                        <Button Grid.Column="0" Content="Close" Background="#E5E5E5" Foreground="#1A1A1A" FontSize="14"
+                                Padding="24,12" Cursor="Hand" BorderThickness="1" BorderBrush="#D0D0D0"
+                                Click="CompletedClose_Click" HorizontalAlignment="Stretch">
+                            <Button.Style>
+                                <Style TargetType="Button">
+                                    <Setter Property="Template">
+                                        <Setter.Value>
+                                            <ControlTemplate TargetType="Button">
+                                                <Border Background="{TemplateBinding Background}" BorderBrush="{TemplateBinding BorderBrush}" BorderThickness="{TemplateBinding BorderThickness}" CornerRadius="8" Padding="{TemplateBinding Padding}">
+                                                    <ContentPresenter HorizontalAlignment="Center" VerticalAlignment="Center"/>
+                                                </Border>
+                                            </ControlTemplate>
+                                        </Setter.Value>
+                                    </Setter>
+                                    <Style.Triggers>
+                                        <Trigger Property="IsMouseOver" Value="True">
+                                            <Setter Property="Background" Value="#D8D8D8"/>
+                                        </Trigger>
+                                    </Style.Triggers>
+                                </Style>
+                            </Button.Style>
+                        </Button>
+                        <Button Grid.Column="2" Content="View Result" Background="#2563EB" Foreground="White" FontSize="14" FontWeight="SemiBold"
+                                Padding="24,12" Cursor="Hand" BorderThickness="0"
+                                Click="CompletedViewResult_Click" HorizontalAlignment="Stretch">
+                            <Button.Style>
+                                <Style TargetType="Button">
+                                    <Setter Property="Template">
+                                        <Setter.Value>
+                                            <ControlTemplate TargetType="Button">
+                                                <Border Background="{TemplateBinding Background}" CornerRadius="8" Padding="{TemplateBinding Padding}">
+                                                    <ContentPresenter HorizontalAlignment="Center" VerticalAlignment="Center"/>
+                                                </Border>
+                                            </ControlTemplate>
+                                        </Setter.Value>
+                                    </Setter>
+                                    <Style.Triggers>
+                                        <Trigger Property="IsMouseOver" Value="True">
+                                            <Setter Property="Background" Value="#1D4ED8"/>
+                                        </Trigger>
+                                    </Style.Triggers>
+                                </Style>
+                            </Button.Style>
+                        </Button>
+                    </Grid>
+                </StackPanel>
+            </StackPanel>
+
+            <!-- Deepfake notification content -->
+            <StackPanel x:Name="DeepfakeContentPanel" Grid.Row="1" Visibility="Collapsed">
+                <!-- Detection summary: AI Manipulated Content Detected, Confidence %, timestamp -->
+                <StackPanel Margin="14,10,14,6">
+                    <TextBlock x:Name="AlertTitleText" Text="AI Manipulated Content Detected"
+                           FontWeight="Bold" FontSize="14" Foreground="#C41E3A" Margin="0,0,0,2"/>
+                    <TextBlock x:Name="ConfidenceText" Text="Confidence 97%"
+                           FontWeight="Bold" FontSize="13" Foreground="#C41E3A" Margin="0,0,0,2"/>
+                    <TextBlock x:Name="TimestampText" Text="14:20 Jan 5, 2026"
+                           FontSize="12" Foreground="#333333"/>
+                </StackPanel>
+
+                <!-- Visual evidence: two images side by side (capped height to save space) -->
+                <Border Margin="14,0,14,8" Background="#1A1A1A" CornerRadius="6" Padding="3" BorderBrush="#333" BorderThickness="1" MaxHeight="100">
+                    <Grid>
+                        <Grid.ColumnDefinitions>
+                            <ColumnDefinition Width="*"/>
+                            <ColumnDefinition Width="Auto"/>
+                            <ColumnDefinition Width="*"/>
+                        </Grid.ColumnDefinitions>
+                        <Border Grid.Column="0" Margin="0,2,1,2" CornerRadius="3" ClipToBounds="True">
+                            <Image x:Name="EvidenceImageLeft" Stretch="Uniform" RenderOptions.BitmapScalingMode="HighQuality"/>
+                        </Border>
+                        <Rectangle Grid.Column="1" Width="1" Fill="#555555" Margin="0,4"/>
+                        <Border Grid.Column="2" Margin="1,2,0,2" CornerRadius="3" ClipToBounds="True">
+                            <Image x:Name="EvidenceImageRight" Stretch="Uniform" RenderOptions.BitmapScalingMode="HighQuality"/>
+                        </Border>
+                    </Grid>
+                </Border>
+
+                <!-- Buttons: Stop & View Results, then Critical Threat (expandable) -->
+                <StackPanel Margin="14,0,14,0">
+                    <Button x:Name="StopAndViewResultsButton" Content="Stop &amp; View Results"
+                        Background="#E5E5E5" Foreground="#1A1A1A" FontSize="12" FontWeight="SemiBold"
+                        Padding="14,8" Margin="0,0,0,6" Cursor="Hand" BorderThickness="0"
+                        Click="StopAndViewResults_Click"
+                        HorizontalAlignment="Stretch">
+                        <Button.Style>
+                            <Style TargetType="Button">
+                                <Setter Property="Template">
+                                    <Setter.Value>
+                                        <ControlTemplate TargetType="Button">
+                                            <Border Background="{TemplateBinding Background}" CornerRadius="8" Padding="{TemplateBinding Padding}">
+                                                <ContentPresenter HorizontalAlignment="Center" VerticalAlignment="Center"/>
+                                            </Border>
+                                        </ControlTemplate>
+                                    </Setter.Value>
+                                </Setter>
+                                <Style.Triggers>
+                                    <Trigger Property="IsMouseOver" Value="True">
+                                        <Setter Property="Background" Value="#D0D0D0"/>
+                                    </Trigger>
+                                </Style.Triggers>
+                            </Style>
+                        </Button.Style>
+                    </Button>
+                    <Button x:Name="CriticalThreatButton" Content="Critical / Active Threat Detected"
+                        Background="#E8A0A0" Foreground="#1A1A1A" FontSize="12" FontWeight="SemiBold"
+                        Padding="14,8" Margin="0,0,0,0" Cursor="Hand" BorderThickness="0"
+                        Click="CriticalThreatButton_Click"
+                        HorizontalAlignment="Stretch">
+                        <Button.Style>
+                            <Style TargetType="Button">
+                                <Setter Property="Template">
+                                    <Setter.Value>
+                                        <ControlTemplate TargetType="Button">
+                                            <Border x:Name="border" Background="{TemplateBinding Background}" CornerRadius="8" Padding="{TemplateBinding Padding}">
+                                                <ContentPresenter HorizontalAlignment="Center" VerticalAlignment="Center"/>
+                                            </Border>
+                                        </ControlTemplate>
+                                    </Setter.Value>
+                                </Setter>
+                                <Style.Triggers>
+                                    <Trigger Property="IsMouseOver" Value="True">
+                                        <Setter Property="Background" Value="#E08080"/>
+                                    </Trigger>
+                                </Style.Triggers>
+                            </Style>
+                        </Button.Style>
+                    </Button>
+                </StackPanel>
+
+                <!-- Expandable red warning section (hidden by default, scrollable to fit screen) -->
+                <Border x:Name="WarningSection" Margin="14,8,14,12" Visibility="Collapsed"
+                    Background="#FFE8E8" CornerRadius="6" Padding="10,8" BorderBrush="#E8A0A0" BorderThickness="1" MaxHeight="160">
+                    <ScrollViewer VerticalScrollBarVisibility="Auto" HorizontalScrollBarVisibility="Disabled" Padding="0,0,4,0">
+                        <StackPanel>
+                            <TextBlock Text="(immediate action required): * Security Warning"
+                                   FontSize="11" Foreground="#C41E3A" Margin="0,0,0,4"/>
+                            <TextBlock Text="This video shows signs of synthetic or manipulated media. Please proceed with caution and avoid sharing sensitive information."
+                                   FontSize="12" Foreground="#C41E3A" FontWeight="SemiBold" TextWrapping="Wrap" Margin="0,0,0,6"/>
+                            <StackPanel>
+                                <TextBlock Foreground="#C41E3A" FontSize="11" Margin="0,1,0,0">
+                                <Run Text="✓ " FontWeight="Bold"/>
+                                <Run Text="Avoid directly accusing a person (&quot;this speaker is fake&quot;)"/>
+                                </TextBlock>
+                                <TextBlock Foreground="#C41E3A" FontSize="11" Margin="0,1,0,0">
+                                <Run Text="✓ " FontWeight="Bold"/>
+                                <Run Text="Use probabilistic language (&quot;may be manipulated&quot;)"/>
+                                </TextBlock>
+                                <TextBlock Foreground="#C41E3A" FontSize="11" Margin="0,1,0,0">
+                                <Run Text="✓ " FontWeight="Bold"/>
+                                <Run Text="Do not expose detection methods"/>
+                                </TextBlock>
+                                <TextBlock Foreground="#C41E3A" FontSize="11" Margin="0,1,0,0">
+                                <Run Text="✓ " FontWeight="Bold"/>
+                                <Run Text="Clearly state recommended user actions"/>
+                                </TextBlock>
+                                <TextBlock Foreground="#C41E3A" FontSize="11" Margin="0,1,0,0">
+                                <Run Text="✓ " FontWeight="Bold"/>
+                                <Run Text="Keep in-call messaging short and non-disruptive"/>
+                                </TextBlock>
+                            </StackPanel>
+                        </StackPanel>
+                    </ScrollViewer>
+                </Border>
+            </StackPanel>
+        </Grid>
+    </Border>
+</Window>

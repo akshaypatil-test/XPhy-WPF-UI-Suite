@@ -1,0 +1,356 @@
+﻿<!DOCTYPE html>
+<html>
+<head>
+    <meta charset="utf-8" />
+    <title>Stripe Payment</title>
+    <script src="https://js.stripe.com/v3/"></script>
+
+    <style>
+        body {
+            font-family: "Segoe UI", Arial, sans-serif;
+            background: #ffffff;
+            margin: 0;
+            padding: 20px;
+            overflow: auto;
+        }
+
+        .container {
+            max-width: 100%;
+            margin: 0 auto;
+            background: #fff;
+        }
+
+        h2 {
+            margin: 0 0 8px 0;
+            font-size: 20px;
+            color: #111827;
+        }
+
+        .subtitle {
+            margin: 0 0 20px 0;
+            color: #6b7280;
+            font-size: 14px;
+        }
+
+        .amount-display {
+            background: #f6f9fc;
+            border: 1px solid #e3e8ee;
+            border-radius: 8px;
+            padding: 16px;
+            margin-bottom: 20px;
+            text-align: center;
+        }
+
+        .amount-label {
+            font-size: 14px;
+            color: #6b7c93;
+            margin-bottom: 4px;
+        }
+
+        .amount-value {
+            font-size: 32px;
+            font-weight: bold;
+            color: #E2156B;
+        }
+
+        .row {
+            margin-bottom: 16px;
+        }
+
+        label {
+            display: block;
+            font-size: 13px;
+            margin-bottom: 8px;
+            color: #374151;
+            font-weight: 600;
+        }
+
+        .stripe-field {
+            padding: 12px;
+            border: 1px solid #d1d5db;
+            border-radius: 8px;
+            background: #fff;
+            transition: all 0.2s;
+        }
+
+        .stripe-field:focus-within {
+            border-color: #E2156B;
+            box-shadow: 0 0 0 3px rgba(226, 21, 107, 0.1);
+        }
+
+        .grid-2 {
+            display: grid;
+            grid-template-columns: 1fr 1fr;
+            gap: 16px;
+        }
+
+        #submit-button {
+            background: #E2156B;
+            color: white;
+            border: none;
+            border-radius: 8px;
+            padding: 14px 24px;
+            font-size: 16px;
+            font-weight: 600;
+            width: 100%;
+            cursor: pointer;
+            transition: background 0.2s;
+            margin-top: 20px;
+        }
+
+        #submit-button:hover:not(:disabled) {
+            background: #F0458A;
+        }
+
+        #submit-button:disabled {
+            opacity: 0.6;
+            cursor: not-allowed;
+        }
+
+        .spinner {
+            display: inline-block;
+            width: 16px;
+            height: 16px;
+            border: 3px solid rgba(255,255,255,.3);
+            border-radius: 50%;
+            border-top-color: #fff;
+            animation: spin 0.8s ease-in-out infinite;
+        }
+
+        @keyframes spin {
+            to { transform: rotate(360deg); }
+        }
+
+        #message {
+            margin-top: 16px;
+            font-size: 14px;
+            padding: 12px;
+            border-radius: 8px;
+            display: none;
+        }
+
+        #message.success {
+            background: #ecfdf5;
+            color: #065f46;
+            border: 1px solid #a7f3d0;
+            display: block;
+        }
+
+        #message.error {
+            background: #fef2f2;
+            color: #dc2626;
+            border: 1px solid #fecaca;
+            display: block;
+        }
+
+        #message.info {
+            background: #eff6ff;
+            color: #1e40af;
+            border: 1px solid #bfdbfe;
+            display: block;
+        }
+    </style>
+</head>
+
+<body>
+    <div class="container">
+        <h2>Complete Your Payment</h2>
+        <div class="subtitle">Secure payment powered by Stripe</div>
+
+        <div class="amount-display" id="amount-display">
+            <div class="amount-label">Amount to pay</div>
+            <div class="amount-value" id="amount-value">$0.00</div>
+        </div>
+
+        <form id="payment-form">
+            <div class="row">
+                <label>Card Number</label>
+                <div id="card-number" class="stripe-field"></div>
+            </div>
+
+            <div class="grid-2">
+                <div class="row">
+                    <label>Expiry Date</label>
+                    <div id="card-expiry" class="stripe-field"></div>
+                </div>
+
+                <div class="row">
+                    <label>CVC</label>
+                    <div id="card-cvc" class="stripe-field"></div>
+                </div>
+            </div>
+
+            <div class="row">
+                <label>Postal Code</label>
+                <div id="postal-code" class="stripe-field"></div>
+            </div>
+
+            <button id="submit-button" type="submit" disabled>
+                <span id="button-text">Loading...</span>
+                <span id="button-spinner" class="spinner" style="display:none;"></span>
+            </button>
+
+            <div id="message"></div>
+        </form>
+    </div>
+
+    <script>
+        // This will be replaced by C# with actual values
+        const STRIPE_KEY = "STRIPE_PUBLISHABLE_KEY_PLACEHOLDER";
+        const CLIENT_SECRET = "CLIENT_SECRET_PLACEHOLDER";
+        const AMOUNT = "AMOUNT_PLACEHOLDER";
+
+        let stripe = null;
+        let cardNumber = null;
+
+        function initializeStripe() {
+            try {
+                // Initialize Stripe
+                stripe = Stripe(STRIPE_KEY);
+                
+                const style = {
+                    base: {
+                        fontSize: "16px",
+                        fontFamily: '"Segoe UI", Arial, sans-serif',
+                        color: "#111827",
+                        "::placeholder": { color: "#9ca3af" }
+                    },
+                    invalid: { 
+                        color: "#dc2626",
+                        iconColor: "#dc2626"
+                    }
+                };
+
+                // Create Elements
+                const elements = stripe.elements();
+                cardNumber = elements.create("cardNumber", { style });
+                const cardExpiry = elements.create("cardExpiry", { style });
+                const cardCvc = elements.create("cardCvc", { style });
+                const postalCode = elements.create("postalCode", { style });
+
+                // Mount Elements
+                cardNumber.mount("#card-number");
+                cardExpiry.mount("#card-expiry");
+                cardCvc.mount("#card-cvc");
+                postalCode.mount("#postal-code");
+
+                // Update amount display
+                document.getElementById("amount-value").textContent = "$" + AMOUNT;
+
+                // Enable button when ready
+                cardNumber.on("ready", function() {
+                    document.getElementById("submit-button").disabled = false;
+                    document.getElementById("button-text").textContent = "Pay Now";
+                });
+
+                // Handle real-time validation errors
+                cardNumber.on("change", function(event) {
+                    displayError(event);
+                });
+
+                cardExpiry.on("change", function(event) {
+                    displayError(event);
+                });
+
+                cardCvc.on("change", function(event) {
+                    displayError(event);
+                });
+
+                showMessage("Enter your card details", "info");
+
+            } catch (error) {
+                showMessage("Failed to initialize payment form: " + error.message, "error");
+                console.error("Stripe initialization error:", error);
+            }
+        }
+
+        function displayError(event) {
+            if (event.error) {
+                showMessage(event.error.message, "error");
+            } else {
+                hideMessage();
+            }
+        }
+
+        function showMessage(text, type) {
+            const messageEl = document.getElementById("message");
+            messageEl.textContent = text;
+            messageEl.className = type;
+        }
+
+        function hideMessage() {
+            const messageEl = document.getElementById("message");
+            messageEl.style.display = "none";
+        }
+
+        // Handle form submission
+        document.getElementById("payment-form").addEventListener("submit", async function(event) {
+            event.preventDefault();
+
+            const submitButton = document.getElementById("submit-button");
+            const buttonText = document.getElementById("button-text");
+            const buttonSpinner = document.getElementById("button-spinner");
+
+            submitButton.disabled = true;
+            buttonText.style.display = "none";
+            buttonSpinner.style.display = "inline-block";
+            showMessage("Processing payment...", "info");
+
+            try {
+                // Notify C# that payment is processing
+                window.chrome.webview.postMessage({
+                    type: "payment_processing"
+                });
+
+                // Confirm payment with Stripe
+                const { error, paymentIntent } = await stripe.confirmCardPayment(CLIENT_SECRET, {
+                    payment_method: {
+                        card: cardNumber
+                    }
+                });
+
+                if (error) {
+                    // Payment failed
+                    showMessage(error.message, "error");
+                    submitButton.disabled = false;
+                    buttonText.style.display = "inline";
+                    buttonSpinner.style.display = "none";
+
+                    // Notify C# of error
+                    window.chrome.webview.postMessage({
+                        type: "payment_error",
+                        message: error.message
+                    });
+                } else if (paymentIntent && paymentIntent.status === "succeeded") {
+                    // Payment succeeded
+                    showMessage("Payment successful! ✓", "success");
+
+                    // Notify C# of success
+                    window.chrome.webview.postMessage({
+                        type: "payment_success",
+                        paymentIntentId: paymentIntent.id
+                    });
+                }
+            } catch (error) {
+                showMessage("An error occurred: " + error.message, "error");
+                submitButton.disabled = false;
+                buttonText.style.display = "inline";
+                buttonSpinner.style.display = "none";
+
+                // Notify C# of error
+                window.chrome.webview.postMessage({
+                    type: "payment_error",
+                    message: error.message
+                });
+            }
+        });
+
+        // Initialize when page loads
+        if (document.readyState === "loading") {
+            document.addEventListener("DOMContentLoaded", initializeStripe);
+        } else {
+            initializeStripe();
+        }
+    </script>
+</body>
+</html>

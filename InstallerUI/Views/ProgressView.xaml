@@ -1,0 +1,38 @@
+<UserControl x:Class="InstallerUI.Views.ProgressView"
+             xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
+             xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+             xmlns:local="clr-namespace:InstallerUI">
+    <Grid>
+        <Grid.RowDefinitions>
+            <RowDefinition Height="Auto"/>
+            <RowDefinition Height="*"/>
+        </Grid.RowDefinitions>
+        <!-- Top: status text left-aligned (small gap between the two lines) -->
+        <StackPanel Grid.Row="0" VerticalAlignment="Top" HorizontalAlignment="Left">
+            <TextBlock Text="Installing X-PHY Deepfake Detector.."
+                       FontSize="18" FontWeight="Bold" Foreground="{StaticResource TextPrimary}"
+                       Margin="0,0,0,6"/>
+            <TextBlock Text="This may take a few minutes."
+                       FontSize="14" Foreground="{StaticResource TextSecondary}" Margin="0,0,0,0"/>
+        </StackPanel>
+        <!-- Significant gap (row *) then progress bar + % centered horizontally and vertically in remaining space -->
+        <StackPanel Grid.Row="1" VerticalAlignment="Center" HorizontalAlignment="Center">
+            <Grid Height="12" Margin="0,0,0,12" Width="460">
+                <Border x:Name="Track" Background="#E8E8E8" CornerRadius="6" ClipToBounds="True"/>
+                <Border HorizontalAlignment="Left" Background="{StaticResource PrimaryBlue}" CornerRadius="6" ClipToBounds="True">
+                    <Border.Width>
+                        <MultiBinding Converter="{StaticResource ProgressToWidth}">
+                            <Binding Path="ProgressValue" Mode="OneWay"/>
+                            <Binding Path="ActualWidth" ElementName="Track" Mode="OneWay"/>
+                        </MultiBinding>
+                    </Border.Width>
+                </Border>
+            </Grid>
+            <TextBlock HorizontalAlignment="Center" FontSize="14" Foreground="{StaticResource TextPrimary}" FontWeight="Bold"
+                       Margin="0,0,0,0">
+                <Run Text="{Binding ProgressValue, StringFormat={}{0:F0}, Mode=OneWay}"/>
+                <Run Text="% Completed"/>
+            </TextBlock>
+        </StackPanel>
+    </Grid>
+</UserControl>

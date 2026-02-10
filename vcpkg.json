@@ -1,0 +1,28 @@
+{
+  "$schema": "https://raw.githubusercontent.com/microsoft/vcpkg-tool/main/docs/vcpkg.schema.json",
+
+  "dependencies": [
+    "sqlite3",
+    "libsndfile",
+    "soxr",
+    "cpprestsdk",
+    "tensorflow",
+    "velopack",
+    "onnxruntime-gpu",
+    "cuda",
+    "cudnn",
+    {
+      "name": "opencv",
+      "features": [
+        "world"
+      ]
+    },
+    {
+      "name": "aws-sdk-cpp",
+      "features": [
+        "transfer"
+      ]
+    },
+    "ed25519"
+  ]
+}

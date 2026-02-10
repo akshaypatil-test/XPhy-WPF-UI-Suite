@@ -1,0 +1,16 @@
+X-PHY DEEPFAKE DETECTOR - END USER LICENSE AGREEMENT
+
+This End User License Agreement ("EULA") is a legal agreement between you and X-PHY for the use of the X-PHY Deepfake Detector software product ("Software"). By installing or using the Software, you agree to be bound by the terms of this EULA.
+
+1. LICENSE GRANT. Subject to the terms of this EULA, X-PHY grants you a limited, non-exclusive, non-transferable license to install and use the Software for your internal business or personal use.
+
+2. RESTRICTIONS. You may not copy, modify, distribute, sell, or lease the Software or any part of it. You may not reverse engineer, decompile, or disassemble the Software except to the extent permitted by applicable law.
+
+3. INTELLECTUAL PROPERTY. The Software is licensed, not sold. X-PHY retains all right, title, and interest in and to the Software and any copies thereof.
+
+4. DISCLAIMER. The Software is provided "AS IS" without warranty of any kind. X-PHY disclaims all warranties, express or implied, including but not limited to implied warranties of merchantability and fitness for a particular purpose.
+
+5. LIMITATION OF LIABILITY. In no event shall X-PHY be liable for any indirect, incidental, special, or consequential damages arising out of or in connection with the use of the Software.
+
+6. TERMINATION. This EULA is effective until terminated. Your rights under this EULA will terminate automatically without notice if you fail to comply with any term of this EULA.
+

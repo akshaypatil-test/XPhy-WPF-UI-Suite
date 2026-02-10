@@ -1,0 +1,113 @@
+<UserControl x:Class="x_phy_wpf_ui.Controls.AuthHostView"
+             xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
+             xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+             xmlns:mc="http://schemas.openxmlformats.org/markup-compatibility/2006" 
+             xmlns:d="http://schemas.microsoft.com/expression/blend/2008" 
+             mc:Ignorable="d" 
+             d:DesignHeight="700" d:DesignWidth="1000"
+             Background="#0D0D0D">
+    <UserControl.Resources>
+        <!-- Local resources so AuthHostView resolves StaticResource when loaded (before parent tree) -->
+        <SolidColorBrush x:Key="TextSecondary" Color="#B0B0B0"/>
+        <SolidColorBrush x:Key="AuthTopBarBackground" Color="#0D0D0D"/>
+    </UserControl.Resources>
+
+    <!-- Outer frame: more rounded top corners, square bottom corners (like reference image) -->
+    <Border BorderBrush="{StaticResource AuthTopBarBackground}" 
+            BorderThickness="6,0,6,6"
+            CornerRadius="20,20,0,0"
+            Background="{StaticResource AuthTopBarBackground}"
+            SnapsToDevicePixels="True">
+        <Grid Background="{StaticResource AuthTopBarBackground}">
+            <Grid.RowDefinitions>
+                <RowDefinition Height="Auto"/>
+                <RowDefinition Height="*"/>
+            </Grid.RowDefinitions>
+
+            <!-- Background image: inset from frame edges and clipped so it never spills -->
+            <Border Grid.Row="0" Grid.RowSpan="2" 
+                    ClipToBounds="True" 
+                    SnapsToDevicePixels="True"
+                    Margin="1,0,1,1">
+                <Grid>
+                    <Image Source="pack://application:,,,/mainbg.png" 
+                           Stretch="UniformToFill"
+                           HorizontalAlignment="Stretch"
+                           VerticalAlignment="Stretch"
+                           RenderOptions.BitmapScalingMode="HighQuality"/>
+                    <!-- Black tint overlay on the left half -->
+                    <Grid>
+                        <Grid.ColumnDefinitions>
+                            <ColumnDefinition Width="*"/>
+                            <ColumnDefinition Width="*"/>
+                        </Grid.ColumnDefinitions>
+                        <Border Grid.Column="0" Background="#CC000000"/>
+                    </Grid>
+                </Grid>
+            </Border>
+
+            <!-- Top bar: same radius as frame (rounded top), extends over frame so one uniform curve; bottom square -->
+            <Border Grid.Row="0" 
+                    Background="{StaticResource AuthTopBarBackground}" 
+                    Height="40"
+                    CornerRadius="20,20,0,0"
+                    Margin="-6,-4,-6,0"
+                    Panel.ZIndex="1"
+                    SnapsToDevicePixels="True">
+                <Grid>
+                    <Grid.ColumnDefinitions>
+                        <ColumnDefinition Width="Auto"/>
+                        <ColumnDefinition Width="*"/>
+                        <ColumnDefinition Width="Auto"/>
+                    </Grid.ColumnDefinitions>
+
+                    <!-- X-PHY logo from resources -->
+                    <Image Grid.Column="0"
+                           Source="/x-phy.png"
+                           Width="60"
+                           Height="32"
+                           VerticalAlignment="Bottom"
+                           Margin="16,0,8,0" Stretch="Fill" HorizontalAlignment="Center"/>
+
+                    <!-- Version (next to logo) -->
+                    <TextBlock Grid.Column="1"
+                               Text="Version: 1.0.10" 
+                               FontSize="12" 
+                               Foreground="{StaticResource TextSecondary}" 
+                               VerticalAlignment="Center"
+                               Margin="12,0,0,0"/>
+
+                    <!-- Minimize and Close -->
+                    <StackPanel Grid.Column="2" 
+                                Orientation="Horizontal" 
+                                VerticalAlignment="Center">
+                        <Button Content="─" 
+                                Width="40" Height="32" 
+                                Background="Transparent" 
+                                Foreground="White"
+                                BorderThickness="0"
+                                Click="Minimize_Click"
+                                Cursor="Hand"
+                                FontSize="14"
+                                Padding="0,-2,0,0"/>
+                        <Button Content="✕" 
+                                Width="40" Height="32" 
+                                Background="Transparent" 
+                                Foreground="White"
+                                BorderThickness="0"
+                                Click="Close_Click"
+                                Cursor="Hand"
+                                FontSize="16"/>
+                    </StackPanel>
+                </Grid>
+            </Border>
+
+            <!-- Auth content (Login or Signup) -->
+            <ContentControl Grid.Row="1" 
+                            x:Name="AuthContent"
+                            VerticalContentAlignment="Stretch"
+                            HorizontalContentAlignment="Stretch"
+                            Panel.ZIndex="1"/>
+        </Grid>
+    </Border>
+</UserControl>

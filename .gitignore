@@ -1,0 +1,51 @@
+# Visual Studio
+.vs/
+*.user
+*.suo
+*.userosscache
+*.sln.docstates
+
+# Build outputs
+bin/
+[Bb]in/
+[Oo]bj/
+**/Debug/
+**/Release/
+**/x64/
+**/intermediates/
+*.pdb
+*.obj
+*.tlog
+*.log
+*.cache
+*.ilk
+*.meta
+*.metagen
+
+# WPF temp projects (auto-generated)
+*_wpftmp.csproj
+
+# Installer / Setup outputs
+*.msi
+*.tmp
+X-PHY-Setup-WPF-UI-CPU/Debug/
+X-PHY-Setup-WPF-UI-CPU/Release/
+
+# vcpkg (optional: remove if you want to commit installed packages)
+vcpkg_installed/
+
+# NuGet
+packages/
+*.nupkg
+project.lock.json
+
+# Windows
+Thumbs.db
+Desktop.ini
+
+# Large dependency files (over GitHub 100 MB limit) – obtain separately or use Git LFS
+dependencies/models/
+dependencies/lib/
+
+# Sensitive / local config (uncomment if config.toml has secrets)
+# config.toml

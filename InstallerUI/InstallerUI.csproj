@@ -1,0 +1,26 @@
+<Project Sdk="Microsoft.NET.Sdk">
+  <PropertyGroup>
+    <OutputType>WinExe</OutputType>
+    <TargetFramework>net48</TargetFramework>
+    <UseWPF>true</UseWPF>
+    <ApplicationIcon>..\X-PHY Resource Files\x-phy.ico</ApplicationIcon>
+    <AssemblyName>InstallerUI</AssemblyName>
+    <RootNamespace>InstallerUI</RootNamespace>
+    <ApplicationManifest>app.manifest</ApplicationManifest>
+    <LangVersion>9.0</LangVersion>
+  </PropertyGroup>
+  <ItemGroup>
+    <None Remove="x-phy-inverted-logo.png" />
+  </ItemGroup>
+  <ItemGroup>
+    <Reference Include="System.Windows.Forms" />
+  </ItemGroup>
+  <ItemGroup>
+    <Resource Include="..\X-PHY Resource Files\x-phy.png">
+      <Link>x-phy.png</Link>
+    </Resource>
+    <Resource Include="x-phy-inverted-logo.png" />
+    <None Include="EULA.txt" CopyToOutputDirectory="PreserveNewest" />
+    <None Include="..\dependencies\eula\EULA.rtf" Link="EULA.rtf" CopyToOutputDirectory="PreserveNewest" Condition="Exists('..\dependencies\eula\EULA.rtf')" />
+  </ItemGroup>
+</Project>

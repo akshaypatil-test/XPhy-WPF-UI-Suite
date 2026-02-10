@@ -1,0 +1,37 @@
+[license]
+KEY = "E566DE-BA16B2-F0B9BF-9DA152-6065B0-V3"
+
+[app]
+modelDirectory = "models"
+optOutOfScreenCapture = false
+
+[voice.generic]
+voiceGenericModelIdentifier = "audio_generic_model_20250102_0"
+voiceGenericProbScoreThreshold = 0.5
+voiceGenericFakeProportionThreshold = 0.7
+
+[voice.live]
+voiceLiveModelIdentifier = "audio_live_model_20241002_2"
+voiceLiveProbScoreThreshold = 0.5
+voiceLiveFakeProportionThreshold = 0.7
+
+[video]
+videoCaffeDetectionSize = 300
+videoMaxNumberFaces = 10
+videoRollingWindowExpiryDuration = 30
+videoRollingWindowCooldownDuration = 10
+videoRollingWindowMinimumAlertSize = 5
+
+[video.generic]
+videoGenericModelIdentifier = "video_generic_model_20250505_0.onnx.encrypted"
+videoGenericFakeAndContourThreshold = 0.5
+videoGenericMaskThreshold = 0.5
+videoGenericProbFakeThreshold = 0.5
+videoGenericFakeProportionThreshold = 0.7
+
+[video.live]
+videoLiveModelIdentifier = "video_live_model_20241002_0.onnx.encrypted"
+videoLiveFakeAndContourThreshold = 0.5
+videoLiveMaskThreshold = 0.5
+videoLiveProbFakeThreshold = 0.5
+videoLiveFakeProportionThreshold = 0.7

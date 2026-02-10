@@ -1,0 +1,40 @@
+<UserControl x:Class="x_phy_wpf_ui.Controls.WelcomeComponent"
+             xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
+             xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+             xmlns:mc="http://schemas.openxmlformats.org/markup-compatibility/2006" 
+             xmlns:d="http://schemas.microsoft.com/expression/blend/2008" 
+             mc:Ignorable="d" 
+             d:DesignHeight="700" d:DesignWidth="1000">
+    <Grid Background="Transparent">
+        <!-- Main Content - Centered -->
+        <StackPanel VerticalAlignment="Center" 
+                    HorizontalAlignment="Left" Width="310" Margin="81,0,0,0">
+
+            <!-- X-PHY Logo -->
+
+            <!-- Main Heading -->
+            <!-- X-PHY Logo -->
+            <Image Source="/x-phy.png" 
+                   Width="140" 
+                   Height="80" 
+                   Stretch="Uniform"
+                   />
+
+            <!-- Main Heading -->
+            <TextBlock Text="WELCOME TO X-PHY DEEPFAKE DETECTOR" 
+                       FontSize="28"
+                       Foreground="{StaticResource TextPrimary}"
+                       HorizontalAlignment="Center"
+                       TextAlignment="Center"
+                       Margin="0,0,0,20" TextWrapping="WrapWithOverflow" Height="80"/>
+
+            <!-- Tagline -->
+            <TextBlock Text="Trust What You See Again" 
+                       FontSize="22" 
+                       FontWeight="Light"
+                       Foreground="{StaticResource PrimaryPink}"
+                       HorizontalAlignment="Center"
+                       TextAlignment="Center" Height="35"/>
+        </StackPanel>
+    </Grid>
+</UserControl>

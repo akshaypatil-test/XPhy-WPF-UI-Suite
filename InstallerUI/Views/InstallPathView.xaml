@@ -1,0 +1,52 @@
+<UserControl x:Class="InstallerUI.Views.InstallPathView"
+             xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
+             xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+             xmlns:local="clr-namespace:InstallerUI" Height="266">
+    <Grid>
+        <Grid.RowDefinitions>
+            <RowDefinition Height="*"/>
+            <RowDefinition Height="Auto"/>
+        </Grid.RowDefinitions>
+        <ScrollViewer Grid.Row="0" VerticalScrollBarVisibility="Auto" HorizontalScrollBarVisibility="Disabled">
+            <StackPanel Margin="0,0,0,8">
+                <TextBlock Text="Installation Preferences"
+                           FontSize="18" FontWeight="Bold" Foreground="{StaticResource TextPrimary}"
+                           Margin="0,0,0,4"/>
+                <TextBlock Text="Configure how X-PHY Deepfake Detector will be installed on your system."
+                           FontSize="14" Foreground="{StaticResource TextSecondary}" TextWrapping="Wrap" Margin="0,0,0,10"/>
+                <TextBlock Text="Installation Type"
+                           FontSize="14" FontWeight="SemiBold" Foreground="{StaticResource TextPrimary}" Margin="0,0,0,4"/>
+                <RadioButton x:Name="QuickInstallRadio" Content="Quick Install" IsChecked="{Binding IsQuickInstall, Mode=TwoWay}"
+                             FontSize="14" Foreground="{StaticResource TextPrimary}" Margin="0,0,0,0"/>
+                <TextBlock Text="Recommended for most users. Installs with default settings."
+                           FontSize="12" Foreground="{StaticResource TextSecondary}" Margin="24,0,0,2"/>
+                <RadioButton x:Name="CustomInstallRadio" Content="Custom Install"
+                             IsChecked="{Binding IsQuickInstall, Mode=TwoWay, Converter={StaticResource InverseBool}}"
+                             FontSize="14" Foreground="{StaticResource TextPrimary}" Margin="0,4,0,0"/>
+                <TextBlock Text="Advanced users can customize the installation location."
+                           FontSize="12" Foreground="{StaticResource TextSecondary}" Margin="24,0,0,4"/>
+                <!-- Fixed-height row so Quick vs Custom does not change total height -->
+                <Grid Height="40" Margin="0,0,0,10">
+                    <Grid x:Name="PathPanel" Visibility="{Binding IsQuickInstall, Converter={StaticResource BoolToVisInverse}, FallbackValue=Collapsed}">
+                        <Grid.ColumnDefinitions>
+                            <ColumnDefinition Width="*"/>
+                            <ColumnDefinition Width="Auto"/>
+                        </Grid.ColumnDefinitions>
+                        <TextBox x:Name="PathTextBox" Grid.Column="0" Margin="0,0,8,0" Padding="8,6"
+                                 Text="{Binding InstallPath, Mode=TwoWay, UpdateSourceTrigger=PropertyChanged}"
+                                 VerticalContentAlignment="Center"/>
+                        <Button Grid.Column="1" Content="Browse..." Style="{StaticResource SecondaryButtonStyle}" Padding="16,8"
+                                Click="Browse_Click"/>
+                    </Grid>
+                </Grid>
+            </StackPanel>
+        </ScrollViewer>
+        <!-- Checkbox anchored at bottom of content area, above footer -->
+        <CheckBox x:Name="LaunchOnStartupCheckBox" Grid.Row="1"
+                  IsChecked="{Binding LaunchOnStartup, Mode=TwoWay, UpdateSourceTrigger=PropertyChanged, Converter={StaticResource NullableBoolToBool}}"
+                  FontSize="13" Foreground="{StaticResource TextPrimary}" Margin="0,16,0,0"
+                  Checked="LaunchOnStartupCheckBox_Checked">
+            <TextBlock TextWrapping="Wrap" Width="428"><Run Text="Launch X-PHY Deepfake Detector "/><Run Language="en-in" Text="automatically on system startup"/></TextBlock>
+        </CheckBox>
+    </Grid>
+</UserControl>

@@ -1,0 +1,160 @@
+<UserControl x:Class="x_phy_wpf_ui.Controls.StartDetectionCard"
+             xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
+             xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+             xmlns:mc="http://schemas.openxmlformats.org/markup-compatibility/2006" 
+             xmlns:d="http://schemas.microsoft.com/expression/blend/2008" 
+             mc:Ignorable="d" Height="540" Width="520">
+    <UserControl.Resources>
+        <!-- Figma colors: #0A0E1C (dark blue-black), #0C82A8 (teal-blue), #E2156B (pink), #FFFFFF / #000000 -->
+        <SolidColorBrush x:Key="TextPrimary" Color="#FFFFFF"/>
+        <SolidColorBrush x:Key="TextSecondary" Color="#FFFFFF"/>
+        <!-- bubble.svg radial gradient: #0A0E1C center, transparent at 73%, #0C82A8 81% at edge (explicit Color to avoid hex parse) -->
+        <RadialGradientBrush x:Key="BubbleGradient" Center="0.5,0.5" GradientOrigin="0.5,0.5" RadiusX="1" RadiusY="1">
+            <GradientStop Color="#0A0E1C" Offset="0.08"/>
+            <GradientStop Offset="0.73">
+                <GradientStop.Color>
+                    <Color A="0" R="10" G="14" B="28"/>
+                </GradientStop.Color>
+            </GradientStop>
+            <GradientStop Offset="1">
+                <GradientStop.Color>
+                    <Color A="206" R="12" G="130" B="168"/>
+                </GradientStop.Color>
+            </GradientStop>
+        </RadialGradientBrush>
+        <!-- Ring: cyan/teal majority, magenta segment (Figma #E2156B) -->
+        <LinearGradientBrush x:Key="RingGradient" StartPoint="0,0.5" EndPoint="1,0.5">
+            <GradientStop Color="#0C82A8" Offset="0"/>
+            <GradientStop Color="#0C82A8" Offset="0.7"/>
+            <GradientStop Color="#E2156B" Offset="0.78"/>
+            <GradientStop Color="#E2156B" Offset="0.92"/>
+            <GradientStop Color="#0C82A8" Offset="1"/>
+        </LinearGradientBrush>
+
+        <!-- Invisible button style for the circular area (circle is the hit target) -->
+        <Style x:Key="CircleButtonStyle" TargetType="Button">
+            <Setter Property="Background" Value="Transparent"/>
+            <Setter Property="BorderThickness" Value="0"/>
+            <Setter Property="Cursor" Value="Hand"/>
+            <Setter Property="Template">
+                <Setter.Value>
+                    <ControlTemplate TargetType="Button">
+                        <ContentPresenter/>
+                    </ControlTemplate>
+                </Setter.Value>
+            </Setter>
+        </Style>
+        <!-- Clickable text style - Figma .click_to_s: 14px, weight 400, white -->
+        <Style x:Key="ClickableTextStyle" TargetType="Button">
+            <Setter Property="Background" Value="Transparent"/>
+            <Setter Property="BorderThickness" Value="0"/>
+            <Setter Property="Padding" Value="8,4"/>
+            <Setter Property="Cursor" Value="Hand"/>
+            <Setter Property="Foreground" Value="{StaticResource TextPrimary}"/>
+            <Setter Property="FontSize" Value="14"/>
+            <Setter Property="FontFamily" Value="Inter, Segoe UI, Sans-Serif"/>
+            <Setter Property="FontWeight" Value="Normal"/>
+            <Setter Property="Template">
+                <Setter.Value>
+                    <ControlTemplate TargetType="Button">
+                        <ContentPresenter HorizontalAlignment="Center" VerticalAlignment="Center"/>
+                    </ControlTemplate>
+                </Setter.Value>
+            </Setter>
+            <Style.Triggers>
+                <Trigger Property="IsMouseOver" Value="True">
+                    <Setter Property="Opacity" Value="0.85"/>
+                </Trigger>
+            </Style.Triggers>
+        </Style>
+    </UserControl.Resources>
+
+    <!-- Card: rounded corners, no border -->
+    <Border CornerRadius="36"
+            Padding="56,44,56,44"
+            BorderThickness="0"
+            MaxWidth="560"
+            HorizontalAlignment="Center"
+            VerticalAlignment="Center"
+            ClipToBounds="True">
+        <Border.Background>
+            <ImageBrush ImageSource="pack://application:,,,/facebg.png"
+                        Stretch="UniformToFill"
+                        AlignmentX="Center"
+                        AlignmentY="Center"/>
+        </Border.Background>
+        <StackPanel VerticalAlignment="Center">
+            <!-- Figma .start_deep: 20px, Inter, weight 500, white -->
+            <StackPanel HorizontalAlignment="Center" Margin="0,0,0,0">
+                <TextBlock Text="Start Deepfake Detection" 
+                           FontSize="20" 
+                           FontFamily="Inter, Segoe UI, Sans-Serif"
+                           FontWeight="Medium"
+                           Foreground="{StaticResource TextPrimary}"
+                           HorizontalAlignment="Center"
+                           Margin="0,0,0,12"/>
+                <!-- Figma .monitor_me: 14px, Inter, weight 400, white -->
+                <TextBlock Text="Monitor Meetings And Media Streams" 
+                           FontSize="14" 
+                           FontFamily="Inter, Segoe UI, Sans-Serif"
+                           FontWeight="Normal"
+                           Foreground="{StaticResource TextSecondary}"
+                           HorizontalAlignment="Center"/>
+            </StackPanel>
+
+            <!-- Central graphic: glowing ring (cyan + magenta) + magnifying glass -->
+            <Button Style="{StaticResource CircleButtonStyle}"
+                    Click="StartButton_Click"
+                    x:Name="StartButton"
+                    HorizontalAlignment="Center"
+                    Margin="0,32,0,32">
+                <Grid Width="200" Height="200">
+                    <!-- Outermost: subtle teal glow (Figma #0C82A8) -->
+                    <Ellipse Width="200" Height="200" Opacity="0.5">
+                        <Ellipse.Fill>
+                            <RadialGradientBrush>
+                                <GradientStop Color="Transparent" Offset="0.75"/>
+                                <GradientStop Color="#0C82A8" Offset="1"/>
+                            </RadialGradientBrush>
+                        </Ellipse.Fill>
+                        <Ellipse.Effect>
+                            <DropShadowEffect Color="#0C82A8" BlurRadius="18" ShadowDepth="0" Opacity="0.4"/>
+                        </Ellipse.Effect>
+                    </Ellipse>
+                    <!-- Single glowing ring: gradient cyan left to magenta right (mimics card border) -->
+                    <Ellipse Width="164" Height="164" Margin="18" Fill="Transparent"
+                             Stroke="{StaticResource RingGradient}" StrokeThickness="2.5">
+                        <Ellipse.Effect>
+                            <DropShadowEffect Color="#0C82A8" BlurRadius="6" ShadowDepth="0" Opacity="0.5"/>
+                        </Ellipse.Effect>
+                    </Ellipse>
+                    <!-- Inner circle: solid dark blue (Figma) -->
+                    <Ellipse Width="118" Height="118" Fill="#0A0E1C" Margin="41"/>
+                    <!-- White magnifying glass centered (handle down-right) -->
+                    <Viewbox Width="52" Height="52" HorizontalAlignment="Center" VerticalAlignment="Center">
+                        <Canvas Width="24" Height="24">
+                            <Ellipse Canvas.Left="4" Canvas.Top="4" Width="14" Height="14"
+                                     Fill="Transparent" Stroke="White" StrokeThickness="2"/>
+                            <Path Data="M 16,16 L 22,22" Stroke="White" StrokeThickness="2"
+                                  StrokeStartLineCap="Round" StrokeEndLineCap="Round"/>
+                        </Canvas>
+                    </Viewbox>
+                </Grid>
+            </Button>
+
+            <!-- Figma .click_to_s: 14px, weight 400, white. Clickable text (same action as circle) -->
+            <StackPanel HorizontalAlignment="Center">
+                <TextBlock x:Name="DetectionStatusText"
+                           Text="Ready to start detection"
+                           FontSize="11"
+                           Foreground="{StaticResource TextSecondary}"
+                           HorizontalAlignment="Center"
+                           Visibility="Collapsed"
+                           Margin="0,0,0,6"/>
+                <Button Content="Click To Start Detection"
+                        Style="{StaticResource ClickableTextStyle}"
+                        Click="StartButton_Click"/>
+            </StackPanel>
+        </StackPanel>
+    </Border>
+</UserControl>

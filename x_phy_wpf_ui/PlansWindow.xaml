@@ -1,0 +1,289 @@
+<Window x:Class="x_phy_wpf_ui.PlansWindow"
+        xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
+        xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+        xmlns:shell="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
+        xmlns:controls="clr-namespace:x_phy_wpf_ui.Controls"
+        Title="Choose Your Plan - X-PHY" Height="783" Width="1000"
+        WindowStartupLocation="CenterScreen"
+        WindowStyle="None"
+        AllowsTransparency="False"
+        Background="#000000"
+        ResizeMode="CanResize"
+        MinHeight="500"
+        MinWidth="700"
+        SizeToContent="Manual">
+    <WindowChrome.WindowChrome>
+        <shell:WindowChrome
+            CaptionHeight="0"
+            ResizeBorderThickness="6"
+            GlassFrameThickness="0"
+            UseAeroCaptionButtons="False"/>
+    </WindowChrome.WindowChrome>
+
+    <Window.Resources>
+        <SolidColorBrush x:Key="BackgroundColor" Color="#000000"/>
+        <SolidColorBrush x:Key="CardColor" Color="#1E1E1E"/>
+        <SolidColorBrush x:Key="PrimaryColor" Color="#E2156B"/>
+        <SolidColorBrush x:Key="TextColor" Color="#FFFFFF"/>
+        <SolidColorBrush x:Key="SecondaryTextColor" Color="#999999"/>
+        <SolidColorBrush x:Key="BorderColor" Color="#2A2A2A"/>
+        <SolidColorBrush x:Key="HoverBackground" Color="#2A2A2A"/>
+        <SolidColorBrush x:Key="CloseButtonHover" Color="#E81123"/>
+        <SolidColorBrush x:Key="StripeButtonBg" Color="#FFFFFF"/>
+        <SolidColorBrush x:Key="StripeButtonText" Color="#635BFF"/>
+        <Style x:Key="WindowChromeButton" TargetType="Button">
+            <Setter Property="Background" Value="Transparent"/>
+            <Setter Property="Foreground" Value="White"/>
+            <Setter Property="BorderThickness" Value="0"/>
+            <Setter Property="Cursor" Value="Hand"/>
+            <Setter Property="Template">
+                <Setter.Value>
+                    <ControlTemplate TargetType="Button">
+                        <Border Background="{TemplateBinding Background}" Padding="2">
+                            <ContentPresenter HorizontalAlignment="Center" VerticalAlignment="Center"/>
+                        </Border>
+                    </ControlTemplate>
+                </Setter.Value>
+            </Setter>
+            <Style.Triggers>
+                <Trigger Property="IsMouseOver" Value="True">
+                    <Setter Property="Background" Value="{StaticResource HoverBackground}"/>
+                </Trigger>
+            </Style.Triggers>
+        </Style>
+        <Style x:Key="WindowCloseButton" TargetType="Button" BasedOn="{StaticResource WindowChromeButton}">
+            <Style.Triggers>
+                <Trigger Property="IsMouseOver" Value="True">
+                    <Setter Property="Background" Value="{StaticResource CloseButtonHover}"/>
+                </Trigger>
+            </Style.Triggers>
+        </Style>
+        <Style x:Key="PlanCardStyle" TargetType="Border">
+            <Setter Property="Background" Value="{StaticResource CardColor}"/>
+            <Setter Property="BorderBrush" Value="{StaticResource BorderColor}"/>
+            <Setter Property="BorderThickness" Value="1"/>
+            <Setter Property="CornerRadius" Value="12"/>
+            <Setter Property="Padding" Value="24"/>
+            <Setter Property="Margin" Value="12"/>
+            <Setter Property="MinHeight" Value="500"/>
+            <Setter Property="MinWidth" Value="280"/>
+        </Style>
+        <Style x:Key="StripeButtonStyle" TargetType="Button">
+            <Setter Property="Background" Value="{StaticResource StripeButtonBg}"/>
+            <Setter Property="Foreground" Value="{StaticResource StripeButtonText}"/>
+            <Setter Property="BorderThickness" Value="0"/>
+            <Setter Property="Padding" Value="16,12"/>
+            <Setter Property="FontSize" Value="14"/>
+            <Setter Property="FontWeight" Value="SemiBold"/>
+            <Setter Property="Cursor" Value="Hand"/>
+            <Setter Property="HorizontalAlignment" Value="Stretch"/>
+            <Setter Property="Margin" Value="0,0,0,8"/>
+            <Setter Property="Template">
+                <Setter.Value>
+                    <ControlTemplate TargetType="Button">
+                        <Border Background="{TemplateBinding Background}" CornerRadius="8" Padding="{TemplateBinding Padding}">
+                            <ContentPresenter HorizontalAlignment="Center" VerticalAlignment="Center"/>
+                        </Border>
+                    </ControlTemplate>
+                </Setter.Value>
+            </Setter>
+        </Style>
+        <Style x:Key="PayPalButtonStyle" TargetType="Button">
+            <Setter Property="Background" Value="#555555"/>
+            <Setter Property="Foreground" Value="#999999"/>
+            <Setter Property="BorderThickness" Value="0"/>
+            <Setter Property="Padding" Value="16,12"/>
+            <Setter Property="FontSize" Value="14"/>
+            <Setter Property="FontWeight" Value="SemiBold"/>
+            <Setter Property="HorizontalAlignment" Value="Stretch"/>
+            <Setter Property="IsEnabled" Value="False"/>
+            <Setter Property="Opacity" Value="0.6"/>
+            <Setter Property="Cursor" Value="Arrow"/>
+            <Setter Property="Template">
+                <Setter.Value>
+                    <ControlTemplate TargetType="Button">
+                        <Border Background="{TemplateBinding Background}" CornerRadius="8" Padding="{TemplateBinding Padding}">
+                            <ContentPresenter HorizontalAlignment="Center" VerticalAlignment="Center"/>
+                        </Border>
+                    </ControlTemplate>
+                </Setter.Value>
+            </Setter>
+        </Style>
+    </Window.Resources>
+
+    <Grid Background="{StaticResource BackgroundColor}">
+        <Grid.RowDefinitions>
+            <RowDefinition Height="Auto"/>
+            <RowDefinition Height="Auto"/>
+            <RowDefinition Height="*"/>
+            <RowDefinition Height="Auto"/>
+        </Grid.RowDefinitions>
+        
+        <!-- Top Header with Logo and Window Controls -->
+        <Grid Grid.Row="0" Margin="16,17,16,0" Height="32">
+            <Grid.ColumnDefinitions>
+                <ColumnDefinition Width="Auto"/>
+                <ColumnDefinition Width="*"/>
+                <ColumnDefinition Width="Auto"/>
+            </Grid.ColumnDefinitions>
+            
+            <!-- Logo -->
+            <Image Grid.Column="0" 
+                   Source="/x-phy.png" 
+                   Width="57" 
+                   Height="32" 
+                   Stretch="Uniform"
+                   VerticalAlignment="Center"/>
+            
+            <!-- Window Controls -->
+            <StackPanel Grid.Column="2" Orientation="Horizontal" HorizontalAlignment="Right">
+                <Button Content="🗕" Width="16" Height="16" 
+                        Style="{StaticResource WindowChromeButton}"
+                        Click="Minimize_Click"
+                        Margin="0,0,4,0"/>
+                <Button Content="✕" Width="16" Height="16" 
+                        Style="{StaticResource WindowCloseButton}"
+                        Click="Close_Click"/>
+            </StackPanel>
+        </Grid>
+        
+        <!-- Top Navigation Bar -->
+        <Grid Grid.Row="1" Margin="0,15,0,15" Height="76">
+            <controls:TopNavigationBar x:Name="TopNavBar"
+                                       SelectedPage=""
+                                       NavigationClicked="TopNavBar_NavigationClicked"/>
+        </Grid>
+        
+        <!-- Header -->
+        <Grid Grid.Row="2" Margin="40,30,40,20">
+            <TextBlock Text="Choose Your Plan"
+                      FontSize="28"
+                      FontWeight="Bold"
+                      Foreground="{StaticResource TextColor}"
+                      HorizontalAlignment="Left"/>
+        </Grid>
+        
+        <!-- Loading/Error Message -->
+        <TextBlock x:Name="StatusText"
+                   Grid.Row="2"
+                   Text="Loading plans..."
+                   FontSize="16"
+                   Foreground="{StaticResource SecondaryTextColor}"
+                   HorizontalAlignment="Center"
+                   VerticalAlignment="Center"
+                   Visibility="Visible"/>
+        
+        <!-- Plans Container -->
+        <ScrollViewer x:Name="PlansScrollViewer"
+                      Grid.Row="2"
+                      VerticalScrollBarVisibility="Auto"
+                      HorizontalScrollBarVisibility="Disabled"
+                      Visibility="Collapsed"
+                      Padding="40,0">
+            <ItemsControl x:Name="PlansItemsControl">
+                <ItemsControl.ItemsPanel>
+                    <ItemsPanelTemplate>
+                        <UniformGrid Columns="3" Rows="1" HorizontalAlignment="Center"/>
+                    </ItemsPanelTemplate>
+                </ItemsControl.ItemsPanel>
+                <ItemsControl.ItemTemplate>
+                    <DataTemplate>
+                        <Border x:Name="PlanCardBorder"
+                                Style="{StaticResource PlanCardStyle}"
+                                Tag="{Binding}"
+                                Loaded="PlanCard_Loaded">
+                            <Grid>
+                                <Grid.RowDefinitions>
+                                    <RowDefinition Height="Auto"/>
+                                    <RowDefinition Height="Auto"/>
+                                    <RowDefinition Height="Auto"/>
+                                    <RowDefinition Height="Auto"/>
+                                    <RowDefinition Height="Auto"/>
+                                </Grid.RowDefinitions>
+                                
+                                <!-- Plan Name -->
+                                <TextBlock Grid.Row="0"
+                                          Text="{Binding DisplayName}"
+                                          FontSize="20"
+                                          FontWeight="SemiBold"
+                                          Foreground="{StaticResource TextColor}"
+                                          HorizontalAlignment="Center"
+                                          VerticalAlignment="Top"
+                                          TextWrapping="NoWrap"
+                                          Margin="0,0,0,0"/>
+                                
+                                <!-- Price -->
+                                <StackPanel Grid.Row="1"
+                                          Orientation="Horizontal"
+                                          HorizontalAlignment="Center"
+                                          VerticalAlignment="Top"
+                                          Margin="0,30,0,0">
+                                    <TextBlock Text="{Binding PriceText}"
+                                              FontSize="36"
+                                              FontWeight="Bold"
+                                              Foreground="{StaticResource TextColor}"
+                                              VerticalAlignment="Center"/>
+                                    <TextBlock Text="{Binding PriceSuffix}"
+                                              FontSize="14"
+                                              Foreground="{StaticResource SecondaryTextColor}"
+                                              VerticalAlignment="Bottom"
+                                              Margin="4,0,0,8"/>
+                                </StackPanel>
+                                
+                                <!-- Features List -->
+                                <StackPanel Grid.Row="2" Margin="0,20,0,20">
+                                    <ItemsControl ItemsSource="{Binding Features}">
+                                        <ItemsControl.ItemTemplate>
+                                            <DataTemplate>
+                                                <StackPanel Orientation="Horizontal" Margin="0,6,0,0">
+                                                    <TextBlock Text="•"
+                                                              Foreground="{StaticResource PrimaryColor}"
+                                                              FontSize="16"
+                                                              Margin="0,0,8,0"
+                                                              VerticalAlignment="Center"/>
+                                                    <TextBlock Text="{Binding}"
+                                                              Foreground="{StaticResource TextColor}"
+                                                              FontSize="13"
+                                                              TextWrapping="Wrap"/>
+                                                </StackPanel>
+                                            </DataTemplate>
+                                        </ItemsControl.ItemTemplate>
+                                    </ItemsControl>
+                                </StackPanel>
+                                
+                                <!-- Payment Method Label -->
+                                <TextBlock Grid.Row="3"
+                                          Text="Payment Method"
+                                          FontSize="12"
+                                          FontWeight="SemiBold"
+                                          Foreground="{StaticResource SecondaryTextColor}"
+                                          Margin="0,0,0,12"/>
+                                
+                                <!-- Payment Buttons - Stacked Vertically -->
+                                <StackPanel Grid.Row="4">
+                                    <Button Content="stripe"
+                                            Style="{StaticResource StripeButtonStyle}"
+                                            Click="StripeButton_Click"
+                                            Tag="{Binding}"/>
+                                    <Button Content="PayPal"
+                                            Style="{StaticResource PayPalButtonStyle}"/>
+                                </StackPanel>
+                            </Grid>
+                        </Border>
+                    </DataTemplate>
+                </ItemsControl.ItemTemplate>
+            </ItemsControl>
+        </ScrollViewer>
+        
+        <!-- Footer -->
+        <Grid Grid.Row="3" Margin="30,0,30,20" Height="60">
+            <controls:BottomBar x:Name="BottomBar"
+                               Status="Trial"
+                               RemainingDays="30"
+                               ShowSubscribeButton="False"
+                               SubscribeClicked="BottomBar_SubscribeClicked"
+                               SupportClicked="BottomBar_SupportClicked"
+                               LogoutClicked="BottomBar_LogoutClicked"/>
+        </Grid>
+    </Grid>
+</Window>

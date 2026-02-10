@@ -1,0 +1,338 @@
+#nullable enable
+using System;
+using System.Net;
+using System.Net.Http;
+using System.Text;
+using System.Threading.Tasks;
+using Newtonsoft.Json;
+using x_phy_wpf_ui.Models;
+
+namespace x_phy_wpf_ui.Services
+{
+    public class AuthService
+    {
+        private readonly HttpClient _httpClient;
+        private readonly string _baseUrl;
+        private readonly DeviceFingerprintService _fingerprintService;
+
+        public AuthService()
+        {
+            _baseUrl = "https://xphy-web-c5e3v.ondigitalocean.app";
+            /*_baseUrl = "https://localhost:7296";*/
+            _httpClient = new HttpClient
+            {
+                BaseAddress = new Uri(_baseUrl),
+                Timeout = TimeSpan.FromSeconds(30)
+            };
+            _httpClient.DefaultRequestHeaders.Add("Accept", "application/json");
+            _fingerprintService = new DeviceFingerprintService();
+
+            // Ignore SSL certificate errors for localhost (development only)
+            // Note: This is only for development. Remove in production!
+            ServicePointManager.ServerCertificateValidationCallback += 
+                (sender, certificate, chain, sslPolicyErrors) => true;
+        }
+
+        public async Task<LoginResponse?> LoginAsync(string username, string password)
+        {
+            try
+            {
+                var deviceFingerprint = _fingerprintService.GetDeviceFingerprint();
+                var request = new LoginRequest
+                {
+                    Username = username,
+                    Password = password,
+                    DeviceFingerprint = deviceFingerprint
+                };
+
+                var json = JsonConvert.SerializeObject(request);
+                var content = new StringContent(json, Encoding.UTF8, "application/json");
+
+                var response = await _httpClient.PostAsync("/api/auth/login", content);
+
+                if (response.IsSuccessStatusCode)
+                {
+                    var responseJson = await response.Content.ReadAsStringAsync();
+                    var loginResponse = JsonConvert.DeserializeObject<LoginResponse>(responseJson);
+                    return loginResponse;
+                }
+                else
+                {
+                    var errorJson = await response.Content.ReadAsStringAsync();
+                    var errorResponse = JsonConvert.DeserializeObject<ApiErrorResponse>(errorJson);
+                    throw new Exception(errorResponse?.Message ?? $"Login failed: {response.StatusCode}");
+                }
+            }
+            catch (HttpRequestException ex)
+            {
+                throw new Exception($"Network error: {ex.Message}");
+            }
+            catch (TaskCanceledException)
+            {
+                throw new Exception("Request timeout. Please check your connection.");
+            }
+            catch (Exception ex)
+            {
+                throw new Exception($"Login error: {ex.Message}");
+            }
+        }
+
+        public async Task<RegisterResponse> RegisterAsync(string username, string password, string firstName, string lastName)
+        {
+            try
+            {
+                var request = new RegisterRequest
+                {
+                    Username = username,
+                    Password = password,
+                    FirstName = firstName?.Trim() ?? string.Empty,
+                    LastName = lastName?.Trim() ?? string.Empty
+                };
+
+                var json = JsonConvert.SerializeObject(request);
+                var content = new StringContent(json, Encoding.UTF8, "application/json");
+
+                var response = await _httpClient.PostAsync("/api/auth/register", content);
+
+                if (response.IsSuccessStatusCode)
+                {
+                    var responseJson = await response.Content.ReadAsStringAsync();
+                    var registerResponse = JsonConvert.DeserializeObject<RegisterResponse>(responseJson);
+                    if (registerResponse == null)
+                    {
+                        throw new Exception("Invalid response from server.");
+                    }
+                    return registerResponse;
+                }
+                else
+                {
+                    var errorJson = await response.Content.ReadAsStringAsync();
+                    var errorResponse = JsonConvert.DeserializeObject<ApiErrorResponse>(errorJson);
+                    throw new Exception(errorResponse?.Message ?? $"Registration failed: {response.StatusCode}");
+                }
+            }
+            catch (HttpRequestException ex)
+            {
+                throw new Exception($"Network error: {ex.Message}");
+            }
+            catch (TaskCanceledException)
+            {
+                throw new Exception("Request timeout. Please check your connection.");
+            }
+            catch (Exception ex)
+            {
+                throw new Exception($"Registration error: {ex.Message}");
+            }
+        }
+
+        public async Task<VerifyEmailResponse> VerifyEmailAsync(string email, string code)
+        {
+            try
+            {
+                var request = new VerifyEmailRequest { Email = email, Code = code };
+                var json = JsonConvert.SerializeObject(request);
+                var content = new StringContent(json, Encoding.UTF8, "application/json");
+                var response = await _httpClient.PostAsync("/api/auth/verify-email", content);
+
+                if (response.IsSuccessStatusCode)
+                {
+                    var responseJson = await response.Content.ReadAsStringAsync();
+                    var verifyResponse = JsonConvert.DeserializeObject<VerifyEmailResponse>(responseJson);
+                    if (verifyResponse == null)
+                        throw new Exception("Invalid response from server.");
+                    return verifyResponse;
+                }
+
+                var errorJson = await response.Content.ReadAsStringAsync();
+                var errorResponse = JsonConvert.DeserializeObject<ApiErrorResponse>(errorJson);
+                throw new Exception(errorResponse?.Message ?? $"Verification failed: {response.StatusCode}");
+            }
+            catch (HttpRequestException ex)
+            {
+                throw new Exception($"Network error: {ex.Message}");
+            }
+            catch (TaskCanceledException)
+            {
+                throw new Exception("Request timeout. Please check your connection.");
+            }
+            catch (Exception ex)
+            {
+                throw new Exception($"Verification error: {ex.Message}");
+            }
+        }
+
+        public async Task<ResendOtpResponse> ResendOtpAsync(string email)
+        {
+            try
+            {
+                var request = new ResendOtpRequest { Email = email };
+                var json = JsonConvert.SerializeObject(request);
+                var content = new StringContent(json, Encoding.UTF8, "application/json");
+                var response = await _httpClient.PostAsync("/api/auth/resend-otp", content);
+
+                if (response.IsSuccessStatusCode)
+                {
+                    var responseJson = await response.Content.ReadAsStringAsync();
+                    var resendResponse = JsonConvert.DeserializeObject<ResendOtpResponse>(responseJson);
+                    return resendResponse ?? new ResendOtpResponse { Message = "Code resent." };
+                }
+
+                var errorJson = await response.Content.ReadAsStringAsync();
+                var errorResponse = JsonConvert.DeserializeObject<ApiErrorResponse>(errorJson);
+                throw new Exception(errorResponse?.Message ?? "Failed to resend code.");
+            }
+            catch (HttpRequestException ex)
+            {
+                throw new Exception($"Network error: {ex.Message}");
+            }
+            catch (Exception ex)
+            {
+                throw new Exception($"Resend error: {ex.Message}");
+            }
+        }
+
+        public async Task<ForgotUsernameResponse> ForgotUsernameAsync(string email)
+        {
+            try
+            {
+                var request = new ForgotUsernameRequest { Email = email.Trim() };
+                var json = JsonConvert.SerializeObject(request);
+                var content = new StringContent(json, Encoding.UTF8, "application/json");
+                var response = await _httpClient.PostAsync("/api/auth/forgot-username", content);
+
+                if (response.IsSuccessStatusCode)
+                {
+                    var responseJson = await response.Content.ReadAsStringAsync();
+                    var forgotResponse = JsonConvert.DeserializeObject<ForgotUsernameResponse>(responseJson);
+                    if (forgotResponse == null)
+                        throw new Exception("Invalid response from server.");
+                    return forgotResponse;
+                }
+
+                var errorJson = await response.Content.ReadAsStringAsync();
+                var errorResponse = JsonConvert.DeserializeObject<ApiErrorResponse>(errorJson);
+                throw new Exception(errorResponse?.Message ?? $"Username recovery failed: {response.StatusCode}");
+            }
+            catch (HttpRequestException ex)
+            {
+                throw new Exception($"Network error: {ex.Message}");
+            }
+            catch (TaskCanceledException)
+            {
+                throw new Exception("Request timeout. Please check your connection.");
+            }
+            catch (Exception ex)
+            {
+                throw new Exception($"Username recovery error: {ex.Message}");
+            }
+        }
+
+        public async Task<ForgotPasswordResponse> ForgotPasswordAsync(string email)
+        {
+            try
+            {
+                var request = new ForgotPasswordRequest { Email = email.Trim() };
+                var json = JsonConvert.SerializeObject(request);
+                var content = new StringContent(json, Encoding.UTF8, "application/json");
+                var response = await _httpClient.PostAsync("/api/auth/forgot-password", content);
+
+                if (response.IsSuccessStatusCode)
+                {
+                    var responseJson = await response.Content.ReadAsStringAsync();
+                    var forgotResponse = JsonConvert.DeserializeObject<ForgotPasswordResponse>(responseJson);
+                    if (forgotResponse == null)
+                        throw new Exception("Invalid response from server.");
+                    return forgotResponse;
+                }
+
+                var errorJson = await response.Content.ReadAsStringAsync();
+                var errorResponse = JsonConvert.DeserializeObject<ApiErrorResponse>(errorJson);
+                throw new Exception(errorResponse?.Message ?? $"Password reset request failed: {response.StatusCode}");
+            }
+            catch (HttpRequestException ex)
+            {
+                throw new Exception($"Network error: {ex.Message}");
+            }
+            catch (TaskCanceledException)
+            {
+                throw new Exception("Request timeout. Please check your connection.");
+            }
+            catch (Exception ex)
+            {
+                throw new Exception($"Password reset error: {ex.Message}");
+            }
+        }
+
+        public async Task<VerifyPasswordResetOtpResponse> VerifyPasswordResetOtpAsync(string email, string code)
+        {
+            try
+            {
+                var request = new VerifyPasswordResetOtpRequest { Email = email.Trim(), Code = code.Trim() };
+                var json = JsonConvert.SerializeObject(request);
+                var content = new StringContent(json, Encoding.UTF8, "application/json");
+                var response = await _httpClient.PostAsync("/api/auth/verify-password-reset-otp", content);
+
+                if (response.IsSuccessStatusCode)
+                {
+                    var responseJson = await response.Content.ReadAsStringAsync();
+                    var verifyResponse = JsonConvert.DeserializeObject<VerifyPasswordResetOtpResponse>(responseJson);
+                    if (verifyResponse == null)
+                        throw new Exception("Invalid response from server.");
+                    return verifyResponse;
+                }
+
+                var errorJson = await response.Content.ReadAsStringAsync();
+                var errorResponse = JsonConvert.DeserializeObject<ApiErrorResponse>(errorJson);
+                throw new Exception(errorResponse?.Message ?? "Invalid or expired code.");
+            }
+            catch (HttpRequestException ex)
+            {
+                throw new Exception($"Network error: {ex.Message}");
+            }
+            catch (TaskCanceledException)
+            {
+                throw new Exception("Request timeout. Please check your connection.");
+            }
+            catch (Exception ex)
+            {
+                throw new Exception(ex.Message);
+            }
+        }
+
+        public async Task<ResetPasswordResponse> ResetPasswordAsync(string resetToken, string newPassword)
+        {
+            try
+            {
+                var request = new ResetPasswordRequest { ResetToken = resetToken, NewPassword = newPassword };
+                var json = JsonConvert.SerializeObject(request);
+                var content = new StringContent(json, Encoding.UTF8, "application/json");
+                var response = await _httpClient.PostAsync("/api/auth/reset-password", content);
+
+                if (response.IsSuccessStatusCode)
+                {
+                    var responseJson = await response.Content.ReadAsStringAsync();
+                    var resetResponse = JsonConvert.DeserializeObject<ResetPasswordResponse>(responseJson);
+                    if (resetResponse == null)
+                        throw new Exception("Invalid response from server.");
+                    return resetResponse;
+                }
+
+                var errorJson = await response.Content.ReadAsStringAsync();
+                var errorResponse = JsonConvert.DeserializeObject<ApiErrorResponse>(errorJson);
+                throw new Exception(errorResponse?.Message ?? "Password reset failed.");
+            }
+            catch (HttpRequestException ex)
+            {
+                throw new Exception($"Network error: {ex.Message}");
+            }
+            catch (TaskCanceledException)
+            {
+                throw new Exception("Request timeout. Please check your connection.");
+            }
+            catch (Exception ex)
+            {
+                throw new Exception(ex.Message);
+            }
+        }
+    }
+}

@@ -1,0 +1,87 @@
+<Project Sdk="Microsoft.NET.Sdk">
+  <PropertyGroup>
+    <OutputType>WinExe</OutputType>
+    <TargetFramework>net48</TargetFramework>
+    <UseWPF>true</UseWPF>
+    <ApplicationIcon>..\X-PHY Resource Files\x-phy.ico</ApplicationIcon>
+    <PlatformTarget>x64</PlatformTarget>
+    <Platform>x64</Platform>
+    <AppendTargetFrameworkToOutputPath>false</AppendTargetFrameworkToOutputPath>
+    <OutputPath>..\bin\x_phy_wpf_ui\$(Platform)\$(Configuration)\</OutputPath>
+    <IntermediateOutputPath>..\bin\x_phy_wpf_ui\intermediates\$(Platform)\$(Configuration)\</IntermediateOutputPath>
+    <DebugType>full</DebugType>
+    <DebugSymbols>true</DebugSymbols>
+    <Optimize>false</Optimize>
+    <Platforms>AnyCPU;x64</Platforms>
+    <LangVersion>9.0</LangVersion>
+    <Version>1.0.10</Version>
+  </PropertyGroup>
+  <ItemGroup>
+    <Reference Include="System.Windows.Forms" />
+    <Reference Include="System.Net.Http" />
+    <Reference Include="x_phy_wpf_wrapper">
+      <HintPath>..\bin\x_phy_wpf_wrapper\x64\Release\x_phy_wpf_wrapper.dll</HintPath>
+    </Reference>
+  </ItemGroup>
+  <ItemGroup>
+    <PackageReference Include="Stripe.net" Version="43.15.0" />
+    <PackageReference Include="Newtonsoft.Json" Version="13.0.3" />
+    <PackageReference Include="Microsoft.Web.WebView2" Version="1.0.2210.55" />
+  </ItemGroup>
+  <!-- Reference wrapper DLL only; do not build C++ vcxproj (requires Visual Studio). DLL must be pre-built. -->
+  <!--
+  <ItemGroup>
+    <ProjectReference Include="..\x_phy_wpf_wrapper\x_phy_wpf_wrapper.vcxproj">
+      <ReferenceOutputAssembly>false</ReferenceOutputAssembly>
+      <Private>false</Private>
+    </ProjectReference>
+  </ItemGroup>
+  -->
+  <ItemGroup>
+    <None Include="..\bin\x_phy_wpf_wrapper\x64\Release\x_phy_wpf_wrapper.dll">
+      <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
+    </None>
+    <None Include="..\bin\x_phy_wpf_wrapper\x64\Release\models\**\*">
+      <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
+      <Link>models\%(RecursiveDir)%(Filename)%(Extension)</Link>
+    </None>
+    <None Include="..\bin\x_phy_wpf_wrapper\x64\Release\*.dll">
+      <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
+    </None>
+    <None Include="..\bin\x_phy_wpf_wrapper\x64\Release\*.pdb">
+      <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
+    </None>
+    <None Include="..\config.toml" Condition="Exists('..\config.toml')">
+      <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
+    </None>
+  </ItemGroup>
+  <ItemGroup>
+    <Resource Include="..\X-PHY Resource Files\x-phy.png">
+      <Link>x-phy.png</Link>
+    </Resource>
+    <Resource Include="..\X-PHY Resource Files\x-phy-inverted-logo.png">
+      <Link>x-phy-inverted-logo.png</Link>
+    </Resource>
+    <Resource Include="..\X-PHY Resource Files\x-phy.ico">
+      <Link>x-phy.ico</Link>
+    </Resource>
+    <Resource Include="..\X-PHY Resource Files\xphy_lock_icon.png">
+      <Link>xphy_lock_icon.png</Link>
+    </Resource>
+    <Resource Include="..\X-PHY Resource Files\face.png">
+      <Link>face.png</Link>
+    </Resource>
+    <Resource Include="..\X-PHY Resource Files\faceBg.png">
+      <Link>facebg.png</Link>
+    </Resource>
+    <Resource Include="..\X-PHY Resource Files\mainbg.png">
+      <Link>mainbg.png</Link>
+    </Resource>
+    <Resource Include="..\X-PHY Resource Files\bubble.svg">
+      <Link>bubble.svg</Link>
+    </Resource>
+    <Resource Include="..\X-PHY Resource Files\kpi-logo.png">
+      <Link>kpi-logo.png</Link>
+    </Resource>
+  </ItemGroup>
+</Project>

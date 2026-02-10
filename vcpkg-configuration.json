@@ -1,0 +1,20 @@
+{
+  "default-registry": {
+    "kind": "git",
+    "baseline": "ef7dbf94b9198bc58f45951adcf1f041fcbc5ea0",
+    "repository": "https://github.com/microsoft/vcpkg"
+  },
+  "registries": [
+    {
+      "kind": "git",
+      "repository": "https://github.com/ensign-vanguard/vcpkg-reg",
+      "baseline": "733873e47b05051f1767f9705b19eb687ef379b4",
+      "packages": [ "tensorflow", "velopack", "onnxruntime-gpu", "cuda", "cudnn" ]
+    },
+    {
+      "kind": "artifact",
+      "location": "https://github.com/microsoft/vcpkg-ce-catalog/archive/refs/heads/main.zip",
+      "name": "microsoft"
+    }
+  ]
+}

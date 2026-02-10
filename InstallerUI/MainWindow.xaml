@@ -1,0 +1,64 @@
+<Window x:Class="InstallerUI.MainWindow"
+        xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
+        xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+        Title="X-PHY Deepfake Detector Setup"
+        Height="480" Width="580"
+        WindowStartupLocation="CenterScreen"
+        ResizeMode="NoResize"
+        WindowStyle="None"
+        Background="{StaticResource ContentBackground}">
+    <!--
+      Shell window for the custom WPF installer. MSI dialogs are not used;
+      the user only sees this WPF UI. The MSI runs silently when we reach the Progress step.
+      Layout: header (title + logo), content area (Welcome / License / Path / Progress / Finish), footer (Next, Cancel).
+    -->
+    <Window.Resources>
+        <BooleanToVisibilityConverter x:Key="BoolToVis"/>
+        <!-- NextButtonLabel and BoolToVis come from App.xaml when not overridden here -->
+    </Window.Resources>
+    <Grid>
+        <Grid.RowDefinitions>
+            <RowDefinition Height="Auto"/>
+            <RowDefinition Height="*"/>
+            <RowDefinition Height="Auto"/>
+        </Grid.RowDefinitions>
+
+        <!-- Header: title left, X-PHY logo right; draggable so window can move without title bar -->
+        <Border Grid.Row="0" Background="{StaticResource ContentBackground}" Padding="24,16" BorderBrush="#E0E0E0" BorderThickness="0,0,0,1"
+                MouseLeftButtonDown="Header_MouseLeftButtonDown">
+            <Grid>
+                <TextBlock Text="X-PHY Deepfake Detector Setup"
+                           FontSize="18" FontWeight="SemiBold"
+                           Foreground="{StaticResource TextPrimary}"
+                           VerticalAlignment="Center"/>
+                <Image Source="/x-phy-inverted-logo.png" Width="80" Height="40"
+                       HorizontalAlignment="Right" VerticalAlignment="Center" Stretch="Fill"/>
+            </Grid>
+        </Border>
+
+        <!-- Content: Welcome, License, Install Path, Progress, or Finish. No outer scroll so License step has only EULA box scroll. -->
+        <Border Grid.Row="1" Background="{StaticResource ContentBackground}" Padding="32,24">
+            <ContentControl x:Name="PageContent" VerticalContentAlignment="Top"/>
+        </Border>
+
+        <!-- Footer: Back, Next/Finish (primary blue), Cancel (grey) - order matches reference: Next left of Cancel -->
+        <Border Grid.Row="2" Background="{StaticResource FooterBackground}" Padding="24,16" BorderBrush="#E0E0E0" BorderThickness="0,1,0,0">
+            <Grid>
+                <StackPanel Orientation="Horizontal" HorizontalAlignment="Right">
+                    <Button x:Name="BackButton" Content="Back" Style="{StaticResource SecondaryButtonStyle}"
+                            Command="{Binding BackCommand}" Margin="0,0,12,0"
+                            Visibility="{Binding ShowBackButton, Converter={StaticResource BoolToVis}}"/>
+                    <Button x:Name="NextButton" Content="{Binding NextButtonLabel}" Style="{StaticResource PrimaryButtonStyle}"
+                            Command="{Binding NextCommand}" Margin="0,0,12,0"
+                            Visibility="{Binding ShowNextButton, Converter={StaticResource BoolToVis}}"/>
+                    <Button x:Name="FinishButton" Content="{Binding FinishButtonLabel}" Style="{StaticResource PrimaryButtonStyle}"
+                            Margin="0,0,12,0"
+                            Visibility="{Binding ShowFinishButton, Converter={StaticResource BoolToVis}}"/>
+                    <Button x:Name="CancelButton" Content="Cancel" Style="{StaticResource SecondaryButtonStyle}"
+                            Command="{Binding CancelCommand}"
+                            Visibility="{Binding ShowCancelButton, Converter={StaticResource BoolToVis}}"/>
+                </StackPanel>
+            </Grid>
+        </Border>
+    </Grid>
+</Window>

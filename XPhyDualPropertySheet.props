@@ -1,0 +1,13 @@
+<?xml version="1.0" encoding="utf-8"?>
+
+<Project ToolsVersion="4.0" xmlns="http://schemas.microsoft.com/developer/msbuild/2003">
+    <ImportGroup Label="PropertySheets" />
+    <PropertyGroup Label="UserMacros">
+        <model_bin_path>$(SolutionDir)dependencies\models</model_bin_path>
+        <eula_dir>$(SolutionDir)dependencies\eula</eula_dir>
+        <signtool_path>C:\Program Files (x86)\Microsoft SDKs\ClickOnce\SignTool\signtool.exe</signtool_path>
+      <cert_fingerprint></cert_fingerprint>
+      <timestamp_url>http://time.certum.pl</timestamp_url>
+      <core_lib_dir>$(SolutionDir)dependencies\lib</core_lib_dir>
+    </PropertyGroup>
+</Project>

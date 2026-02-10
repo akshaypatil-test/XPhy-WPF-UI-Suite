@@ -1,0 +1,274 @@
+<UserControl x:Class="x_phy_wpf_ui.Controls.DetectionSelection"
+             xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
+             xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+             xmlns:mc="http://schemas.openxmlformats.org/markup-compatibility/2006" 
+             xmlns:d="http://schemas.microsoft.com/expression/blend/2008" 
+             mc:Ignorable="d" 
+             d:DesignHeight="600" d:DesignWidth="800">
+    <UserControl.Resources>
+        <SolidColorBrush x:Key="CardBackground" Color="#FFFFFF" Opacity="0.08"/>
+        <SolidColorBrush x:Key="CardOuterBackground" Color="#252525"/>
+        <SolidColorBrush x:Key="UnselectedButtonBackground" Color="#343434"/>
+        <SolidColorBrush x:Key="TextPrimary" Color="#FFFFFF"/>
+        <SolidColorBrush x:Key="TextSecondary" Color="#999999"/>
+        <SolidColorBrush x:Key="TealColor" Color="#1AB4CC"/>
+        <SolidColorBrush x:Key="PrimaryPink" Color="#E2156B"/>
+        <SolidColorBrush x:Key="PrimaryPinkHover" Color="#F0458A"/>
+        <SolidColorBrush x:Key="HoverBackground" Color="#2A2A2A"/>
+        <SolidColorBrush x:Key="UnselectedBorder" Color="#444444"/>
+        <!-- Selected fill: dark teal left to dark purple/magenta right (reference) -->
+        <LinearGradientBrush x:Key="SelectedGradientBrush" StartPoint="0,0" EndPoint="1,0">
+            <GradientStop Color="#1A4A5C" Offset="0"/>
+            <GradientStop Color="#4A1A4A" Offset="1"/>
+        </LinearGradientBrush>
+        <!-- Border: bright cyan top-left to vibrant pink bottom-right (thin glowing border) -->
+        <LinearGradientBrush x:Key="NavBarBorderGradient" StartPoint="0,0" EndPoint="1,1">
+            <GradientStop Color="#1AB4CC" Offset="0"/>
+            <GradientStop Color="#E2156B" Offset="1"/>
+        </LinearGradientBrush>
+        
+        <!-- Primary Button Style -->
+        <Style x:Key="PrimaryButtonStyle" TargetType="Button">
+            <Setter Property="Background" Value="{StaticResource PrimaryPink}"/>
+            <Setter Property="Foreground" Value="White"/>
+            <Setter Property="FontSize" Value="13"/>
+            <Setter Property="FontWeight" Value="SemiBold"/>
+            <Setter Property="Padding" Value="18,8"/>
+            <Setter Property="BorderThickness" Value="0"/>
+            <Setter Property="Cursor" Value="Hand"/>
+            <Setter Property="Template">
+                <Setter.Value>
+                    <ControlTemplate TargetType="Button">
+                        <Border Background="{TemplateBinding Background}" 
+                                CornerRadius="6"
+                                Padding="{TemplateBinding Padding}">
+                            <ContentPresenter HorizontalAlignment="Center" VerticalAlignment="Center"/>
+                        </Border>
+                    </ControlTemplate>
+                </Setter.Value>
+            </Setter>
+            <Style.Triggers>
+                <Trigger Property="IsMouseOver" Value="True">
+                    <Setter Property="Background" Value="{StaticResource PrimaryPinkHover}"/>
+                </Trigger>
+                <Trigger Property="IsEnabled" Value="False">
+                    <Setter Property="Opacity" Value="0.5"/>
+                </Trigger>
+            </Style.Triggers>
+        </Style>
+        
+        <!-- Secondary Button Style -->
+        <Style x:Key="SecondaryButtonStyle" TargetType="Button">
+            <Setter Property="Background" Value="{StaticResource CardBackground}"/>
+            <Setter Property="Foreground" Value="{StaticResource TextPrimary}"/>
+            <Setter Property="FontSize" Value="13"/>
+            <Setter Property="FontWeight" Value="Medium"/>
+            <Setter Property="Padding" Value="18,8"/>
+            <Setter Property="BorderThickness" Value="0"/>
+            <Setter Property="Cursor" Value="Hand"/>
+            <Setter Property="Template">
+                <Setter.Value>
+                    <ControlTemplate TargetType="Button">
+                        <Border Background="{TemplateBinding Background}" 
+                                CornerRadius="6"
+                                Padding="{TemplateBinding Padding}">
+                            <ContentPresenter HorizontalAlignment="Center" VerticalAlignment="Center"/>
+                        </Border>
+                    </ControlTemplate>
+                </Setter.Value>
+            </Setter>
+            <Style.Triggers>
+                <Trigger Property="IsMouseOver" Value="True">
+                    <Setter Property="Background" Value="{StaticResource HoverBackground}"/>
+                </Trigger>
+            </Style.Triggers>
+        </Style>
+        
+        <!-- Close Button Style -->
+        <Style x:Key="CloseButtonStyle" TargetType="Button">
+            <Setter Property="Background" Value="Transparent"/>
+            <Setter Property="Foreground" Value="{StaticResource TextSecondary}"/>
+            <Setter Property="FontSize" Value="18"/>
+            <Setter Property="FontWeight" Value="Bold"/>
+            <Setter Property="Padding" Value="8,4"/>
+            <Setter Property="BorderThickness" Value="0"/>
+            <Setter Property="Cursor" Value="Hand"/>
+            <Setter Property="Width" Value="32"/>
+            <Setter Property="Height" Value="32"/>
+            <Setter Property="Template">
+                <Setter.Value>
+                    <ControlTemplate TargetType="Button">
+                        <Border Background="{TemplateBinding Background}" 
+                                CornerRadius="4"
+                                Padding="{TemplateBinding Padding}">
+                            <ContentPresenter HorizontalAlignment="Center" VerticalAlignment="Center"/>
+                        </Border>
+                    </ControlTemplate>
+                </Setter.Value>
+            </Setter>
+            <Style.Triggers>
+                <Trigger Property="IsMouseOver" Value="True">
+                    <Setter Property="Background" Value="{StaticResource HoverBackground}"/>
+                    <Setter Property="Foreground" Value="{StaticResource TextPrimary}"/>
+                </Trigger>
+            </Style.Triggers>
+        </Style>
+        
+        <!-- Process Button Style (unselected: dark grey like reference) -->
+        <Style x:Key="ProcessButtonStyle" TargetType="Button">
+            <Setter Property="Background" Value="{StaticResource UnselectedButtonBackground}"/>
+            <Setter Property="Foreground" Value="{StaticResource TextPrimary}"/>
+            <Setter Property="FontSize" Value="12"/>
+            <Setter Property="FontWeight" Value="Medium"/>
+            <Setter Property="Padding" Value="10,8"/>
+            <Setter Property="BorderThickness" Value="1"/>
+            <Setter Property="BorderBrush" Value="{StaticResource UnselectedBorder}"/>
+            <Setter Property="Cursor" Value="Hand"/>
+            <Setter Property="Template">
+                <Setter.Value>
+                    <ControlTemplate TargetType="Button">
+                        <Border Background="{TemplateBinding Background}" 
+                                CornerRadius="8"
+                                Padding="{TemplateBinding Padding}"
+                                BorderBrush="{TemplateBinding BorderBrush}"
+                                BorderThickness="{TemplateBinding BorderThickness}">
+                            <ContentPresenter HorizontalAlignment="Left" VerticalAlignment="Center"/>
+                        </Border>
+                    </ControlTemplate>
+                </Setter.Value>
+            </Setter>
+            <Style.Triggers>
+                <Trigger Property="IsMouseOver" Value="True">
+                    <Setter Property="Background" Value="{StaticResource HoverBackground}"/>
+                </Trigger>
+            </Style.Triggers>
+        </Style>
+        
+        <!-- Selected Process Button: gradient fill + gradient border (reference) -->
+        <Style x:Key="SelectedProcessButtonStyle" TargetType="Button">
+            <Setter Property="Background" Value="{StaticResource SelectedGradientBrush}"/>
+            <Setter Property="Foreground" Value="{StaticResource TextPrimary}"/>
+            <Setter Property="FontSize" Value="12"/>
+            <Setter Property="FontWeight" Value="Medium"/>
+            <Setter Property="Padding" Value="10,8"/>
+            <Setter Property="BorderThickness" Value="2"/>
+            <Setter Property="BorderBrush" Value="{StaticResource NavBarBorderGradient}"/>
+            <Setter Property="Cursor" Value="Hand"/>
+            <Setter Property="Template">
+                <Setter.Value>
+                    <ControlTemplate TargetType="Button">
+                        <Border Background="{TemplateBinding Background}" 
+                                CornerRadius="8"
+                                Padding="{TemplateBinding Padding}"
+                                BorderBrush="{TemplateBinding BorderBrush}"
+                                BorderThickness="{TemplateBinding BorderThickness}">
+                            <ContentPresenter HorizontalAlignment="Left" VerticalAlignment="Center"/>
+                        </Border>
+                    </ControlTemplate>
+                </Setter.Value>
+            </Setter>
+        </Style>
+        
+        <!-- Source Button Style (unselected) -->
+        <Style x:Key="SourceButtonStyle" TargetType="Button" BasedOn="{StaticResource ProcessButtonStyle}">
+        </Style>
+        
+        <!-- Selected Source Button: gradient fill + gradient border (reference) -->
+        <Style x:Key="SelectedSourceButtonStyle" TargetType="Button">
+            <Setter Property="Background" Value="{StaticResource SelectedGradientBrush}"/>
+            <Setter Property="Foreground" Value="{StaticResource TextPrimary}"/>
+            <Setter Property="FontSize" Value="12"/>
+            <Setter Property="FontWeight" Value="Medium"/>
+            <Setter Property="Padding" Value="10,8"/>
+            <Setter Property="BorderThickness" Value="2"/>
+            <Setter Property="BorderBrush" Value="{StaticResource NavBarBorderGradient}"/>
+            <Setter Property="Cursor" Value="Hand"/>
+            <Setter Property="Template">
+                <Setter.Value>
+                    <ControlTemplate TargetType="Button">
+                        <Border Background="{TemplateBinding Background}" 
+                                CornerRadius="8"
+                                Padding="{TemplateBinding Padding}"
+                                BorderBrush="{TemplateBinding BorderBrush}"
+                                BorderThickness="{TemplateBinding BorderThickness}">
+                            <ContentPresenter HorizontalAlignment="Left" VerticalAlignment="Center"/>
+                        </Border>
+                    </ControlTemplate>
+                </Setter.Value>
+            </Setter>
+        </Style>
+    </UserControl.Resources>
+    
+    <!-- Single card with grey background (like bottom bar) -->
+    <Border Background="{StaticResource CardOuterBackground}" 
+            CornerRadius="12" 
+            Padding="14">
+        <Grid>
+            <Grid.RowDefinitions>
+                <RowDefinition Height="Auto"/>
+                <RowDefinition Height="*"/>
+                <RowDefinition Height="Auto"/>
+            </Grid.RowDefinitions>
+            
+            <!-- Header: only "Select Detection Source" + Close -->
+            <Grid Grid.Row="0" Margin="0,0,0,10">
+                <TextBlock Text="Select Detection Source" 
+                           FontSize="14" 
+                           FontWeight="SemiBold" 
+                           Foreground="{StaticResource TextPrimary}"
+                           VerticalAlignment="Center"/>
+                <Button Content="✕" 
+                        Style="{StaticResource CloseButtonStyle}"
+                        Click="CloseButton_Click"
+                        HorizontalAlignment="Right"
+                        VerticalAlignment="Center"
+                        ToolTip="Close"/>
+            </Grid>
+            
+            <!-- Content: source buttons, then "Select Input Type", then input type buttons -->
+            <ScrollViewer Grid.Row="1"
+                          VerticalScrollBarVisibility="Auto"
+                          HorizontalScrollBarVisibility="Disabled"
+                          Padding="0,0,4,0">
+                <StackPanel>
+                    <!-- Source buttons (Zoom, VLC, Youtube) - no extra heading -->
+                    <StackPanel x:Name="ProcessesPanel" Margin="0,0,0,10"/>
+                    
+                    <!-- Only second heading: Select Input Type -->
+                    <TextBlock Text="Select Input Type" 
+                               FontSize="13" 
+                               FontWeight="SemiBold" 
+                               Foreground="{StaticResource TextPrimary}"
+                               Margin="0,0,0,6"/>
+                    <Grid x:Name="SourceOptionsGrid" Margin="0,0,0,6">
+                        <Grid.ColumnDefinitions>
+                            <ColumnDefinition Width="*"/>
+                            <ColumnDefinition Width="8"/>
+                            <ColumnDefinition Width="*"/>
+                        </Grid.ColumnDefinitions>
+                    </Grid>
+                    
+                    <TextBlock x:Name="StatusText"
+                               Text="Please select a process to continue" 
+                               FontSize="12" 
+                               Foreground="{StaticResource TextSecondary}"
+                               TextWrapping="Wrap"
+                               Margin="0,4,0,0"/>
+                </StackPanel>
+            </ScrollViewer>
+            
+            <!-- Start Detection: smaller, centered (like reference) -->
+            <Button Grid.Row="2" 
+                    Content="Start Detection" 
+                    Style="{StaticResource PrimaryButtonStyle}"
+                    Click="StartDetection_Click"
+                    x:Name="StartDetectionButton"
+                    Margin="0,12,0,0"
+                    HorizontalAlignment="Center"
+                    MinWidth="180"
+                    Width="63"
+                    Padding="24,10"
+                    IsEnabled="False"/>
+        </Grid>
+    </Border>
+</UserControl>

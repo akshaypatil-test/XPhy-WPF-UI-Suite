@@ -67,6 +67,9 @@ namespace x_phy_wpf_ui.Models
         public bool LicenseValid { get; set; }
         [JsonProperty("license")]
         public LicenseInfo? License { get; set; }
+        /// <summary>License key if API returns it at top level (e.g. "licenseKey").</summary>
+        [JsonProperty("licenseKey")]
+        public string? LicenseKey { get; set; }
     }
 
     public class UserInfo

@@ -253,6 +253,11 @@ namespace XPhyWrapper {
         catch (const std::exception& e) {
             throw gcnew System::Exception(gcnew String(e.what()));
         }
+        catch (...) {
+            // Catch any other C++ exception (e.g. license failure before we translated it)
+            // so the managed layer always receives an exception and controller stays null.
+            throw gcnew System::Exception("License or controller initialization failed.");
+        }
     }
 
     ApplicationControllerWrapper::~ApplicationControllerWrapper()

@@ -1,6 +1,8 @@
 using System;
 using System.Windows;
 using x_phy_wpf_ui.Controls;
+using x_phy_wpf_ui.Models;
+using x_phy_wpf_ui.Services;
 
 namespace x_phy_wpf_ui
 {
@@ -83,40 +85,56 @@ namespace x_phy_wpf_ui
 
         private void SignInComponent_SignInSuccessful(object sender, EventArgs e)
         {
-            // Close all windows including this one
+            // Launch screen: do NOT validate license (no Keygen check). Save tokens and open MainWindow.
+            // License is validated only on Sign In inside MainWindow; machine error is shown there.
+            if (e is not SignInSuccessfulEventArgs args || args.LoginResponse == null)
+            {
+                ComponentContainer.Content = _signInComponent;
+                return;
+            }
+
+            if (!string.IsNullOrWhiteSpace(args.LicenseKey))
+            {
+                try { MainWindow.WriteLicenseKeyToExeConfig(args.LicenseKey.Trim()); }
+                catch { /* best effort */ }
+            }
+
+            var response = args.LoginResponse;
+            var licenseInfo = response.License ?? (response.User != null
+                ? new LicenseInfo
+                {
+                    Status = string.IsNullOrEmpty(response.User.LicenseStatus) ? "Trial" : response.User.LicenseStatus,
+                    TrialEndsAt = response.User.TrialEndsAt
+                }
+                : null);
+            var tokenStorage = new TokenStorage();
+            tokenStorage.SaveTokens(
+                response.AccessToken,
+                response.RefreshToken,
+                response.ExpiresIn,
+                response.User.Id,
+                response.User.Username,
+                response.User,
+                licenseInfo
+            );
+
             var allWindows = new System.Collections.Generic.List<Window>();
             foreach (Window window in Application.Current.Windows)
-            {
                 allWindows.Add(window);
-            }
-            
             foreach (var window in allWindows)
-            {
                 window.Close();
-            }
-            
-            // Show MainWindow
+
             try
             {
-                MainWindow existingMainWindow = null;
-                foreach (Window window in Application.Current.Windows)
-                {
-                    if (window is MainWindow mw)
-                    {
-                        existingMainWindow = mw;
-                        break;
-                    }
-                }
-                
-                MainWindow mainWindowToShow = existingMainWindow ?? new MainWindow();
-                mainWindowToShow.Show();
-                mainWindowToShow.Activate();
-                mainWindowToShow.WindowState = WindowState.Normal;
-                mainWindowToShow.Focus();
+                var mainWindow = new MainWindow();
+                mainWindow.Show();
+                mainWindow.Activate();
+                mainWindow.WindowState = WindowState.Normal;
+                mainWindow.Focus();
             }
             catch (Exception ex)
             {
-                MessageBox.Show($"Failed to open main window: {ex.Message}\n\nPlease try again or contact support.", 
+                MessageBox.Show($"Failed to open main window: {ex.Message}\n\nPlease try again or contact support.",
                     "Error", MessageBoxButton.OK, MessageBoxImage.Error);
             }
         }

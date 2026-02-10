@@ -37,12 +37,14 @@ On first build, vcpkg will download and build packages; **internet access is req
 
 ### This folder’s dependencies
 
-The folder already contains:
+The folder uses:
 
 - `dependencies\` — native libs, models, EULA (do not remove)
 - `src\`, `external-headers\`, `X-PHY Resource Files\` — used by the solution
 
-You do **not** need to copy anything from another repo; just keep this folder intact.
+**If you cloned from GitHub:** The large files in `dependencies\models\` and `dependencies\lib\` (model files and `detection_program_lib.lib`) are not in the repo (GitHub’s 100 MB limit). Obtain them from your team or build artifact and place them in those folders so the wrapper build and run can find them.
+
+You do **not** need to copy anything else from another repo once dependencies are in place.
 
 ---
 

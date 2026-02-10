@@ -47,5 +47,8 @@ Desktop.ini
 dependencies/models/
 dependencies/lib/
 
+# Local / suite folder – part of workspace but not committed
+x_phy_detection_program_ui/
+
 # Sensitive / local config (uncomment if config.toml has secrets)
 # config.toml

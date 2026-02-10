@@ -12,7 +12,7 @@ namespace x_phy_wpf_ui.Controls
     public partial class SignInComponent : UserControl
     {
         public event EventHandler NavigateToCreateAccount;
-        public event EventHandler SignInSuccessful;
+        public event EventHandler<SignInSuccessfulEventArgs>? SignInSuccessful;
         public event EventHandler ShowLoaderRequested;
         public event EventHandler<x_phy_wpf_ui.SignInFailedEventArgs> SignInFailed;
         public event EventHandler NavigateBack;
@@ -291,7 +291,7 @@ namespace x_phy_wpf_ui.Controls
 
                 if (response != null && response.User != null)
                 {
-                    // Persist tokens and user/license so BottomBar, Stripe payment, etc. can read them
+                    // Do NOT save tokens yet. Parent will run native Keygen validation first; only if valid will it save tokens and complete login.
                     var licenseInfo = response.License;
                     if (licenseInfo == null && response.User != null)
                     {
@@ -301,16 +301,8 @@ namespace x_phy_wpf_ui.Controls
                             TrialEndsAt = response.User.TrialEndsAt
                         };
                     }
-                    _tokenStorage.SaveTokens(
-                        response.AccessToken,
-                        response.RefreshToken,
-                        response.ExpiresIn,
-                        response.User.Id,
-                        response.User.Username,
-                        response.User,
-                        licenseInfo
-                    );
-                    SignInSuccessful?.Invoke(this, EventArgs.Empty);
+                    var licenseKey = response.LicenseKey ?? response.License?.Key ?? licenseInfo?.Key;
+                    SignInSuccessful?.Invoke(this, new SignInSuccessfulEventArgs(licenseKey, response));
                 }
                 else
                 {

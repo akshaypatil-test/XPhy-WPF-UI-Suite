@@ -63,10 +63,21 @@ namespace x_phy_wpf_ui
             return (SolidColorBrush)this.Resources[resourceKey];
         }
 
-        public MainWindow()
+        public MainWindow() : this(null) { }
+
+        /// <summary>
+        /// Use when opening from LaunchWindow after sign-in: controller was already created and license validated there.
+        /// </summary>
+        public MainWindow(ApplicationControllerWrapper preInitializedController)
         {
             try
             {
+                if (preInitializedController != null)
+                {
+                    controller = preInitializedController;
+                    controllerInitializationAttempted = true;
+                }
+
                 InitializeComponent();
 
                 // Initialize timers (these are safe to initialize immediately)
@@ -184,13 +195,89 @@ namespace x_phy_wpf_ui
 
         private async void SignInComponent_SignInSuccessful(object sender, EventArgs e)
         {
+            if (e is not SignInSuccessfulEventArgs args || args.LoginResponse == null)
+            {
+                Dispatcher.Invoke(() => { AuthPanel.SetContent(_signInComponent); });
+                return;
+            }
+
+            // 1. Write/override config.toml with the user's license key (AppData, no admin needed).
+            if (!string.IsNullOrWhiteSpace(args.LicenseKey))
+                WriteLicenseKeyToExeConfig(args.LicenseKey.Trim());
+            else
+            {
+                Dispatcher.Invoke(() =>
+                {
+                    MessageBox.Show("No license key received. Cannot validate license.", "License Error", MessageBoxButton.OK, MessageBoxImage.Error);
+                    AuthPanel.SetContent(_signInComponent);
+                });
+                return;
+            }
+
             var elapsed = (DateTime.UtcNow - _loaderShownAt).TotalSeconds;
             if (elapsed < 3.0)
             {
                 var delayMs = (int)((3.0 - elapsed) * 1000);
                 await Task.Delay(delayMs);
             }
-            Dispatcher.Invoke(() => ShowAppView());
+
+            // 2. Run native license validation (Keygen) by creating the controller. If invalid (e.g. machine limit), show error and do not complete login.
+            Dispatcher.Invoke(() =>
+            {
+                try
+                {
+                    string appData = Environment.GetFolderPath(Environment.SpecialFolder.ApplicationData);
+                    string outputDir = Path.Combine(appData, "X-PHY", "X-PHY Deepfake Detector");
+                    Directory.CreateDirectory(outputDir);
+                    string configPath = GetAppDataConfigPath();
+                    controller = new ApplicationControllerWrapper(outputDir, configPath);
+                    controllerInitializationAttempted = true;
+                    System.Diagnostics.Debug.WriteLine("License validation (Keygen) succeeded at sign-in.");
+                    var ctrl = controller;
+                    _inferenceWarmUpTask = Task.Run(() =>
+                    {
+                        try
+                        {
+                            System.Threading.Thread.Sleep(3000);
+                            var method = ctrl?.GetType().GetMethod("PrepareInferenceEnvironment", Type.EmptyTypes);
+                            if (method != null) method.Invoke(ctrl, null);
+                        }
+                        catch (Exception ex) { System.Diagnostics.Debug.WriteLine($"Warm-up: {ex.Message}"); }
+                    });
+                }
+                catch (Exception ex)
+                {
+                    controller = null;
+                    controllerInitializationAttempted = true;
+                    string message = GetControllerInitFailureMessage(ex);
+                    bool isLicenseError = IsLicenseValidationFailure(ex);
+                    string title = isLicenseError ? "License Error" : "Validation Failed";
+                    MessageBox.Show(message, title, MessageBoxButton.OK, MessageBoxImage.Error);
+                    AuthPanel.SetContent(_signInComponent);
+                    return;
+                }
+
+                // 3. License valid: save tokens and complete login.
+                var response = args.LoginResponse;
+                var licenseInfo = response.License ?? (response.User != null
+                    ? new LicenseInfo
+                    {
+                        Status = string.IsNullOrEmpty(response.User.LicenseStatus) ? "Trial" : response.User.LicenseStatus,
+                        TrialEndsAt = response.User.TrialEndsAt
+                    }
+                    : null);
+                var tokenStorage = new TokenStorage();
+                tokenStorage.SaveTokens(
+                    response.AccessToken,
+                    response.RefreshToken,
+                    response.ExpiresIn,
+                    response.User.Id,
+                    response.User.Username,
+                    response.User,
+                    licenseInfo
+                );
+                ShowAppView();
+            });
         }
 
         private void AuthHostView_CloseRequested(object sender, EventArgs e)
@@ -202,6 +289,9 @@ namespace x_phy_wpf_ui
         {
             AuthPanel.Visibility = Visibility.Collapsed;
             AppPanel.Visibility = Visibility.Visible;
+
+            // Keep AppData config.toml in sync with the current user's license (from tokens) so native validation uses the right key.
+            UpdateConfigWithCurrentUserLicense();
 
             // Always show home screen when entering app (e.g. after login or re-login)
             ResetAppContentToHome();
@@ -215,10 +305,11 @@ namespace x_phy_wpf_ui
             // Deferred refresh so BottomBar sees tokens after file is flushed (avoids No License / 0 days)
             Dispatcher.BeginInvoke(new Action(UpdateLicenseDisplay), DispatcherPriority.ApplicationIdle);
 
-            if (!_appViewShownOnce)
+            // Initialize (or re-initialize) native controller with current user's license when entering app.
+            // If controller is null (e.g. after logout), init runs and validates this user's key with Keygen
+            // for this machine — so only the user whose license is bound to this machine can use detection.
+            if (controller == null)
             {
-                _appViewShownOnce = true;
-                // Initialize controller when entering AppView (after login) - wrapper init here
                 Dispatcher.BeginInvoke(new Action(() =>
                 {
                     InitializeController();
@@ -294,6 +385,38 @@ namespace x_phy_wpf_ui
             this.Left = (screenWidth - this.Width) / 2;
             this.Top = (screenHeight - this.Height) / 2;
             
+            // If opened from LaunchWindow with pre-validated controller and tokens, show app view immediately
+            if (controller != null && controllerInitializationAttempted)
+            {
+                var tokenStorage = new TokenStorage();
+                var storedTokens = tokenStorage.GetTokens();
+                if (storedTokens?.UserInfo != null)
+                {
+                    var ctrl = controller;
+                    _inferenceWarmUpTask = Task.Run(() =>
+                    {
+                        try
+                        {
+                            System.Threading.Thread.Sleep(3000);
+                            var method = ctrl?.GetType().GetMethod("PrepareInferenceEnvironment", Type.EmptyTypes);
+                            if (method != null) method.Invoke(ctrl, null);
+                        }
+                        catch (Exception ex) { System.Diagnostics.Debug.WriteLine($"Warm-up: {ex.Message}"); }
+                    });
+                    ShowAppView();
+                    return;
+                }
+            }
+
+            // Signed in from LaunchWindow (tokens saved, no validation there): show app view; controller will init in ShowAppView
+            var tokenStorageForLaunch = new TokenStorage();
+            var tokensForLaunch = tokenStorageForLaunch.GetTokens();
+            if (tokensForLaunch?.UserInfo != null)
+            {
+                ShowAppView();
+                return;
+            }
+
             // Stats and controller init happen when App view is shown (after login), not on initial load when Auth is shown
             if (AppPanel.Visibility == Visibility.Visible)
             {
@@ -338,7 +461,58 @@ namespace x_phy_wpf_ui
             this.DragMove();
         }
 
-        private void UpdateConfigFileWithLicenseKey(string configPath, string licenseKey)
+        /// <summary>
+        /// Path to config.toml in per-user AppData. Use this so we can write the license key without admin rights
+        /// (install folder e.g. Program Files often requires admin to write).
+        /// </summary>
+        public static string GetAppDataConfigPath()
+        {
+            string appData = Environment.GetFolderPath(Environment.SpecialFolder.ApplicationData);
+            string dir = Path.Combine(appData, "X-PHY", "X-PHY Deepfake Detector");
+            if (!Directory.Exists(dir))
+                Directory.CreateDirectory(dir);
+            return Path.Combine(dir, "config.toml");
+        }
+
+        /// <summary>
+        /// Writes the given license key to config.toml in per-user AppData (no admin required).
+        /// Call this with the license key from the login response so native validation uses the correct key.
+        /// </summary>
+        public static void WriteLicenseKeyToExeConfig(string? licenseKey)
+        {
+            if (string.IsNullOrWhiteSpace(licenseKey)) return;
+            string configPath = GetAppDataConfigPath();
+            UpdateConfigFileWithLicenseKey(configPath, licenseKey.Trim());
+            System.Diagnostics.Debug.WriteLine($"WriteLicenseKeyToExeConfig: config.toml updated at {configPath}");
+        }
+
+        /// <summary>
+        /// Writes the current user's license key (from stored tokens) to config.toml in AppData.
+        /// Fallback when we don't have the key from the sign-in event (e.g. from tokens).
+        /// </summary>
+        private void UpdateConfigWithCurrentUserLicense()
+        {
+            try
+            {
+                var tokenStorage = new TokenStorage();
+                var storedTokens = tokenStorage.GetTokens();
+                string? licenseKey = storedTokens?.LicenseInfo?.Key;
+                if (string.IsNullOrEmpty(licenseKey))
+                {
+                    System.Diagnostics.Debug.WriteLine("UpdateConfigWithCurrentUserLicense: No license key in tokens, skipping.");
+                    return;
+                }
+                string configPath = GetAppDataConfigPath();
+                UpdateConfigFileWithLicenseKey(configPath, licenseKey);
+                System.Diagnostics.Debug.WriteLine("UpdateConfigWithCurrentUserLicense: config.toml updated with current user license.");
+            }
+            catch (Exception ex)
+            {
+                System.Diagnostics.Debug.WriteLine($"UpdateConfigWithCurrentUserLicense failed: {ex.Message}");
+            }
+        }
+
+        private static void UpdateConfigFileWithLicenseKey(string configPath, string licenseKey)
         {
             try
             {
@@ -357,12 +531,13 @@ namespace x_phy_wpf_ui
                 }
                 else
                 {
-                    // Create default config content if file doesn't exist
-                    configContent = @"[license]
+                    // Create default config content if file doesn't exist. Use absolute path for models so native finds them in the install folder.
+                    string exeModelsPath = Path.Combine(AppDomain.CurrentDomain.BaseDirectory, "models").Replace('\\', '/');
+                    configContent = $@"[license]
 KEY = """"
 
 [app]
-modelDirectory = ""models""
+modelDirectory = ""{exeModelsPath}""
 optOutOfScreenCapture = false
 
 [voice.generic]
@@ -517,42 +692,11 @@ videoLiveFakeProportionThreshold = 0.7
                 string outputDir = Path.Combine(appData, "X-PHY", "X-PHY Deepfake Detector");
                 Directory.CreateDirectory(outputDir);
 
-                // Try multiple paths for config.toml
-                string configPath = null;
-                string[] possibleConfigPaths = new string[]
-                {
-                    Path.Combine(AppDomain.CurrentDomain.BaseDirectory, "config.toml"),
-                    Path.Combine(AppDomain.CurrentDomain.BaseDirectory, "..", "config.toml"),
-                    Path.Combine(AppDomain.CurrentDomain.BaseDirectory, "..", "..", "config.toml"),
-                    Path.Combine(Environment.CurrentDirectory, "config.toml"),
-                };
+                // Config in AppData so we can write the license key without admin rights (install folder often requires admin).
+                string configPath = GetAppDataConfigPath();
+                System.Diagnostics.Debug.WriteLine($"Using config.toml at: {configPath}");
 
-                foreach (string path in possibleConfigPaths)
-                {
-                    if (File.Exists(path))
-                    {
-                        configPath = path;
-                        System.Diagnostics.Debug.WriteLine($"Found config.toml at: {configPath}");
-                        break;
-                    }
-                }
-
-                if (string.IsNullOrEmpty(configPath))
-                {
-                    // If config file not found, use a default path
-                    configPath = Path.Combine(AppDomain.CurrentDomain.BaseDirectory, "config.toml");
-                    System.Diagnostics.Debug.WriteLine($"Config.toml not found, using default path: {configPath}");
-                }
-
-                // Ensure config directory and models directory exist before controller sees them (avoids first-run inference setup failure)
-                string configDir = Path.GetDirectoryName(configPath);
-                if (!string.IsNullOrEmpty(configDir))
-                {
-                    Directory.CreateDirectory(configDir);
-                    string modelsDir = Path.Combine(configDir, "models");
-                    if (!Directory.Exists(modelsDir))
-                        Directory.CreateDirectory(modelsDir);
-                }
+                // Ensure exe's models folder exists (native may load from there when modelDirectory is absolute).
                 string baseModelsDir = Path.Combine(AppDomain.CurrentDomain.BaseDirectory, "models");
                 if (!Directory.Exists(baseModelsDir))
                     Directory.CreateDirectory(baseModelsDir);
@@ -676,25 +820,14 @@ videoLiveFakeProportionThreshold = 0.7
                 
                 System.Diagnostics.Debug.WriteLine("========================================");
                 
-                // Show a warning instead of error, allowing the app to continue
-                // Use Dispatcher to ensure we're on UI thread
+                // Show error (license) or warning (other); match old app title for license errors
+                string userMessage = GetControllerInitFailureMessage(ex);
+                bool isLicenseError = IsLicenseValidationFailure(ex);
+                string title = isLicenseError ? "License Error" : "Controller Initialization Warning";
+                var icon = isLicenseError ? MessageBoxImage.Error : MessageBoxImage.Warning;
                 Dispatcher.BeginInvoke(new Action(() =>
                 {
-                    MessageBox.Show(
-                        $"Warning: Failed to initialize detection controller. Some features may not work.\n\n" +
-                        $"Error: {ex.Message}\n\n" +
-                        $"Details:\n" +
-                        $"  - Output Directory: {Path.Combine(Environment.GetFolderPath(Environment.SpecialFolder.ApplicationData), "X-PHY", "X-PHY Deepfake Detector")}\n" +
-                        $"  - Config Path: {Path.Combine(AppDomain.CurrentDomain.BaseDirectory, "config.toml")}\n" +
-                        $"  - Config Exists: {File.Exists(Path.Combine(AppDomain.CurrentDomain.BaseDirectory, "config.toml"))}\n\n" +
-                        $"You can still use the application, but detection features will be unavailable.\n\n" +
-                        $"Please check:\n" +
-                        $"  1. config.toml exists in the application directory\n" +
-                        $"  2. Required DLLs are present\n" +
-                        $"  3. Check Debug output for more details",
-                        "Controller Initialization Warning", 
-                        MessageBoxButton.OK, 
-                        MessageBoxImage.Warning);
+                    MessageBox.Show(userMessage, title, MessageBoxButton.OK, icon);
                 }), DispatcherPriority.Normal);
                 
                 // Set controller to null so we can check for it later
@@ -704,6 +837,46 @@ videoLiveFakeProportionThreshold = 0.7
             }
         }
 
+        /// <summary>True if the exception is from native license validation (Keygen).</summary>
+        public static bool IsLicenseValidationFailure(Exception ex)
+        {
+            string msg = ex?.Message ?? "";
+            string lower = msg.ToLowerInvariant();
+            return (lower.Contains("maximum") && lower.Contains("machines")) ||
+                   lower.Contains("license is invalid") ||
+                   lower.Contains("activation unsuccessful") ||
+                   (lower.Contains("license") && (lower.Contains("expired") || lower.Contains("not found") || lower.Contains("key is missing"))) ||
+                   lower.Contains("license information is invalid") ||
+                   lower.Contains("unable to validate license") ||
+                   lower.Contains("server returned") ||
+                   lower.Contains("could not verify");
+        }
+
+        /// <summary>
+        /// Returns a user-friendly message for controller init failure. Uses the exact native message
+        /// for license errors (e.g. machine limit) so the dialog matches the old app.
+        /// </summary>
+        public static string GetControllerInitFailureMessage(Exception ex)
+        {
+            string msg = ex?.Message ?? "";
+            string lower = msg.ToLowerInvariant();
+            // Use the exact message from native for license errors (same as x_phy_detection_program_ui)
+            if (lower.Contains("maximum") && lower.Contains("machines"))
+                return msg;
+            if (lower.Contains("license is invalid"))
+                return msg;
+            if (lower.Contains("activation unsuccessful"))
+                return msg;
+            if (lower.Contains("license") && (lower.Contains("expired") || lower.Contains("not found") || lower.Contains("key is missing")))
+                return msg;
+            if (lower.Contains("license information is invalid") || lower.Contains("unable to validate license"))
+                return msg;
+            if (lower.Contains("server returned") || lower.Contains("could not verify"))
+                return msg;
+            return "Failed to initialize detection controller. Some features may not work.\n\n" +
+                   "Error: " + msg + "\n\n" +
+                   "You can still use the application, but detection will be unavailable. Please check that config.toml exists and required DLLs are present.";
+        }
 
         private void MainWindow_StateChanged(object sender, EventArgs e)
         {
@@ -1126,7 +1299,12 @@ videoLiveFakeProportionThreshold = 0.7
                     // Clear stored tokens (standard auth: clean logout for multiple login/logout cycles)
                     var tokenStorage = new TokenStorage();
                     tokenStorage.ClearTokens();
-                    
+
+                    // Release native controller so the next user gets a fresh init with their license.
+                    // This ensures Keygen validates the current user's key against this machine (one user per machine).
+                    controller = null;
+                    controllerInitializationAttempted = false;
+
                     // Shell: Show LoginView again; do not close the app
                     ShowAuthView();
                 }

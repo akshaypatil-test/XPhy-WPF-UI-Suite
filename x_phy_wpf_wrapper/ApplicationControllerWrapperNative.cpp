@@ -61,15 +61,61 @@ namespace XPhyWrapperNative {
             handle->controller = new std::unique_ptr<edf::ApplicationController>(
                 std::make_unique<edf::ApplicationController>(outputDir, configPath));
         }
-        catch (const std::exception& e) {
-            // Clean up handle if controller creation fails
+        catch (const edf::license_manager::LicenseValidationFailure& e) {
+            // LicenseValidationFailure is not derived from std::exception, so it would not be
+            // caught by the C++/CLI layer. Translate to std::runtime_error so C# gets the message
+            // and can block Start Detection (same behavior as the old x_phy_detection_program_ui).
             delete handle;
-            throw; // Re-throw to be caught by C++/CLI wrapper
+            const char* msg = "License validation failed.";
+            switch (e.reason) {
+                case edf::license_manager::LicenseValidationFailureReason::MachineLimitExceeded:
+                    msg = "Maximum no. machines granted to your license key already in use. You cannot use the application.";
+                    break;
+                case edf::license_manager::LicenseValidationFailureReason::Invalid:
+                    msg = "License is invalid. You cannot use the application.";
+                    break;
+                case edf::license_manager::LicenseValidationFailureReason::KeyMissing:
+                    msg = "License key is missing. Please enter a valid key.";
+                    break;
+                case edf::license_manager::LicenseValidationFailureReason::Expired:
+                    msg = "License has expired. Please enter a new key.";
+                    break;
+                case edf::license_manager::LicenseValidationFailureReason::NotFound:
+                    msg = "License not found or invalid. Please re-enter your key.";
+                    break;
+                case edf::license_manager::LicenseValidationFailureReason::ActivationError:
+                    msg = "Machine activation unsuccessful.";
+                    break;
+                case edf::license_manager::LicenseValidationFailureReason::MetadataError:
+                    msg = "License information is invalid. You cannot use the application.";
+                    break;
+                case edf::license_manager::LicenseValidationFailureReason::ServerError:
+                    msg = "Unable to validate license. Server returned error.";
+                    break;
+                case edf::license_manager::LicenseValidationFailureReason::HttpError:
+                    msg = "Unable to validate license. Please check your Internet connection and try again.";
+                    break;
+                case edf::license_manager::LicenseValidationFailureReason::ValidationError:
+                    msg = "Unable to validate license.";
+                    break;
+                case edf::license_manager::LicenseValidationFailureReason::BadResponse:
+                    msg = "The license server returned a bad response.";
+                    break;
+                case edf::license_manager::LicenseValidationFailureReason::CannotVerifySignature:
+                    msg = "Could not verify the server's response.";
+                    break;
+                default:
+                    break;
+            }
+            throw std::runtime_error(msg);
+        }
+        catch (const std::exception& e) {
+            delete handle;
+            throw;
         }
         catch (...) {
-            // Clean up handle if controller creation fails
             delete handle;
-            throw; // Re-throw to be caught by C++/CLI wrapper
+            throw;
         }
         return handle;
     }

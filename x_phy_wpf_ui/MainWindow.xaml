@@ -180,7 +180,8 @@
                                        SelectedPage="Home"
                                        HorizontalAlignment="Center"
                                        VerticalAlignment="Center"
-                                       NavigationClicked="TopNavBar_NavigationClicked"/>
+                                       NavigationClicked="TopNavBar_NavigationClicked"
+                                       AddCorpUserClicked="TopNavBar_AddCorpUserClicked"/>
         </Grid>
         
         <!-- Statistics Cards -->
@@ -241,6 +242,12 @@
                                      Visibility="Collapsed"
                                      PlanSelected="PlansComponent_PlanSelected"
                                      BackRequested="PlansComponent_BackRequested"/>
+
+            <!-- Add Corp User (Admin only) -->
+            <controls:CreateCorpAccountComponent x:Name="CorpRegisterComponent"
+                                                 Visibility="Collapsed"
+                                                 BackRequested="CorpRegisterComponent_BackRequested"
+                                                 CorpAccountCreated="CorpRegisterComponent_CorpAccountCreated"/>
             
             <!-- Stripe Payment Component Container -->
             <ContentControl x:Name="StripePaymentComponentContainer"

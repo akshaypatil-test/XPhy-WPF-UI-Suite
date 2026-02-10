@@ -7,6 +7,7 @@ namespace x_phy_wpf_ui.Controls
     public partial class TopNavigationBar : UserControl
     {
         public event EventHandler<string> NavigationClicked;
+        public event EventHandler AddCorpUserClicked;
 
         public static readonly DependencyProperty SelectedPageProperty =
             DependencyProperty.Register(
@@ -21,10 +22,31 @@ namespace x_phy_wpf_ui.Controls
             set => SetValue(SelectedPageProperty, value);
         }
 
+        public static readonly DependencyProperty IsAdminProperty =
+            DependencyProperty.Register(
+                nameof(IsAdmin),
+                typeof(bool),
+                typeof(TopNavigationBar),
+                new PropertyMetadata(false, OnIsAdminChanged));
+
+        public bool IsAdmin
+        {
+            get => (bool)GetValue(IsAdminProperty);
+            set => SetValue(IsAdminProperty, value);
+        }
+
+        private static void OnIsAdminChanged(DependencyObject d, DependencyPropertyChangedEventArgs e)
+        {
+            if (d is TopNavigationBar bar && bar.AddCorpUserButton != null)
+                bar.AddCorpUserButton.Visibility = (bool)e.NewValue ? Visibility.Visible : Visibility.Collapsed;
+        }
+
         public TopNavigationBar()
         {
             InitializeComponent();
             UpdateSelection("Home");
+            if (AddCorpUserButton != null)
+                AddCorpUserButton.Visibility = IsAdmin ? Visibility.Visible : Visibility.Collapsed;
         }
 
         private static void OnSelectedPageChanged(DependencyObject d, DependencyPropertyChangedEventArgs e)
@@ -78,6 +100,11 @@ namespace x_phy_wpf_ui.Controls
         {
             SelectedPage = "Settings";
             NavigationClicked?.Invoke(this, "Settings");
+        }
+
+        private void AddCorpUser_Click(object sender, RoutedEventArgs e)
+        {
+            AddCorpUserClicked?.Invoke(this, EventArgs.Empty);
         }
     }
 }

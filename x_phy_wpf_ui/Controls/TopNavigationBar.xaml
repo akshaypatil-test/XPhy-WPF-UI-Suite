@@ -81,6 +81,7 @@
                 <ColumnDefinition Width="*"/>
                 <ColumnDefinition Width="*"/>
                 <ColumnDefinition Width="*"/>
+                <ColumnDefinition Width="Auto"/>
             </Grid.ColumnDefinitions>
 
             <!-- Home Button (icon and text inherit Foreground from button style: white when unselected, accent when selected) -->
@@ -132,6 +133,20 @@
                 <StackPanel Orientation="Vertical" HorizontalAlignment="Center">
                     <TextBlock Text="⚙️" FontSize="12" HorizontalAlignment="Center" VerticalAlignment="Center" Margin="0,0,0,1"/>
                     <TextBlock Text="Settings" FontSize="10" FontWeight="Medium" HorizontalAlignment="Center"/>
+                </StackPanel>
+            </Button>
+
+            <!-- Add corp user (Admin only) -->
+            <Button Grid.Column="4" Grid.Row="1"
+                    x:Name="AddCorpUserButton"
+                    Visibility="Collapsed"
+                    Style="{StaticResource TopNavButtonStyle}"
+                    Click="AddCorpUser_Click"
+                    VerticalAlignment="Center"
+                    Padding="6,4" Margin="8,0,0,0">
+                <StackPanel Orientation="Vertical" HorizontalAlignment="Center">
+                    <TextBlock Text="➕" FontSize="12" HorizontalAlignment="Center" VerticalAlignment="Center" Margin="0,0,0,1"/>
+                    <TextBlock Text="Corporate User" FontSize="9" FontWeight="Medium" Foreground="{StaticResource TextSecondaryBrush}" HorizontalAlignment="Center" TextWrapping="Wrap" TextAlignment="Center"/>
                 </StackPanel>
             </Button>
         </Grid>

@@ -2,9 +2,19 @@
 using System;
 using System.Collections.Generic;
 using Newtonsoft.Json;
+using Newtonsoft.Json.Converters;
 
 namespace x_phy_wpf_ui.Models
 {
+    /// <summary>Matches backend XPhy.Licensing.Api.Models.UserType.</summary>
+    [JsonConverter(typeof(StringEnumConverter))]
+    public enum UserType
+    {
+        NonCorp = 0,
+        Corp = 1,
+        Admin = 2,
+    }
+
     // Request DTOs
     public class LoginRequest
     {
@@ -21,6 +31,25 @@ namespace x_phy_wpf_ui.Models
         public string FirstName { get; set; } = string.Empty;
         [JsonProperty("lastName")]
         public string LastName { get; set; } = string.Empty;
+        [JsonProperty("userType")]
+        [JsonConverter(typeof(StringEnumConverter))]
+        public UserType UserType { get; set; } = UserType.NonCorp;
+        [JsonProperty("maxDevices")]
+        public int? MaxDevices { get; set; }
+        [JsonProperty("policyNumber")]
+        public string? PolicyNumber { get; set; }
+        [JsonProperty("organizationName")]
+        public string? OrganizationName { get; set; }
+        [JsonProperty("contactPersonName")]
+        public string? ContactPersonName { get; set; }
+        [JsonProperty("countryCode")]
+        public string? CountryCode { get; set; }
+        [JsonProperty("contactNumber")]
+        public string? ContactNumber { get; set; }
+        [JsonProperty("orderNumber")]
+        public string? OrderNumber { get; set; }
+        [JsonProperty("activationDate")]
+        public string? ActivationDate { get; set; }
     }
 
     // Response DTOs (JsonProperty ensures API camelCase deserializes correctly)
@@ -50,6 +79,8 @@ namespace x_phy_wpf_ui.Models
         public string LicenseStatus { get; set; } = string.Empty;
         [JsonProperty("trialEndsAt")]
         public DateTime? TrialEndsAt { get; set; }
+        [JsonProperty("userType")]
+        public string UserType { get; set; } = string.Empty;
     }
 
     public class LicenseInfo

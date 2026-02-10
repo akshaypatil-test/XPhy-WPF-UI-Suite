@@ -86,7 +86,77 @@ namespace x_phy_wpf_ui.Services
                     Username = username,
                     Password = password,
                     FirstName = firstName?.Trim() ?? string.Empty,
-                    LastName = lastName?.Trim() ?? string.Empty
+                    LastName = lastName?.Trim() ?? string.Empty,
+                    UserType = UserType.NonCorp
+                };
+
+                var json = JsonConvert.SerializeObject(request);
+                var content = new StringContent(json, Encoding.UTF8, "application/json");
+
+                var response = await _httpClient.PostAsync("/api/auth/register", content);
+
+                if (response.IsSuccessStatusCode)
+                {
+                    var responseJson = await response.Content.ReadAsStringAsync();
+                    var registerResponse = JsonConvert.DeserializeObject<RegisterResponse>(responseJson);
+                    if (registerResponse == null)
+                    {
+                        throw new Exception("Invalid response from server.");
+                    }
+                    return registerResponse;
+                }
+                else
+                {
+                    var errorJson = await response.Content.ReadAsStringAsync();
+                    var errorResponse = JsonConvert.DeserializeObject<ApiErrorResponse>(errorJson);
+                    throw new Exception(errorResponse?.Message ?? $"Registration failed: {response.StatusCode}");
+                }
+            }
+            catch (HttpRequestException ex)
+            {
+                throw new Exception($"Network error: {ex.Message}");
+            }
+            catch (TaskCanceledException)
+            {
+                throw new Exception("Request timeout. Please check your connection.");
+            }
+            catch (Exception ex)
+            {
+                throw new Exception($"Registration error: {ex.Message}");
+            }
+        }
+
+        public async Task<RegisterResponse> RegisterCorpUserAsync(
+            string username,
+            string password,
+            string firstName,
+            string lastName,
+            int maxDevices,
+            string policyNumber,
+            string organizationName,
+            string contactPersonName,
+            string countryCode,
+            string contactNumber,
+            string orderNumber,
+            string activationDate)
+        {
+            try
+            {
+                var request = new RegisterRequest
+                {
+                    Username = username,
+                    Password = password,
+                    FirstName = firstName?.Trim() ?? string.Empty,
+                    LastName = lastName?.Trim() ?? string.Empty,
+                    UserType = Models.UserType.Corp,
+                    MaxDevices = maxDevices,
+                    PolicyNumber = string.IsNullOrWhiteSpace(policyNumber) ? null : policyNumber.Trim(),
+                    OrganizationName = string.IsNullOrWhiteSpace(organizationName) ? null : organizationName.Trim(),
+                    ContactPersonName = string.IsNullOrWhiteSpace(contactPersonName) ? null : contactPersonName.Trim(),
+                    CountryCode = string.IsNullOrWhiteSpace(countryCode) ? null : countryCode.Trim(),
+                    ContactNumber = string.IsNullOrWhiteSpace(contactNumber) ? null : contactNumber.Trim(),
+                    OrderNumber = string.IsNullOrWhiteSpace(orderNumber) ? null : orderNumber.Trim(),
+                    ActivationDate = string.IsNullOrWhiteSpace(activationDate) ? null : activationDate.Trim()
                 };
 
                 var json = JsonConvert.SerializeObject(request);

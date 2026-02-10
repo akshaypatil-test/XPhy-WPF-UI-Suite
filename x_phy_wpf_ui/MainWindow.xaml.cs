@@ -1171,9 +1171,10 @@ videoLiveFakeProportionThreshold = 0.7
             DetectionContentGrid.Visibility = Visibility.Visible;
             StatisticsCardsGrid.Visibility = Visibility.Visible;
             
-            // Hide plans and payment components
+            // Hide plans, payment, and corp register components
             PlansComponent.Visibility = Visibility.Collapsed;
             StripePaymentComponentContainer.Visibility = Visibility.Collapsed;
+            CorpRegisterComponent.Visibility = Visibility.Collapsed;
         }
 
         private void PlansComponent_PlanSelected(object sender, PlanSelectedEventArgs e)
@@ -1560,6 +1561,10 @@ videoLiveFakeProportionThreshold = 0.7
                 var storedTokens = tokenStorage.GetTokens();
                 
                 if (BottomBar == null) return;
+
+                // Show "Add corp user" button only for Admin
+                if (TopNavBar != null)
+                    TopNavBar.IsAdmin = string.Equals(storedTokens?.UserInfo?.UserType, "Admin", StringComparison.OrdinalIgnoreCase);
                 
                 // If controller is not initialized but we now have a license key, try to initialize it
                 // This handles the case where license info becomes available after MainWindow was loaded
@@ -1653,6 +1658,8 @@ videoLiveFakeProportionThreshold = 0.7
                     BottomBar.Attempts = null;
                     BottomBar.ShowSubscribeButton = true;
                 }
+                if (TopNavBar != null && storedTokens == null)
+                    TopNavBar.IsAdmin = false;
             }
             catch (Exception ex)
             {
@@ -1664,7 +1671,31 @@ videoLiveFakeProportionThreshold = 0.7
                     BottomBar.RemainingDays = 0;
                     BottomBar.ShowSubscribeButton = true;
                 }
+                if (TopNavBar != null)
+                    TopNavBar.IsAdmin = false;
             }
+        }
+
+        private void TopNavBar_AddCorpUserClicked(object sender, EventArgs e)
+        {
+            DetectionContentGrid.Visibility = Visibility.Collapsed;
+            StatisticsCardsGrid.Visibility = Visibility.Collapsed;
+            PlansComponent.Visibility = Visibility.Collapsed;
+            StripePaymentComponentContainer.Visibility = Visibility.Collapsed;
+            CorpRegisterComponent.ClearInputs();
+            CorpRegisterComponent.Visibility = Visibility.Visible;
+        }
+
+        private void CorpRegisterComponent_BackRequested(object sender, EventArgs e)
+        {
+            CorpRegisterComponent.Visibility = Visibility.Collapsed;
+            ShowDetectionContent();
+        }
+
+        private void CorpRegisterComponent_CorpAccountCreated(object sender, EventArgs e)
+        {
+            CorpRegisterComponent.Visibility = Visibility.Collapsed;
+            ShowDetectionContent();
         }
 
         private void SubscribeNow_Click(object sender, RoutedEventArgs e)

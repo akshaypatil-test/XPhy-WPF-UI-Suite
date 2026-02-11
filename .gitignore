@@ -47,6 +47,9 @@ Desktop.ini
 dependencies/models/
 dependencies/lib/
 
+# Large video (over GitHub 100 MB limit) – keep locally for build; do not commit
+X-PHY Resource Files/X-PHY® Deepfake Detector User Guide.mp4
+
 # Local / suite folder – part of workspace but not committed
 x_phy_detection_program_ui/
 

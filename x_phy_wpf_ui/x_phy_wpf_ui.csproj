@@ -64,10 +64,13 @@
       <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
       <Link>Resources\FAQ.pdf</Link>
     </None>
+    <!-- MP4 disabled for now (large file); re-add when needed -->
+    <!--
     <None Include="..\X-PHY Resource Files\X-PHY® Deepfake Detector User Guide.mp4">
       <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
       <Link>Resources\UserGuideVideo.mp4</Link>
     </None>
+    -->
   </ItemGroup>
   <ItemGroup>
     <Resource Include="..\X-PHY Resource Files\x-phy.png">

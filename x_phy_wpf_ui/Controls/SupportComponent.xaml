@@ -248,7 +248,9 @@
                                         Content="MP4"
                                         Style="{StaticResource DocButtonStyle}"
                                         VerticalAlignment="Center"
-                                        Click="UserGuideVideo_Click"/>
+                                        IsEnabled="False"
+                                        Opacity="0.5"
+                                        ToolTip="Coming soon"/>
                             </Grid>
                         </Border>
                     </StackPanel>

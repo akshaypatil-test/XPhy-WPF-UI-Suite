@@ -1410,8 +1410,25 @@ videoLiveFakeProportionThreshold = 0.7
         
         private void BottomBar_SupportClicked(object sender, EventArgs e)
         {
-            MessageBox.Show("For support, please contact us at support@xphy.com", "Support", 
-                MessageBoxButton.OK, MessageBoxImage.Information);
+            ShowSupportComponent();
+        }
+
+        private void ShowSupportComponent()
+        {
+            DetectionContentGrid.Visibility = Visibility.Collapsed;
+            StatisticsCardsGrid.Visibility = Visibility.Collapsed;
+            PlansComponent.Visibility = Visibility.Collapsed;
+            StripePaymentComponentContainer.Visibility = Visibility.Collapsed;
+            CorpRegisterComponent.Visibility = Visibility.Collapsed;
+            if (DetectionResultsScreen != null)
+                DetectionResultsScreen.Visibility = Visibility.Collapsed;
+            SupportComponent.Visibility = Visibility.Visible;
+        }
+
+        private void SupportComponent_BackRequested(object sender, EventArgs e)
+        {
+            ShowDetectionContent();
+            SupportComponent.Visibility = Visibility.Collapsed;
         }
 
         private void BottomBar_LogoutClicked(object sender, EventArgs e)
@@ -1460,13 +1477,11 @@ videoLiveFakeProportionThreshold = 0.7
 
         private void ShowPlansComponent()
         {
-            // Hide detection content and statistics (hide entire Grid row)
             DetectionContentGrid.Visibility = Visibility.Collapsed;
             StatisticsCardsGrid.Visibility = Visibility.Collapsed;
+            SupportComponent.Visibility = Visibility.Collapsed;
             if (DetectionResultsScreen != null)
                 DetectionResultsScreen.Visibility = Visibility.Collapsed;
-            
-            // Show plans component
             PlansComponent.Visibility = Visibility.Visible;
             StripePaymentComponentContainer.Visibility = Visibility.Collapsed;
         }
@@ -1478,6 +1493,7 @@ videoLiveFakeProportionThreshold = 0.7
             PlansComponent.Visibility = Visibility.Collapsed;
             StripePaymentComponentContainer.Visibility = Visibility.Collapsed;
             CorpRegisterComponent.Visibility = Visibility.Collapsed;
+            SupportComponent.Visibility = Visibility.Collapsed;
             if (TopNavBar != null)
                 TopNavBar.SelectedPage = "Results";
 
@@ -1510,11 +1526,11 @@ videoLiveFakeProportionThreshold = 0.7
             // Show detection content and statistics
             DetectionContentGrid.Visibility = Visibility.Visible;
             StatisticsCardsGrid.Visibility = Visibility.Visible;
-            
-            // Hide plans, payment, corp register, and results screen
+            // Hide plans, payment, corp register, and support components
             PlansComponent.Visibility = Visibility.Collapsed;
             StripePaymentComponentContainer.Visibility = Visibility.Collapsed;
             CorpRegisterComponent.Visibility = Visibility.Collapsed;
+            SupportComponent.Visibility = Visibility.Collapsed;
             if (DetectionResultsScreen != null)
                 DetectionResultsScreen.Visibility = Visibility.Collapsed;
         }

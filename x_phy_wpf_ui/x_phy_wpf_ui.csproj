@@ -55,6 +55,22 @@
     <None Include="..\config.toml" Condition="Exists('..\config.toml')">
       <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
     </None>
+    <!-- Support documentation: copied to Resources folder so Support component can open them -->
+    <None Include="..\X-PHY Resource Files\X-PHY _ User Guide.pdf">
+      <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
+      <Link>Resources\UserGuide.pdf</Link>
+    </None>
+    <None Include="..\X-PHY Resource Files\X-PHY_FAQ.pdf">
+      <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
+      <Link>Resources\FAQ.pdf</Link>
+    </None>
+    <!-- MP4 disabled for now (large file); re-add when needed -->
+    <!--
+    <None Include="..\X-PHY Resource Files\X-PHY® Deepfake Detector User Guide.mp4">
+      <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
+      <Link>Resources\UserGuideVideo.mp4</Link>
+    </None>
+    -->
   </ItemGroup>
   <ItemGroup>
     <Resource Include="..\X-PHY Resource Files\x-phy.png">

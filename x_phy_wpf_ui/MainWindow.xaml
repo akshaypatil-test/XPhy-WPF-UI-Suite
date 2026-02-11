@@ -247,6 +247,11 @@
                                      PlanSelected="PlansComponent_PlanSelected"
                                      BackRequested="PlansComponent_BackRequested"/>
 
+            <!-- Support Component -->
+            <controls:SupportComponent x:Name="SupportComponent"
+                                       Visibility="Collapsed"
+                                       BackRequested="SupportComponent_BackRequested"/>
+
             <!-- Add Corp User (Admin only) -->
             <controls:CreateCorpAccountComponent x:Name="CorpRegisterComponent"
                                                  Visibility="Collapsed"

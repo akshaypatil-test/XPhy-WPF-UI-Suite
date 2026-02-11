@@ -33,7 +33,10 @@ namespace x_phy_wpf_ui
         /// <summary>When true, open results folder after stop completes (e.g. after "Stop & View Results" from notification).</summary>
         private bool openResultsFolderAfterStop = false;
         private bool isAudioDetection = false; // Track if current detection is Audio mode (vs Video mode)
+        /// <summary>Display name for current detection source (e.g. "Zoom", "Google Chrome") for CreateResult MediaSource.</summary>
+        private string _currentMediaSourceDisplayName = "Local";
         private LicenseManager licenseManager;
+        private ResultsApiService _resultsApiService;
         private bool controllerInitializationAttempted = false; // Track if we've already tried to initialize
         private int _inferenceEnvRetryCount = 0; // Used for one-time retry when starting detection on first run
         private Task _inferenceWarmUpTask; // Warm-up runs after controller init; we wait for it before first Start detection
@@ -95,6 +98,8 @@ namespace x_phy_wpf_ui
                     // Log but don't block window creation if license manager fails
                     System.Diagnostics.Debug.WriteLine($"License manager initialization failed: {ex.Message}");
                 }
+
+                _resultsApiService = new ResultsApiService();
                 
                 // Enable window dragging
                 this.MouseDown += MainWindow_MouseDown;
@@ -1055,10 +1060,11 @@ videoLiveFakeProportionThreshold = 0.7
                         Forms.ToolTipIcon.Info);
                 });
 
-                // Track detection mode
+                // Track detection mode and source name for result (Media Source = app name: Zoom, Google Chrome, etc.)
                 isWebSurfingMode = !isLiveCallMode;
                 isAudioDetection = isAudioMode;
                 isStoppingDetection = false;
+                _currentMediaSourceDisplayName = GetMediaSourceDisplayName(source);
 
                 // Wait for inference env warm-up (from controller init) so first-time Start detection succeeds
                 if (_inferenceWarmUpTask != null)
@@ -1360,7 +1366,7 @@ videoLiveFakeProportionThreshold = 0.7
                     ResetAppContentToHome();
                     break;
                 case "Results":
-                    MessageBox.Show("Results page coming soon!", "Results", MessageBoxButton.OK, MessageBoxImage.Information);
+                    ShowDetectionResultsScreen();
                     break;
                 case "Profile":
                     // TODO: Show profile page
@@ -1457,10 +1463,46 @@ videoLiveFakeProportionThreshold = 0.7
             // Hide detection content and statistics (hide entire Grid row)
             DetectionContentGrid.Visibility = Visibility.Collapsed;
             StatisticsCardsGrid.Visibility = Visibility.Collapsed;
+            if (DetectionResultsScreen != null)
+                DetectionResultsScreen.Visibility = Visibility.Collapsed;
             
             // Show plans component
             PlansComponent.Visibility = Visibility.Visible;
             StripePaymentComponentContainer.Visibility = Visibility.Collapsed;
+        }
+
+        private void ShowDetectionResultsScreen()
+        {
+            DetectionContentGrid.Visibility = Visibility.Collapsed;
+            StatisticsCardsGrid.Visibility = Visibility.Collapsed;
+            PlansComponent.Visibility = Visibility.Collapsed;
+            StripePaymentComponentContainer.Visibility = Visibility.Collapsed;
+            CorpRegisterComponent.Visibility = Visibility.Collapsed;
+            if (TopNavBar != null)
+                TopNavBar.SelectedPage = "Results";
+
+            DetectionResultsScreen.Visibility = Visibility.Visible;
+            string resultsDir = null;
+            try
+            {
+                if (controller != null)
+                    resultsDir = controller.GetResultsDir();
+            }
+            catch { }
+            DetectionResultsScreen.SetResultsDirectoryAndRefresh(resultsDir);
+            Dispatcher.InvokeAsync(async () =>
+            {
+                try
+                {
+                    var response = await _resultsApiService.GetResultsAsync();
+                    if (response?.Results != null)
+                        DetectionResultsScreen.SetResultsFromApi(response.Results);
+                }
+                catch (Exception ex)
+                {
+                    System.Diagnostics.Debug.WriteLine($"GetResults API failed: {ex.Message}");
+                }
+            });
         }
 
         private void ShowDetectionContent()
@@ -1469,10 +1511,12 @@ videoLiveFakeProportionThreshold = 0.7
             DetectionContentGrid.Visibility = Visibility.Visible;
             StatisticsCardsGrid.Visibility = Visibility.Visible;
             
-            // Hide plans, payment, and corp register components
+            // Hide plans, payment, corp register, and results screen
             PlansComponent.Visibility = Visibility.Collapsed;
             StripePaymentComponentContainer.Visibility = Visibility.Collapsed;
             CorpRegisterComponent.Visibility = Visibility.Collapsed;
+            if (DetectionResultsScreen != null)
+                DetectionResultsScreen.Visibility = Visibility.Collapsed;
         }
 
         private void PlansComponent_PlanSelected(object sender, PlanSelectedEventArgs e)
@@ -1827,6 +1871,50 @@ videoLiveFakeProportionThreshold = 0.7
                 isStoppingDetection = false;
                 System.Diagnostics.Debug.WriteLine("ShowFinalResult: Final result shown, stopping flag cleared");
             }
+
+            // Save detection result to backend (CreateResult) only when detection is completed or stopped.
+            PushDetectionResultToBackend(displayPath ?? resultPath ?? "Local", hadDeepfake);
+        }
+
+        /// <summary>Calls CreateResult API with current detection outcome so result is saved in DB and appears in Results tab.</summary>
+        private void PushDetectionResultToBackend(string artifactPath, bool aiManipulationDetected)
+        {
+            try
+            {
+                int confidence = DetectionResultsComponent?.LastConfidencePercent ?? 0;
+                double durationSec = DetectionResultsComponent?.GetDetectionDurationSeconds() ?? 60;
+                var request = new CreateResultRequest
+                {
+                    Timestamp = DateTime.UtcNow,
+                    Type = isAudioDetection ? "Audio" : "Video",
+                    Outcome = aiManipulationDetected ? "AI Manipulation Detected" : "No AI Manipulation detected",
+                    DetectionConfidence = (decimal)Math.Min(100, Math.Max(0, confidence)),
+                    MediaSource = _currentMediaSourceDisplayName ?? "Local", // App name (Zoom, Google Chrome)
+                    ArtifactPath = string.IsNullOrEmpty(artifactPath) || artifactPath == "Local" ? null : artifactPath, // Path for loading evidence images
+                    Duration = (decimal)durationSec
+                };
+#pragma warning disable CS4014
+                Dispatcher.InvokeAsync(async () =>
+                {
+                    try
+                    {
+                        var response = await _resultsApiService.CreateResultAsync(request);
+                        if (response != null)
+                            System.Diagnostics.Debug.WriteLine($"CreateResult succeeded: Id={response.Id}");
+                        else
+                            System.Diagnostics.Debug.WriteLine("CreateResult: no response (e.g. not logged in or API error)");
+                    }
+                    catch (Exception ex)
+                    {
+                        System.Diagnostics.Debug.WriteLine($"CreateResult failed: {ex.Message}");
+                    }
+                });
+#pragma warning restore CS4014
+            }
+            catch (Exception ex)
+            {
+                System.Diagnostics.Debug.WriteLine($"PushDetectionResultToBackend: {ex.Message}");
+            }
         }
 
         // Notification helper
@@ -1836,6 +1924,25 @@ videoLiveFakeProportionThreshold = 0.7
         {
             licenseManager = new LicenseManager();
             UpdateLicenseDisplay();
+        }
+
+        /// <summary>Returns display name for "Media Source" (e.g. Zoom, Google Chrome) from the selected detection source.</summary>
+        private static string GetMediaSourceDisplayName(DetectionSource source)
+        {
+            switch (source)
+            {
+                case DetectionSource.ZoomConferenceVideo:
+                case DetectionSource.ZoomConferenceAudio:
+                    return "Zoom";
+                case DetectionSource.VLCWebStreamVideo:
+                case DetectionSource.VLCWebStreamAudio:
+                    return "VLC Media Player";
+                case DetectionSource.YouTubeWebStreamVideo:
+                case DetectionSource.YouTubeWebStreamAudio:
+                    return "Google Chrome"; // YouTube is typically in browser
+                default:
+                    return "Local";
+            }
         }
 
         /// <summary>Derives license duration in days from plan name (e.g. "1 Month" -> 30, "12 Months" -> 365).</summary>
@@ -1982,6 +2089,8 @@ videoLiveFakeProportionThreshold = 0.7
             StatisticsCardsGrid.Visibility = Visibility.Collapsed;
             PlansComponent.Visibility = Visibility.Collapsed;
             StripePaymentComponentContainer.Visibility = Visibility.Collapsed;
+            if (DetectionResultsScreen != null)
+                DetectionResultsScreen.Visibility = Visibility.Collapsed;
             CorpRegisterComponent.ClearInputs();
             CorpRegisterComponent.Visibility = Visibility.Visible;
         }
@@ -2082,18 +2191,20 @@ videoLiveFakeProportionThreshold = 0.7
             Dispatcher.BeginInvoke(new Action(() =>
             {
                 var popup = new DetectionNotificationWindow();
-                popup.SetDetectionCompletedContent(message, resultPath, () =>
-                {
-                    try
+                popup.SetDetectionCompletedContent(message, resultPath,
+                    openResultsFolder: () =>
                     {
-                        if (controller != null) controller.OpenResultsFolder();
-                    }
-                    catch (Exception ex)
-                    {
-                        MessageBox.Show($"Failed to open results folder: {ex.Message}", "Error",
-                            MessageBoxButton.OK, MessageBoxImage.Error);
-                    }
-                });
+                        try
+                        {
+                            if (controller != null) controller.OpenResultsFolder();
+                        }
+                        catch (Exception ex)
+                        {
+                            MessageBox.Show($"Failed to open results folder: {ex.Message}", "Error",
+                                MessageBoxButton.OK, MessageBoxImage.Error);
+                        }
+                    },
+                    navigateToResultsPage: () => ShowDetectionResultsScreen());
                 popup.ShowAtBottomRight(autoCloseSeconds: 0);
             }));
         }
@@ -2103,18 +2214,22 @@ videoLiveFakeProportionThreshold = 0.7
             Dispatcher.BeginInvoke(new Action(() =>
             {
                 var popup = new DetectionNotificationWindow();
-                popup.SetDetectionCompletedWithThreatContent(confidencePercent, resultPath, () =>
-                {
-                    try
+                popup.SetDetectionCompletedWithThreatContent(confidencePercent, resultPath,
+                    openResultsFolder: () =>
                     {
-                        if (controller != null) controller.OpenResultsFolder();
-                    }
-                    catch (Exception ex)
-                    {
-                        MessageBox.Show($"Failed to open results folder: {ex.Message}", "Error",
-                            MessageBoxButton.OK, MessageBoxImage.Error);
-                    }
-                }, evidenceImage, null);
+                        try
+                        {
+                            if (controller != null) controller.OpenResultsFolder();
+                        }
+                        catch (Exception ex)
+                        {
+                            MessageBox.Show($"Failed to open results folder: {ex.Message}", "Error",
+                                MessageBoxButton.OK, MessageBoxImage.Error);
+                        }
+                    },
+                    evidenceImageLeft: evidenceImage,
+                    evidenceImageRight: null,
+                    navigateToResultsPage: () => ShowDetectionResultsScreen());
                 popup.ShowAtBottomRight(autoCloseSeconds: 0);
             }));
         }

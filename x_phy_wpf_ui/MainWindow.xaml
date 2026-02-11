@@ -237,6 +237,10 @@
                 </Grid>
             </Grid>
             
+            <!-- Detection Results Screen (Results tab) -->
+            <controls:DetectionResultsScreen x:Name="DetectionResultsScreen"
+                                             Visibility="Collapsed"/>
+
             <!-- Plans Component -->
             <controls:PlansComponent x:Name="PlansComponent"
                                      Visibility="Collapsed"

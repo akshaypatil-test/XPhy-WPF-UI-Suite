@@ -4,6 +4,7 @@ using System.IO;
 using System.Runtime.InteropServices;
 using System.Threading;
 using System.Windows;
+using x_phy_wpf_ui.Services;
 
 namespace x_phy_wpf_ui
 {
@@ -40,6 +41,10 @@ namespace x_phy_wpf_ui
             {
                 // Previous instance exited without releasing; we can take ownership and continue.
             }
+
+            // If the user uninstalled and reinstalled, AppData (and tokens) survive uninstall.
+            // Detect new install by exe identity and clear tokens so they must log in again.
+            TokenStorage.ClearTokensIfNewInstall();
 
             // When the app is launched by the installer ("Launch when finished"), the process
             // current directory is often the installer's folder, not the app's. The native

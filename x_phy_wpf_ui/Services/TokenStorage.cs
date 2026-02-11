@@ -1,5 +1,6 @@
 #nullable enable
 using System;
+using System.Diagnostics;
 using System.IO;
 using Newtonsoft.Json;
 using x_phy_wpf_ui.Models;
@@ -8,12 +9,99 @@ namespace x_phy_wpf_ui.Services
 {
     public class TokenStorage
     {
-        private static readonly string TokenFilePath = Path.Combine(
+        private static readonly string AppDataDirectory = Path.Combine(
             Environment.GetFolderPath(Environment.SpecialFolder.ApplicationData),
             "X-PHY",
-            "X-PHY Deepfake Detector",
-            "tokens.json"
+            "X-PHY Deepfake Detector"
         );
+
+        private static readonly string TokenFilePath = Path.Combine(AppDataDirectory, "tokens.json");
+
+        private static readonly string InstallIdentityFilePath = Path.Combine(AppDataDirectory, "install_identity.txt");
+
+        /// <summary>
+        /// Call once at app startup. If the current app install is different from the one that
+        /// last saved tokens (e.g. after uninstall + reinstall), clears stored tokens so the user
+        /// must log in again. Uses app directory creation time so a new install (new folder) is detected.
+        /// </summary>
+        public static void ClearTokensIfNewInstall()
+        {
+            try
+            {
+                string currentExePath = GetCurrentExePath();
+                if (string.IsNullOrEmpty(currentExePath) || !File.Exists(currentExePath))
+                    return;
+
+                string appDir = Path.GetDirectoryName(currentExePath);
+                if (string.IsNullOrEmpty(appDir) || !Directory.Exists(appDir))
+                    return;
+
+                // Use app directory creation time: uninstall deletes the folder, reinstall creates a new one with a new creation time.
+                DateTime appDirCreated = Directory.GetCreationTimeUtc(appDir);
+                string normalizedPath = Path.GetFullPath(appDir).TrimEnd(Path.DirectorySeparatorChar, Path.AltDirectorySeparatorChar);
+                string currentIdentity = normalizedPath + "\n" + appDirCreated.Ticks;
+
+                if (!Directory.Exists(AppDataDirectory))
+                {
+                    Directory.CreateDirectory(AppDataDirectory);
+                    File.WriteAllText(InstallIdentityFilePath, currentIdentity);
+                    return;
+                }
+
+                if (!File.Exists(InstallIdentityFilePath))
+                {
+                    File.WriteAllText(InstallIdentityFilePath, currentIdentity);
+                    return;
+                }
+
+                string storedIdentity = File.ReadAllText(InstallIdentityFilePath).Trim();
+                if (string.Equals(storedIdentity, currentIdentity, StringComparison.Ordinal))
+                    return;
+
+                // Identity changed (reinstall or new app folder): clear tokens and update identity
+                if (File.Exists(TokenFilePath))
+                {
+                    File.Delete(TokenFilePath);
+                    System.Diagnostics.Debug.WriteLine("Tokens cleared: new install detected (app directory identity changed).");
+                }
+
+                File.WriteAllText(InstallIdentityFilePath, currentIdentity);
+            }
+            catch (Exception ex)
+            {
+                System.Diagnostics.Debug.WriteLine($"Install identity check failed: {ex.Message}");
+            }
+        }
+
+        private static string GetCurrentExePath()
+        {
+            try
+            {
+                var path = System.Reflection.Assembly.GetEntryAssembly()?.Location;
+                if (!string.IsNullOrEmpty(path) && File.Exists(path))
+                    return Path.GetFullPath(path);
+            }
+            catch { }
+
+            try
+            {
+                using var process = Process.GetCurrentProcess();
+                var path = process.MainModule?.FileName ?? string.Empty;
+                if (!string.IsNullOrEmpty(path) && File.Exists(path))
+                    return Path.GetFullPath(path);
+            }
+            catch { }
+
+            try
+            {
+                var path = System.Reflection.Assembly.GetExecutingAssembly().Location ?? string.Empty;
+                if (!string.IsNullOrEmpty(path) && File.Exists(path))
+                    return Path.GetFullPath(path);
+            }
+            catch { }
+
+            return string.Empty;
+        }
 
         public class StoredTokens
         {

@@ -50,5 +50,8 @@ dependencies/lib/
 # Local / suite folder – part of workspace but not committed
 x_phy_detection_program_ui/
 
+# Backend API (separate repo or local-only)
+XPhy.Licensing.Api/
+
 # Sensitive / local config (uncomment if config.toml has secrets)
 # config.toml

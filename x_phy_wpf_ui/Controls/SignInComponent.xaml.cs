@@ -285,9 +285,11 @@ namespace x_phy_wpf_ui.Controls
             // Show loader screen (no button loader); parent will show LoaderComponent
             ShowLoaderRequested?.Invoke(this, EventArgs.Empty);
 
+            bool rememberMe = RememberMeCheckBox?.IsChecked == true;
+
             try
             {
-                var response = await _authService.LoginAsync(username, password);
+                var response = await _authService.LoginAsync(username, password, null, rememberMe);
 
                 if (response != null && response.User != null)
                 {
@@ -302,7 +304,7 @@ namespace x_phy_wpf_ui.Controls
                         };
                     }
                     var licenseKey = response.License?.Key ?? licenseInfo?.Key;
-                    SignInSuccessful?.Invoke(this, new SignInSuccessfulEventArgs(licenseKey, response));
+                    SignInSuccessful?.Invoke(this, new SignInSuccessfulEventArgs(licenseKey, response, false, rememberMe));
                 }
                 else
                 {

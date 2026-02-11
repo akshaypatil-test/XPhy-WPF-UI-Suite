@@ -365,6 +365,15 @@
                            Visibility="Collapsed"
                            TextWrapping="Wrap"/>
 
+                <!-- Remember Me -->
+                <CheckBox x:Name="RememberMeCheckBox"
+                          Content="Remember me (stay signed in for 30 days)"
+                          Foreground="{StaticResource TextSecondary}"
+                          FontSize="14"
+                          IsChecked="True"
+                          Margin="0,8,0,16"
+                          VerticalAlignment="Center"/>
+
                 <!-- Sign In and Back buttons -->
                 <Grid Margin="0,12,0,16">
                     <Grid.ColumnDefinitions>

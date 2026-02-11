@@ -273,11 +273,12 @@ namespace x_phy_wpf_ui.Controls
                 return;
             }
 
+            bool rememberMe = RememberMeCheckBox?.IsChecked == true;
             ShowLoaderRequested?.Invoke(this, EventArgs.Empty);
 
             try
             {
-                var response = await _authService.LoginAsync(username, password, licenseKey);
+                var response = await _authService.LoginAsync(username, password, licenseKey, rememberMe);
 
                 if (response != null && response.User != null)
                 {
@@ -318,14 +319,15 @@ namespace x_phy_wpf_ui.Controls
                             response.User.Id,
                             response.User.Username,
                             response.User,
-                            licenseInfo
+                            licenseInfo,
+                            rememberMe
                         );
                         SignInRequiresPasswordChange?.Invoke(this, true);
                     }
                     else
                     {
                         // Same flow as normal sign-in: do not save tokens here; MainWindow will write config, run Keygen, then save and show app.
-                        SignInSuccessful?.Invoke(this, new x_phy_wpf_ui.SignInSuccessfulEventArgs(keyForConfig, response, fromCorporateSignIn: true));
+                        SignInSuccessful?.Invoke(this, new x_phy_wpf_ui.SignInSuccessfulEventArgs(keyForConfig, response, fromCorporateSignIn: true, rememberMe));
                     }
                 }
                 else

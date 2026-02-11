@@ -18,7 +18,6 @@ namespace x_phy_wpf_ui.Services
         public AuthService()
         {
             _baseUrl = "https://xphy-web-c5e3v.ondigitalocean.app";
-            /*_baseUrl = "https://localhost:7296";*/
             _httpClient = new HttpClient
             {
                 BaseAddress = new Uri(_baseUrl),
@@ -33,7 +32,7 @@ namespace x_phy_wpf_ui.Services
                 (sender, certificate, chain, sslPolicyErrors) => true;
         }
 
-        public async Task<LoginResponse?> LoginAsync(string username, string password, string? licenseKey = null)
+        public async Task<LoginResponse?> LoginAsync(string username, string password, string? licenseKey = null, bool rememberMe = false)
         {
             try
             {
@@ -43,7 +42,8 @@ namespace x_phy_wpf_ui.Services
                     Username = username,
                     Password = password,
                     DeviceFingerprint = deviceFingerprint,
-                    LicenseKey = string.IsNullOrWhiteSpace(licenseKey) ? null : licenseKey!.Trim()
+                    LicenseKey = string.IsNullOrWhiteSpace(licenseKey) ? null : licenseKey!.Trim(),
+                    RememberMe = rememberMe
                 };
 
                 var json = JsonConvert.SerializeObject(request);
@@ -75,6 +75,28 @@ namespace x_phy_wpf_ui.Services
             catch (Exception ex)
             {
                 throw new Exception($"Login error: {ex.Message}");
+            }
+        }
+
+        /// <summary>Exchange refresh token for a new access token. Returns null if refresh token is invalid or expired.</summary>
+        public async Task<RefreshTokenResponse?> RefreshTokenAsync(string refreshToken)
+        {
+            if (string.IsNullOrWhiteSpace(refreshToken))
+                return null;
+            try
+            {
+                var request = new RefreshTokenRequest { RefreshToken = refreshToken.Trim() };
+                var json = JsonConvert.SerializeObject(request);
+                var content = new StringContent(json, Encoding.UTF8, "application/json");
+                var response = await _httpClient.PostAsync("/api/auth/refresh", content);
+                if (!response.IsSuccessStatusCode)
+                    return null;
+                var responseJson = await response.Content.ReadAsStringAsync();
+                return JsonConvert.DeserializeObject<RefreshTokenResponse>(responseJson);
+            }
+            catch
+            {
+                return null;
             }
         }
 

@@ -24,6 +24,23 @@ namespace x_phy_wpf_ui.Models
         /// <summary>Optional license key for corporate sign-in.</summary>
         [JsonProperty("licenseKey")]
         public string? LicenseKey { get; set; }
+        /// <summary>When true, refresh token expiry is 30 days; when false, 1 day.</summary>
+        [JsonProperty("rememberMe")]
+        public bool RememberMe { get; set; }
+    }
+
+    public class RefreshTokenRequest
+    {
+        [JsonProperty("refreshToken")]
+        public string RefreshToken { get; set; } = string.Empty;
+    }
+
+    public class RefreshTokenResponse
+    {
+        [JsonProperty("accessToken")]
+        public string AccessToken { get; set; } = string.Empty;
+        [JsonProperty("expiresIn")]
+        public int ExpiresIn { get; set; }
     }
 
     public class RegisterRequest

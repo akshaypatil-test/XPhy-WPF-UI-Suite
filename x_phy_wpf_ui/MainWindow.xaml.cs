@@ -104,6 +104,12 @@ namespace x_phy_wpf_ui
                 
                 // Handle window state changes
                 this.StateChanged += MainWindow_StateChanged;
+
+                // When refresh token expires or is invalid, redirect to sign-in
+                AuthenticatedApiClient.SessionExpired += AuthenticatedApiClient_SessionExpired;
+
+                // Logout on close only when Remember Me was unchecked at login
+                this.Closing += MainWindow_Closing;
                 
                 // Shell: Set up auth view (Login/Signup). Controller init happens when we show AppView after login.
                 SetupAuthView();
@@ -305,7 +311,8 @@ namespace x_phy_wpf_ui
                     response.User.Id,
                     response.User.Username,
                     response.User,
-                    licenseInfo
+                    licenseInfo,
+                    args.RememberMe
                 );
                 ShowAppView();
             });
@@ -1404,6 +1411,40 @@ videoLiveFakeProportionThreshold = 0.7
         private void BottomBar_LogoutClicked(object sender, EventArgs e)
         {
             Logout_Click(sender, new RoutedEventArgs());
+        }
+
+        private void AuthenticatedApiClient_SessionExpired(object? sender, EventArgs e)
+        {
+            Dispatcher.Invoke(() =>
+            {
+                try
+                {
+                    controller = null;
+                    controllerInitializationAttempted = false;
+                    ShowAuthView();
+                }
+                catch (Exception ex)
+                {
+                    System.Diagnostics.Debug.WriteLine($"SessionExpired handler: {ex.Message}");
+                }
+            });
+        }
+
+        private void MainWindow_Closing(object? sender, System.ComponentModel.CancelEventArgs e)
+        {
+            try
+            {
+                var tokenStorage = new TokenStorage();
+                var tokens = tokenStorage.GetTokens();
+                if (tokens != null && !tokens.RememberMe)
+                {
+                    tokenStorage.ClearTokens();
+                }
+            }
+            catch (Exception ex)
+            {
+                System.Diagnostics.Debug.WriteLine($"MainWindow_Closing: {ex.Message}");
+            }
         }
 
         private void BottomBar_SubscribeClicked(object sender, EventArgs e)

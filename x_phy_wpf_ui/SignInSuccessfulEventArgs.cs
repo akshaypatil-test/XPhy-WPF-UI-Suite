@@ -15,11 +15,15 @@ namespace x_phy_wpf_ui
         /// <summary>True when raised from Corporate Sign-In; used to return to corporate sign-in screen on validation error.</summary>
         public bool FromCorporateSignIn { get; }
 
-        public SignInSuccessfulEventArgs(string? licenseKey, LoginResponse? loginResponse, bool fromCorporateSignIn = false)
+        /// <summary>True when user checked Remember Me at login; used for refresh token expiry and logout-on-close behavior.</summary>
+        public bool RememberMe { get; }
+
+        public SignInSuccessfulEventArgs(string? licenseKey, LoginResponse? loginResponse, bool fromCorporateSignIn = false, bool rememberMe = false)
         {
             LicenseKey = licenseKey;
             LoginResponse = loginResponse;
             FromCorporateSignIn = fromCorporateSignIn;
+            RememberMe = rememberMe;
         }
     }
 }

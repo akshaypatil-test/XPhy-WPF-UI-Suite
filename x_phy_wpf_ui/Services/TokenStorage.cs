@@ -112,9 +112,11 @@ namespace x_phy_wpf_ui.Services
             public string Username { get; set; } = string.Empty;
             public UserInfo? UserInfo { get; set; }
             public LicenseInfo? LicenseInfo { get; set; }
+            /// <summary>True when user checked Remember Me at login; when false, logout on app close.</summary>
+            public bool RememberMe { get; set; }
         }
 
-        public void SaveTokens(string accessToken, string refreshToken, int expiresIn, Guid userId, string username, UserInfo? userInfo = null, LicenseInfo? licenseInfo = null)
+        public void SaveTokens(string accessToken, string refreshToken, int expiresIn, Guid userId, string username, UserInfo? userInfo = null, LicenseInfo? licenseInfo = null, bool rememberMe = false)
         {
             try
             {
@@ -132,7 +134,8 @@ namespace x_phy_wpf_ui.Services
                     UserId = userId,
                     Username = username,
                     UserInfo = userInfo,
-                    LicenseInfo = licenseInfo
+                    LicenseInfo = licenseInfo,
+                    RememberMe = rememberMe
                 };
 
                 string json = JsonConvert.SerializeObject(tokens, Formatting.Indented);
@@ -171,6 +174,31 @@ namespace x_phy_wpf_ui.Services
             return tokens != null && !string.IsNullOrEmpty(tokens.AccessToken) && tokens.ExpiresAt > DateTime.UtcNow;
         }
 
+        /// <summary>Updates only the access token and expiry (e.g. after refresh). Keeps refresh token, user, license, RememberMe.</summary>
+        public void UpdateAccessToken(string accessToken, int expiresIn)
+        {
+            try
+            {
+                var tokens = GetTokens();
+                if (tokens == null) return;
+                var expiresInSeconds = (int)Math.Max(0, (tokens.ExpiresAt - DateTime.UtcNow).TotalSeconds);
+                SaveTokens(
+                    accessToken,
+                    tokens.RefreshToken,
+                    expiresIn,
+                    tokens.UserId,
+                    tokens.Username,
+                    tokens.UserInfo,
+                    tokens.LicenseInfo,
+                    tokens.RememberMe
+                );
+            }
+            catch (Exception ex)
+            {
+                System.Diagnostics.Debug.WriteLine($"Error updating access token: {ex.Message}");
+            }
+        }
+
         /// <summary>Updates only UserInfo and LicenseInfo (e.g. after purchase confirm). Keeps existing tokens.</summary>
         public void UpdateUserAndLicense(UserInfo? userInfo, LicenseInfo? licenseInfo)
         {
@@ -187,7 +215,8 @@ namespace x_phy_wpf_ui.Services
                     tokens.UserId,
                     tokens.Username,
                     userInfo ?? tokens.UserInfo,
-                    licenseInfo ?? tokens.LicenseInfo
+                    licenseInfo ?? tokens.LicenseInfo,
+                    tokens.RememberMe
                 );
             }
             catch (Exception ex)

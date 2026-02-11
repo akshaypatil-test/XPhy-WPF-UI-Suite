@@ -115,7 +115,8 @@ namespace x_phy_wpf_ui
                 response.User.Id,
                 response.User.Username,
                 response.User,
-                licenseInfo
+                licenseInfo,
+                args.RememberMe
             );
 
             var allWindows = new System.Collections.Generic.List<Window>();

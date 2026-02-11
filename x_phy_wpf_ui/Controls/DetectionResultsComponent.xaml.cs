@@ -406,6 +406,13 @@ namespace x_phy_wpf_ui.Controls
 
         public int DetectedFacesCount => _detectedFaces?.Count ?? 0;
 
+        /// <summary>Elapsed seconds since detection started. Call when showing final result to send to CreateResult API.</summary>
+        public double GetDetectionDurationSeconds()
+        {
+            var elapsed = (DateTime.UtcNow - _detectionStartTime).TotalSeconds;
+            return Math.Max(0, Math.Round(elapsed, 1));
+        }
+
         private void StopButton_Click(object sender, RoutedEventArgs e)
         {
             StopDetectionClicked?.Invoke(this, EventArgs.Empty);

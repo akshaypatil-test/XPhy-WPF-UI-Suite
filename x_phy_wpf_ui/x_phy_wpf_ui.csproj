@@ -27,6 +27,7 @@
     <PackageReference Include="Stripe.net" Version="43.15.0" />
     <PackageReference Include="Newtonsoft.Json" Version="13.0.3" />
     <PackageReference Include="Microsoft.Web.WebView2" Version="1.0.2210.55" />
+    <PackageReference Include="Microsoft.Data.Sqlite" Version="8.0.0" />
   </ItemGroup>
   <!-- Reference wrapper DLL only; do not build C++ vcxproj (requires Visual Studio). DLL must be pre-built. -->
   <!--

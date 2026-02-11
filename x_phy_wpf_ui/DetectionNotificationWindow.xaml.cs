@@ -12,6 +12,8 @@ namespace x_phy_wpf_ui
         private DispatcherTimer _autoCloseTimer;
         private string _resultPath;
         private Action _openResultsFolder;
+        /// <summary>When set, "View Result" button navigates to the Results page instead of opening folder.</summary>
+        private Action _navigateToResultsPage;
         /// <summary>When set, "Stop & View Results" calls this (stop detection, then open results when saved) instead of only opening folder.</summary>
         private Action _stopDetectionAndOpenResults;
 
@@ -46,7 +48,8 @@ namespace x_phy_wpf_ui
         }
 
         /// <summary>Set content for Detection Completed: message and View Result action.</summary>
-        public void SetDetectionCompletedContent(string message, string resultPath, Action openResultsFolder)
+        /// <param name="navigateToResultsPage">If set, "View Result" navigates to the Results page; otherwise uses openResultsFolder.</param>
+        public void SetDetectionCompletedContent(string message, string resultPath, Action openResultsFolder, Action navigateToResultsPage = null)
         {
             SimpleContentPanel.Visibility = Visibility.Collapsed;
             DeepfakeContentPanel.Visibility = Visibility.Collapsed;
@@ -57,11 +60,13 @@ namespace x_phy_wpf_ui
             CompletedMessageText.Text = message ?? "No AI Manipulation Found";
             _resultPath = resultPath ?? "";
             _openResultsFolder = openResultsFolder;
+            _navigateToResultsPage = navigateToResultsPage;
         }
 
         /// <summary>Set content for Detection Completed when AI manipulated content was detected: title, red alert, confidence, timestamp, evidence, Close + View Result.</summary>
+        /// <param name="navigateToResultsPage">If set, "View Result" navigates to the Results page; otherwise uses openResultsFolder.</param>
         public void SetDetectionCompletedWithThreatContent(int confidencePercent, string resultPath, Action openResultsFolder,
-            ImageSource evidenceImageLeft = null, ImageSource evidenceImageRight = null)
+            ImageSource evidenceImageLeft = null, ImageSource evidenceImageRight = null, Action navigateToResultsPage = null)
         {
             SimpleContentPanel.Visibility = Visibility.Collapsed;
             DeepfakeContentPanel.Visibility = Visibility.Collapsed;
@@ -73,6 +78,7 @@ namespace x_phy_wpf_ui
             CompletedThreatTimestampText.Text = DateTime.Now.ToString("HH:mm MMM d, yyyy");
             _resultPath = resultPath ?? "";
             _openResultsFolder = openResultsFolder;
+            _navigateToResultsPage = navigateToResultsPage;
 
             CompletedThreatEvidenceLeft.Source = evidenceImageLeft;
             CompletedThreatEvidenceRight.Source = evidenceImageRight ?? evidenceImageLeft;
@@ -181,17 +187,28 @@ namespace x_phy_wpf_ui
 
         private void CompletedViewResult_Click(object sender, RoutedEventArgs e)
         {
+            _autoCloseTimer?.Stop();
+            _autoCloseTimer = null;
             try
             {
-                _openResultsFolder?.Invoke();
-                if (!string.IsNullOrEmpty(_resultPath))
+                if (_navigateToResultsPage != null)
                 {
-                    MessageBox.Show("Results folder opened.\n\nPath: " + _resultPath, "Results", MessageBoxButton.OK, MessageBoxImage.Information);
+                    _navigateToResultsPage.Invoke();
+                    Close();
+                }
+                else
+                {
+                    _openResultsFolder?.Invoke();
+                    if (!string.IsNullOrEmpty(_resultPath))
+                    {
+                        MessageBox.Show("Results folder opened.\n\nPath: " + _resultPath, "Results", MessageBoxButton.OK, MessageBoxImage.Information);
+                    }
+                    Close();
                 }
             }
             catch (Exception ex)
             {
-                MessageBox.Show("Failed to open results folder: " + ex.Message, "Error", MessageBoxButton.OK, MessageBoxImage.Warning);
+                MessageBox.Show("Failed: " + ex.Message, "Error", MessageBoxButton.OK, MessageBoxImage.Warning);
             }
         }
 

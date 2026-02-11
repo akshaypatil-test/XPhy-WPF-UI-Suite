@@ -1,0 +1,323 @@
+<UserControl x:Class="x_phy_wpf_ui.Controls.DetectionResultsScreen"
+             xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
+             xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+             xmlns:mc="http://schemas.openxmlformats.org/markup-compatibility/2006"
+             xmlns:d="http://schemas.microsoft.com/expression/blend/2008"
+             xmlns:controls="clr-namespace:x_phy_wpf_ui.Controls"
+             mc:Ignorable="d"
+             d:DesignHeight="500" d:DesignWidth="900">
+    <UserControl.Resources>
+        <SolidColorBrush x:Key="CardBg" Color="#FFFFFF" Opacity="0.08"/>
+        <SolidColorBrush x:Key="TextPrimaryBrush" Color="#FFFFFF"/>
+        <SolidColorBrush x:Key="TextSecondaryBrush" Color="#999999"/>
+        <SolidColorBrush x:Key="PrimaryPinkBrush" Color="#E2156B"/>
+        <SolidColorBrush x:Key="ResultRedBrush" Color="#E53935"/>
+        <SolidColorBrush x:Key="ResultGreenBrush" Color="#43A047"/>
+        <SolidColorBrush x:Key="TealBrush" Color="#1AB4CC"/>
+        <SolidColorBrush x:Key="TypePillBg" Color="#353535"/>
+        <!-- Results Directory: dark teal background, teal border (matches reference) -->
+        <Style x:Key="TealButtonStyle" TargetType="Button">
+            <Setter Property="Background" Value="#102124"/>
+            <Setter Property="Foreground" Value="White"/>
+            <Setter Property="FontSize" Value="14"/>
+            <Setter Property="FontWeight" Value="Medium"/>
+            <Setter Property="Padding" Value="20,10"/>
+            <Setter Property="BorderThickness" Value="1"/>
+            <Setter Property="BorderBrush" Value="#20707C"/>
+            <Setter Property="Cursor" Value="Hand"/>
+            <Setter Property="Template">
+                <Setter.Value>
+                    <ControlTemplate TargetType="Button">
+                        <Border Background="{TemplateBinding Background}" BorderBrush="{TemplateBinding BorderBrush}" BorderThickness="{TemplateBinding BorderThickness}" CornerRadius="10" Padding="{TemplateBinding Padding}">
+                            <ContentPresenter HorizontalAlignment="Center" VerticalAlignment="Center"/>
+                        </Border>
+                    </ControlTemplate>
+                </Setter.Value>
+            </Setter>
+            <Style.Triggers>
+                <Trigger Property="IsMouseOver" Value="True">
+                    <Setter Property="Background" Value="#1A3540"/>
+                    <Setter Property="BorderBrush" Value="#2A8A96"/>
+                </Trigger>
+            </Style.Triggers>
+        </Style>
+        <Style x:Key="PinkButtonStyle" TargetType="Button">
+            <Setter Property="Background" Value="{StaticResource PrimaryPinkBrush}"/>
+            <Setter Property="Foreground" Value="White"/>
+            <Setter Property="FontSize" Value="14"/>
+            <Setter Property="FontWeight" Value="SemiBold"/>
+            <Setter Property="Padding" Value="20,10"/>
+            <Setter Property="BorderThickness" Value="0"/>
+            <Setter Property="Cursor" Value="Hand"/>
+            <Setter Property="Template">
+                <Setter.Value>
+                    <ControlTemplate TargetType="Button">
+                        <Border Background="{TemplateBinding Background}" CornerRadius="8" Padding="{TemplateBinding Padding}">
+                            <ContentPresenter HorizontalAlignment="Center" VerticalAlignment="Center"/>
+                        </Border>
+                    </ControlTemplate>
+                </Setter.Value>
+            </Setter>
+            <Style.Triggers>
+                <Trigger Property="IsMouseOver" Value="True">
+                    <Setter Property="Background" Value="#F0458A"/>
+                </Trigger>
+            </Style.Triggers>
+        </Style>
+        <SolidColorBrush x:Key="PanelBorder" Color="#2A2A2A"/>
+        <SolidColorBrush x:Key="PanelGlowBorder" Color="#1AB4CC"/>
+        <SolidColorBrush x:Key="FieldBlockBg" Color="#252525"/>
+        <SolidColorBrush x:Key="MetadataRowBg" Color="#1C1C1C"/>
+        <SolidColorBrush x:Key="MetadataLabelBrush" Color="#E8E8E8"/>
+    </UserControl.Resources>
+    <Grid>
+        <Grid.RowDefinitions>
+            <RowDefinition Height="*"/>
+            <RowDefinition Height="Auto"/>
+        </Grid.RowDefinitions>
+
+        <!-- List view: DETECTION RESULTS table (scrollable; buttons are in row below) -->
+        <ScrollViewer x:Name="ResultsListView" Grid.Row="0" VerticalScrollBarVisibility="Auto" HorizontalScrollBarVisibility="Disabled">
+            <StackPanel Margin="0,0,0,0">
+                <!-- Title and Legend -->
+                <Grid Margin="0,0,0,20">
+                    <Grid.ColumnDefinitions>
+                        <ColumnDefinition Width="*"/>
+                        <ColumnDefinition Width="Auto"/>
+                    </Grid.ColumnDefinitions>
+                    <TextBlock Grid.Column="0"
+                               Text="DETECTION RESULTS"
+                               FontSize="20"
+                               FontWeight="Bold"
+                               Foreground="{StaticResource TextPrimaryBrush}"
+                               VerticalAlignment="Center"/>
+                    <StackPanel Grid.Column="1" Orientation="Horizontal" VerticalAlignment="Center">
+                        <Ellipse Width="10" Height="10" Fill="{StaticResource ResultRedBrush}" Margin="0,0,6,0" VerticalAlignment="Center"/>
+                        <TextBlock Text="AI Manipulation Detected" FontSize="12" Foreground="{StaticResource TextSecondaryBrush}" Margin="0,0,20,0" VerticalAlignment="Center"/>
+                        <Ellipse Width="10" Height="10" Fill="{StaticResource ResultGreenBrush}" Margin="0,0,6,0" VerticalAlignment="Center"/>
+                        <TextBlock Text="No AI Manipulation Detected" FontSize="12" Foreground="{StaticResource TextSecondaryBrush}" VerticalAlignment="Center"/>
+                    </StackPanel>
+                </Grid>
+
+                <!-- Results Table: cyan top border (1px to match row lines) + glass look -->
+                <Border CornerRadius="8" Margin="0,0,0,0" BorderBrush="{StaticResource PanelGlowBorder}" BorderThickness="0,1,0,0">
+                    <Border CornerRadius="8" Padding="0" UseLayoutRounding="True">
+                        <Border.Background>
+                            <LinearGradientBrush StartPoint="0,0" EndPoint="0,1">
+                                <GradientStop Color="#1AFFFFFF" Offset="0"/>
+                                <GradientStop Color="#0CFFFFFF" Offset="0.5"/>
+                                <GradientStop Color="#08FFFFFF" Offset="1"/>
+                            </LinearGradientBrush>
+                        </Border.Background>
+                        <Border.Effect>
+                            <DropShadowEffect Color="#1AB4CC" BlurRadius="8" ShadowDepth="0" Opacity="0.15"/>
+                        </Border.Effect>
+                    <DataGrid x:Name="ResultsDataGrid"
+                              AutoGenerateColumns="False"
+                              IsReadOnly="True"
+                              CanUserAddRows="False"
+                              CanUserDeleteRows="False"
+                              CanUserReorderColumns="False"
+                              CanUserResizeColumns="False"
+                              CanUserResizeRows="False"
+                              CanUserSortColumns="True"
+                              HeadersVisibility="Column"
+                              GridLinesVisibility="None"
+                              RowBackground="Transparent"
+                              AlternatingRowBackground="#0CFFFFFF"
+                              BorderThickness="0"
+                              Background="Transparent"
+                              Foreground="{StaticResource TextPrimaryBrush}"
+                              RowHeight="44"
+                              FontSize="13"
+                              SelectionMode="Single"
+                              SelectionUnit="FullRow"
+                              UseLayoutRounding="True">
+                        <DataGrid.ColumnHeaderStyle>
+                            <Style TargetType="DataGridColumnHeader">
+                                <Setter Property="Background" Value="#1A1A1A"/>
+                                <Setter Property="Foreground" Value="{StaticResource TextPrimaryBrush}"/>
+                                <Setter Property="FontWeight" Value="Bold"/>
+                                <Setter Property="Padding" Value="12,14,24,14"/>
+                                <Setter Property="HorizontalContentAlignment" Value="Center"/>
+                                <Setter Property="VerticalContentAlignment" Value="Center"/>
+                                <Setter Property="BorderThickness" Value="0"/>
+                                <Setter Property="BorderBrush" Value="Transparent"/>
+                                <Setter Property="Template">
+                                    <Setter.Value>
+                                        <ControlTemplate TargetType="DataGridColumnHeader">
+                                            <Border Background="{TemplateBinding Background}"
+                                                    BorderThickness="0,0,0,1"
+                                                    BorderBrush="#333333"
+                                                    Padding="{TemplateBinding Padding}">
+                                                <ContentPresenter HorizontalAlignment="{TemplateBinding HorizontalContentAlignment}"
+                                                                  VerticalAlignment="{TemplateBinding VerticalContentAlignment}"
+                                                                  SnapsToDevicePixels="{TemplateBinding SnapsToDevicePixels}"/>
+                                            </Border>
+                                        </ControlTemplate>
+                                    </Setter.Value>
+                                </Setter>
+                            </Style>
+                        </DataGrid.ColumnHeaderStyle>
+                        <DataGrid.RowStyle>
+                            <Style TargetType="DataGridRow">
+                                <Setter Property="Background" Value="Transparent"/>
+                                <Setter Property="MinHeight" Value="44"/>
+                                <Setter Property="Template">
+                                    <Setter.Value>
+                                        <ControlTemplate TargetType="DataGridRow">
+                                            <Border Background="{TemplateBinding Background}"
+                                                    BorderThickness="0,0,0,1"
+                                                    BorderBrush="#333333">
+                                                <SelectiveScrollingGrid>
+                                                    <SelectiveScrollingGrid.ColumnDefinitions>
+                                                        <ColumnDefinition/>
+                                                        <ColumnDefinition Width="Auto"/>
+                                                    </SelectiveScrollingGrid.ColumnDefinitions>
+                                                    <DataGridCellsPresenter Grid.Column="0"
+                                                                           ItemsPanel="{TemplateBinding ItemsPanel}"
+                                                                           SelectiveScrollingGrid.SelectiveScrollingOrientation="Horizontal"/>
+                                                    <DataGridRowHeader Grid.Column="1"
+                                                                       SelectiveScrollingGrid.SelectiveScrollingOrientation="Vertical"
+                                                                       Visibility="Collapsed"/>
+                                                </SelectiveScrollingGrid>
+                                            </Border>
+                                        </ControlTemplate>
+                                    </Setter.Value>
+                                </Setter>
+                                <Style.Triggers>
+                                    <DataTrigger Binding="{Binding}" Value="{x:Null}">
+                                        <Setter Property="Visibility" Value="Collapsed"/>
+                                    </DataTrigger>
+                                </Style.Triggers>
+                            </Style>
+                        </DataGrid.RowStyle>
+                        <DataGrid.CellStyle>
+                            <Style TargetType="DataGridCell">
+                                <Setter Property="BorderThickness" Value="0"/>
+                                <Setter Property="Padding" Value="12,10,24,10"/>
+                                <Setter Property="VerticalAlignment" Value="Center"/>
+                                <Setter Property="HorizontalContentAlignment" Value="Center"/>
+                                <Setter Property="Template">
+                                    <Setter.Value>
+                                        <ControlTemplate TargetType="DataGridCell">
+                                            <Border Background="{TemplateBinding Background}"
+                                                    BorderThickness="0"
+                                                    Padding="{TemplateBinding Padding}">
+                                                <ContentPresenter VerticalAlignment="{TemplateBinding VerticalContentAlignment}"
+                                                                  HorizontalAlignment="{TemplateBinding HorizontalContentAlignment}"
+                                                                  SnapsToDevicePixels="{TemplateBinding SnapsToDevicePixels}"/>
+                                            </Border>
+                                        </ControlTemplate>
+                                    </Setter.Value>
+                                </Setter>
+                                <Style.Triggers>
+                                    <Trigger Property="IsSelected" Value="True">
+                                        <Setter Property="Background" Value="#2A2A2A"/>
+                                        <Setter Property="Foreground" Value="{StaticResource TextPrimaryBrush}"/>
+                                    </Trigger>
+                                </Style.Triggers>
+                            </Style>
+                        </DataGrid.CellStyle>
+                        <DataGrid.Columns>
+                            <DataGridTextColumn Header="Timestamp" Binding="{Binding Timestamp, StringFormat='HH:mm MMM d, yyyy'}" Width="*" MinWidth="130">
+                                <DataGridTextColumn.ElementStyle>
+                                    <Style TargetType="TextBlock">
+                                        <Setter Property="HorizontalAlignment" Value="Center"/>
+                                    </Style>
+                                </DataGridTextColumn.ElementStyle>
+                            </DataGridTextColumn>
+                            <DataGridTemplateColumn Header="Type" Width="100" MinWidth="80">
+                                <DataGridTemplateColumn.CellTemplate>
+                                    <DataTemplate>
+                                        <Border Background="{StaticResource TypePillBg}" CornerRadius="14" Padding="8,3" HorizontalAlignment="Center">
+                                            <TextBlock Text="{Binding Type}" Foreground="{StaticResource TextPrimaryBrush}" FontSize="12"/>
+                                        </Border>
+                                    </DataTemplate>
+                                </DataGridTemplateColumn.CellTemplate>
+                            </DataGridTemplateColumn>
+                            <DataGridTemplateColumn Header="Result" Width="*" MinWidth="180">
+                                <DataGridTemplateColumn.CellTemplate>
+                                    <DataTemplate>
+                                        <TextBlock Text="{Binding ResultText}" HorizontalAlignment="Center">
+                                            <TextBlock.Style>
+                                                <Style TargetType="TextBlock">
+                                                    <Setter Property="HorizontalAlignment" Value="Center"/>
+                                                    <Style.Triggers>
+                                                        <DataTrigger Binding="{Binding IsAiManipulationDetected}" Value="True">
+                                                            <Setter Property="Foreground" Value="{StaticResource ResultRedBrush}"/>
+                                                        </DataTrigger>
+                                                        <DataTrigger Binding="{Binding IsAiManipulationDetected}" Value="False">
+                                                            <Setter Property="Foreground" Value="{StaticResource ResultGreenBrush}"/>
+                                                        </DataTrigger>
+                                                    </Style.Triggers>
+                                                </Style>
+                                            </TextBlock.Style>
+                                        </TextBlock>
+                                    </DataTemplate>
+                                </DataGridTemplateColumn.CellTemplate>
+                            </DataGridTemplateColumn>
+                            <DataGridTemplateColumn Header="Detection Confidence" Width="150" MinWidth="140">
+                                <DataGridTemplateColumn.CellTemplate>
+                                    <DataTemplate>
+                                        <TextBlock Text="{Binding ConfidenceText}" HorizontalAlignment="Center">
+                                            <TextBlock.Style>
+                                                <Style TargetType="TextBlock">
+                                                    <Setter Property="HorizontalAlignment" Value="Center"/>
+                                                    <Style.Triggers>
+                                                        <DataTrigger Binding="{Binding IsAiManipulationDetected}" Value="True">
+                                                            <Setter Property="Foreground" Value="{StaticResource ResultRedBrush}"/>
+                                                        </DataTrigger>
+                                                        <DataTrigger Binding="{Binding IsAiManipulationDetected}" Value="False">
+                                                            <Setter Property="Foreground" Value="{StaticResource ResultGreenBrush}"/>
+                                                        </DataTrigger>
+                                                    </Style.Triggers>
+                                                </Style>
+                                            </TextBlock.Style>
+                                        </TextBlock>
+                                    </DataTemplate>
+                                </DataGridTemplateColumn.CellTemplate>
+                            </DataGridTemplateColumn>
+                            <DataGridTemplateColumn Header="Actions" Width="100" MinWidth="90">
+                                <DataGridTemplateColumn.CellTemplate>
+                                    <DataTemplate>
+                                        <Button Background="Transparent"
+                                                BorderThickness="0"
+                                                Cursor="Hand"
+                                                FontSize="12"
+                                                Padding="0"
+                                                HorizontalAlignment="Center"
+                                                Click="ViewResult_Click">
+                                            <TextBlock Text="View Result"
+                                                       Foreground="{StaticResource TextPrimaryBrush}"
+                                                       TextDecorations="Underline"/>
+                                        </Button>
+                                    </DataTemplate>
+                                </DataGridTemplateColumn.CellTemplate>
+                            </DataGridTemplateColumn>
+                        </DataGrid.Columns>
+                    </DataGrid>
+                    </Border>
+                </Border>
+            </StackPanel>
+        </ScrollViewer>
+
+        <!-- Buttons: always at bottom right -->
+        <StackPanel Grid.Row="1" Orientation="Horizontal" HorizontalAlignment="Right" Margin="0,16,0,0">
+            <Button x:Name="ResultsDirectoryButton"
+                    Content="Results Directory"
+                    Style="{StaticResource TealButtonStyle}"
+                    Click="ResultsDirectory_Click"
+                    Margin="0,0,12,0"/>
+            <Button x:Name="ExportExcelButton"
+                    Content="Export to Excel"
+                    Style="{StaticResource PinkButtonStyle}"
+                    Click="ExportExcel_Click"/>
+        </StackPanel>
+
+        <!-- Detail view: Session Details (replaces list when View Result is clicked) -->
+        <ScrollViewer x:Name="SessionDetailView" Grid.Row="0" Visibility="Collapsed" VerticalScrollBarVisibility="Hidden" HorizontalScrollBarVisibility="Disabled">
+            <controls:SessionDetailsPanel x:Name="SessionDetailPanel"/>
+        </ScrollViewer>
+    </Grid>
+</UserControl>

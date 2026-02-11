@@ -1420,6 +1420,8 @@ videoLiveFakeProportionThreshold = 0.7
             PlansComponent.Visibility = Visibility.Collapsed;
             StripePaymentComponentContainer.Visibility = Visibility.Collapsed;
             CorpRegisterComponent.Visibility = Visibility.Collapsed;
+            if (DetectionResultsScreen != null)
+                DetectionResultsScreen.Visibility = Visibility.Collapsed;
             SupportComponent.Visibility = Visibility.Visible;
         }
 
@@ -1475,13 +1477,11 @@ videoLiveFakeProportionThreshold = 0.7
 
         private void ShowPlansComponent()
         {
-            // Hide detection content and statistics (hide entire Grid row)
             DetectionContentGrid.Visibility = Visibility.Collapsed;
             StatisticsCardsGrid.Visibility = Visibility.Collapsed;
+            SupportComponent.Visibility = Visibility.Collapsed;
             if (DetectionResultsScreen != null)
                 DetectionResultsScreen.Visibility = Visibility.Collapsed;
-            
-            // Show plans component
             PlansComponent.Visibility = Visibility.Visible;
             StripePaymentComponentContainer.Visibility = Visibility.Collapsed;
         }
@@ -1493,6 +1493,7 @@ videoLiveFakeProportionThreshold = 0.7
             PlansComponent.Visibility = Visibility.Collapsed;
             StripePaymentComponentContainer.Visibility = Visibility.Collapsed;
             CorpRegisterComponent.Visibility = Visibility.Collapsed;
+            SupportComponent.Visibility = Visibility.Collapsed;
             if (TopNavBar != null)
                 TopNavBar.SelectedPage = "Results";
 

@@ -6,23 +6,23 @@
              mc:Ignorable="d"
              d:DesignHeight="500" d:DesignWidth="900">
     <UserControl.Resources>
-        <SolidColorBrush x:Key="CardBg" Color="#FFFFFF" Opacity="0.08"/>
-        <SolidColorBrush x:Key="TextPrimaryBrush" Color="#FFFFFF"/>
-        <SolidColorBrush x:Key="TextSecondaryBrush" Color="#999999"/>
-        <SolidColorBrush x:Key="PrimaryPinkBrush" Color="#E2156B"/>
-        <SolidColorBrush x:Key="ResultRedBrush" Color="#E53935"/>
-        <SolidColorBrush x:Key="ResultGreenBrush" Color="#43A047"/>
-        <SolidColorBrush x:Key="TealBrush" Color="#1AB4CC"/>
-        <SolidColorBrush x:Key="TypePillBg" Color="#353535"/>
-        <!-- Results Directory: dark teal background, teal border (matches reference) -->
+        <!-- Using theme-aware brushes -->
+        <SolidColorBrush x:Key="CardBg" Color="{DynamicResource Color.Card}"/>
+        <SolidColorBrush x:Key="TextPrimaryBrush" Color="{DynamicResource Color.TextPrimary}"/>
+        <SolidColorBrush x:Key="TextSecondaryBrush" Color="{DynamicResource Color.TextSecondary}"/>
+        <SolidColorBrush x:Key="PrimaryPinkBrush" Color="{DynamicResource Color.Primary}"/>
+        <SolidColorBrush x:Key="ResultRedBrush" Color="{DynamicResource Color.Error}"/>
+        <SolidColorBrush x:Key="ResultGreenBrush" Color="{DynamicResource Color.Success}"/>
+        <SolidColorBrush x:Key="TealBrush" Color="{DynamicResource Color.Secondary}"/>
+        <SolidColorBrush x:Key="TypePillBg" Color="{DynamicResource Color.Surface}"/>
         <Style x:Key="TealButtonStyle" TargetType="Button">
-            <Setter Property="Background" Value="#102124"/>
-            <Setter Property="Foreground" Value="White"/>
+            <Setter Property="Background" Value="{DynamicResource Brush.Surface}"/>
+            <Setter Property="Foreground" Value="{DynamicResource Brush.TextPrimary}"/>
             <Setter Property="FontSize" Value="14"/>
             <Setter Property="FontWeight" Value="Medium"/>
             <Setter Property="Padding" Value="20,10"/>
             <Setter Property="BorderThickness" Value="1"/>
-            <Setter Property="BorderBrush" Value="#20707C"/>
+            <Setter Property="BorderBrush" Value="{DynamicResource Brush.Border}"/>
             <Setter Property="Cursor" Value="Hand"/>
             <Setter Property="Template">
                 <Setter.Value>
@@ -35,14 +35,13 @@
             </Setter>
             <Style.Triggers>
                 <Trigger Property="IsMouseOver" Value="True">
-                    <Setter Property="Background" Value="#1A3540"/>
-                    <Setter Property="BorderBrush" Value="#2A8A96"/>
+                    <Setter Property="Background" Value="{DynamicResource Brush.SurfaceHover}"/>
                 </Trigger>
             </Style.Triggers>
         </Style>
         <Style x:Key="PinkButtonStyle" TargetType="Button">
-            <Setter Property="Background" Value="{StaticResource PrimaryPinkBrush}"/>
-            <Setter Property="Foreground" Value="White"/>
+            <Setter Property="Background" Value="{DynamicResource Brush.Primary}"/>
+            <Setter Property="Foreground" Value="{DynamicResource Brush.White}"/>
             <Setter Property="FontSize" Value="14"/>
             <Setter Property="FontWeight" Value="SemiBold"/>
             <Setter Property="Padding" Value="20,10"/>
@@ -59,15 +58,15 @@
             </Setter>
             <Style.Triggers>
                 <Trigger Property="IsMouseOver" Value="True">
-                    <Setter Property="Background" Value="#F0458A"/>
+                    <Setter Property="Background" Value="{DynamicResource Brush.PrimaryHover}"/>
                 </Trigger>
             </Style.Triggers>
         </Style>
-        <SolidColorBrush x:Key="PanelBorder" Color="#2A2A2A"/>
-        <SolidColorBrush x:Key="PanelGlowBorder" Color="#1AB4CC"/>
-        <SolidColorBrush x:Key="FieldBlockBg" Color="#252525"/>
-        <SolidColorBrush x:Key="MetadataRowBg" Color="#1C1C1C"/>
-        <SolidColorBrush x:Key="MetadataLabelBrush" Color="#E8E8E8"/>
+        <SolidColorBrush x:Key="PanelBorder" Color="{DynamicResource Color.Border}"/>
+        <SolidColorBrush x:Key="PanelGlowBorder" Color="{DynamicResource Color.Secondary}"/>
+        <SolidColorBrush x:Key="FieldBlockBg" Color="{DynamicResource Color.Surface}"/>
+        <SolidColorBrush x:Key="MetadataRowBg" Color="{DynamicResource Color.Card}"/>
+        <SolidColorBrush x:Key="MetadataLabelBrush" Color="{DynamicResource Color.TextPrimary}"/>
     </UserControl.Resources>
     <Grid>
         <Grid.RowDefinitions>
@@ -127,7 +126,7 @@
                               HeadersVisibility="Column"
                               GridLinesVisibility="None"
                               RowBackground="Transparent"
-                              AlternatingRowBackground="#0CFFFFFF"
+                              AlternatingRowBackground="{DynamicResource Brush.SurfaceHover}"
                               BorderThickness="0"
                               Background="Transparent"
                               Foreground="{StaticResource TextPrimaryBrush}"
@@ -139,7 +138,7 @@
                               HorizontalAlignment="Stretch">
                         <DataGrid.ColumnHeaderStyle>
                             <Style TargetType="DataGridColumnHeader">
-                                <Setter Property="Background" Value="#1A1A1A"/>
+                                <Setter Property="Background" Value="{DynamicResource Brush.Surface}"/>
                                 <Setter Property="Foreground" Value="{StaticResource TextPrimaryBrush}"/>
                                 <Setter Property="FontWeight" Value="Bold"/>
                                 <Setter Property="Padding" Value="12,14,24,14"/>
@@ -152,7 +151,7 @@
                                         <ControlTemplate TargetType="DataGridColumnHeader">
                                             <Border Background="{TemplateBinding Background}"
                                                     BorderThickness="0,0,0,1"
-                                                    BorderBrush="#333333"
+                                                    BorderBrush="{DynamicResource Brush.Border}"
                                                     Padding="{TemplateBinding Padding}">
                                                 <ContentPresenter HorizontalAlignment="{TemplateBinding HorizontalContentAlignment}"
                                                                   VerticalAlignment="{TemplateBinding VerticalContentAlignment}"
@@ -172,7 +171,7 @@
                                         <ControlTemplate TargetType="DataGridRow">
                                             <Border Background="{TemplateBinding Background}"
                                                     BorderThickness="0,0,0,1"
-                                                    BorderBrush="#333333">
+                                                    BorderBrush="{DynamicResource Brush.Border}">
                                                 <SelectiveScrollingGrid>
                                                     <SelectiveScrollingGrid.ColumnDefinitions>
                                                         <ColumnDefinition/>
@@ -217,7 +216,7 @@
                                 </Setter>
                                 <Style.Triggers>
                                     <Trigger Property="IsSelected" Value="True">
-                                        <Setter Property="Background" Value="#2A2A2A"/>
+                                        <Setter Property="Background" Value="{DynamicResource Brush.SurfaceHover}"/>
                                         <Setter Property="Foreground" Value="{StaticResource TextPrimaryBrush}"/>
                                     </Trigger>
                                 </Style.Triggers>

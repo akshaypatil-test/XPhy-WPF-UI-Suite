@@ -1,0 +1,176 @@
+<ResourceDictionary xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
+                    xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml">
+    
+    <!-- Merge Dependencies -->
+    <ResourceDictionary.MergedDictionaries>
+        <ResourceDictionary Source="../Brushes.xaml"/>
+        <ResourceDictionary Source="../Spacing.xaml"/>
+        <ResourceDictionary Source="../Radius.xaml"/>
+    </ResourceDictionary.MergedDictionaries>
+    
+    <!-- Standard TextBox -->
+    <Style x:Key="TextBox.Standard" TargetType="TextBox">
+        <Setter Property="Background" Value="{DynamicResource Brush.InputBackground}"/>
+        <Setter Property="Foreground" Value="{DynamicResource Brush.TextPrimary}"/>
+        <Setter Property="CaretBrush" Value="{DynamicResource Brush.White}"/>
+        <Setter Property="BorderBrush" Value="{DynamicResource Brush.Border}"/>
+        <Setter Property="BorderThickness" Value="1"/>
+        <Setter Property="Padding" Value="{StaticResource Padding.Input}"/>
+        <Setter Property="FontSize" Value="14"/>
+        <Setter Property="MinHeight" Value="{StaticResource MinHeight.Input}"/>
+        <Setter Property="Template">
+            <Setter.Value>
+                <ControlTemplate TargetType="TextBox">
+                    <Border Background="{TemplateBinding Background}"
+                            BorderBrush="{TemplateBinding BorderBrush}"
+                            BorderThickness="{TemplateBinding BorderThickness}"
+                            CornerRadius="{StaticResource Radius.M}"
+                            Padding="{TemplateBinding Padding}">
+                        <ScrollViewer x:Name="PART_ContentHost" 
+                                    VerticalAlignment="Center"
+                                    Margin="0"/>
+                    </Border>
+                </ControlTemplate>
+            </Setter.Value>
+        </Setter>
+        <Style.Triggers>
+            <Trigger Property="IsFocused" Value="True">
+                <Setter Property="BorderBrush" Value="{DynamicResource Brush.BorderFocused}"/>
+            </Trigger>
+            <Trigger Property="IsEnabled" Value="False">
+                <Setter Property="Background" Value="{DynamicResource Brush.Disabled}"/>
+                <Setter Property="Foreground" Value="{DynamicResource Brush.DisabledText}"/>
+            </Trigger>
+        </Style.Triggers>
+    </Style>
+    
+    <!-- Inner TextBox (for composite controls - no border/background) -->
+    <Style x:Key="TextBox.Inner" TargetType="TextBox">
+        <Setter Property="Background" Value="{DynamicResource Brush.Transparent}"/>
+        <Setter Property="Foreground" Value="{DynamicResource Brush.TextPrimary}"/>
+        <Setter Property="CaretBrush" Value="{DynamicResource Brush.White}"/>
+        <Setter Property="BorderThickness" Value="0"/>
+        <Setter Property="Padding" Value="{StaticResource Padding.Input}"/>
+        <Setter Property="FontSize" Value="14"/>
+        <Setter Property="Template">
+            <Setter.Value>
+                <ControlTemplate TargetType="TextBox">
+                    <ScrollViewer x:Name="PART_ContentHost" VerticalAlignment="Center" Margin="0"/>
+                </ControlTemplate>
+            </Setter.Value>
+        </Setter>
+    </Style>
+    
+    <!-- Inner TextBox with Icon Padding -->
+    <Style x:Key="TextBox.InnerWithIcon" TargetType="TextBox" BasedOn="{StaticResource TextBox.Inner}">
+        <Setter Property="Padding" Value="{StaticResource Padding.InputWithIcon}"/>
+    </Style>
+    
+    <!-- Standard PasswordBox -->
+    <Style x:Key="PasswordBox.Standard" TargetType="PasswordBox">
+        <Setter Property="Background" Value="{DynamicResource Brush.InputBackground}"/>
+        <Setter Property="Foreground" Value="{DynamicResource Brush.TextPrimary}"/>
+        <Setter Property="CaretBrush" Value="{DynamicResource Brush.White}"/>
+        <Setter Property="BorderBrush" Value="{DynamicResource Brush.Border}"/>
+        <Setter Property="BorderThickness" Value="1"/>
+        <Setter Property="Padding" Value="{StaticResource Padding.Input}"/>
+        <Setter Property="FontSize" Value="14"/>
+        <Setter Property="MinHeight" Value="{StaticResource MinHeight.Input}"/>
+        <Setter Property="Template">
+            <Setter.Value>
+                <ControlTemplate TargetType="PasswordBox">
+                    <Border Background="{TemplateBinding Background}"
+                            BorderBrush="{TemplateBinding BorderBrush}"
+                            BorderThickness="{TemplateBinding BorderThickness}"
+                            CornerRadius="{StaticResource Radius.M}"
+                            Padding="{TemplateBinding Padding}">
+                        <ScrollViewer x:Name="PART_ContentHost" 
+                                    VerticalAlignment="Center"
+                                    Margin="0"/>
+                    </Border>
+                </ControlTemplate>
+            </Setter.Value>
+        </Setter>
+        <Style.Triggers>
+            <Trigger Property="IsFocused" Value="True">
+                <Setter Property="BorderBrush" Value="{DynamicResource Brush.BorderFocused}"/>
+            </Trigger>
+            <Trigger Property="IsEnabled" Value="False">
+                <Setter Property="Background" Value="{DynamicResource Brush.Disabled}"/>
+                <Setter Property="Foreground" Value="{DynamicResource Brush.DisabledText}"/>
+            </Trigger>
+        </Style.Triggers>
+    </Style>
+    
+    <!-- Inner PasswordBox (for composite controls - no border/background) -->
+    <Style x:Key="PasswordBox.Inner" TargetType="PasswordBox">
+        <Setter Property="Background" Value="{DynamicResource Brush.Transparent}"/>
+        <Setter Property="Foreground" Value="{DynamicResource Brush.TextPrimary}"/>
+        <Setter Property="CaretBrush" Value="{DynamicResource Brush.White}"/>
+        <Setter Property="BorderThickness" Value="0"/>
+        <Setter Property="Padding" Value="{StaticResource Padding.InputWithIcon}"/>
+        <Setter Property="FontSize" Value="14"/>
+        <Setter Property="Template">
+            <Setter.Value>
+                <ControlTemplate TargetType="PasswordBox">
+                    <ScrollViewer x:Name="PART_ContentHost" VerticalAlignment="Center" Margin="0"/>
+                </ControlTemplate>
+            </Setter.Value>
+        </Setter>
+    </Style>
+    
+    <!-- CheckBox Standard -->
+    <Style x:Key="CheckBox.Standard" TargetType="CheckBox">
+        <Setter Property="Foreground" Value="{DynamicResource Brush.TextSecondary}"/>
+        <Setter Property="FontSize" Value="14"/>
+    </Style>
+    
+    <!-- ComboBox Standard -->
+    <Style x:Key="ComboBox.Standard" TargetType="ComboBox">
+        <Setter Property="Background" Value="{DynamicResource Brush.InputBackground}"/>
+        <Setter Property="Foreground" Value="{DynamicResource Brush.TextPrimary}"/>
+        <Setter Property="BorderBrush" Value="{DynamicResource Brush.Border}"/>
+        <Setter Property="BorderThickness" Value="1"/>
+        <Setter Property="Padding" Value="{StaticResource Padding.Input}"/>
+        <Setter Property="FontSize" Value="14"/>
+        <Setter Property="MinHeight" Value="{StaticResource MinHeight.Input}"/>
+    </Style>
+    
+    <!-- DatePicker Standard -->
+    <Style x:Key="DatePicker.Standard" TargetType="DatePicker">
+        <Setter Property="Background" Value="{DynamicResource Brush.InputBackground}"/>
+        <Setter Property="Foreground" Value="{DynamicResource Brush.TextPrimary}"/>
+        <Setter Property="BorderBrush" Value="{DynamicResource Brush.Border}"/>
+        <Setter Property="BorderThickness" Value="1"/>
+        <Setter Property="Padding" Value="{StaticResource Padding.Input}"/>
+        <Setter Property="FontSize" Value="14"/>
+        <Setter Property="MinHeight" Value="{StaticResource MinHeight.Input}"/>
+    </Style>
+    
+    <!-- Input Field Label -->
+    <Style x:Key="Label.Field" TargetType="TextBlock">
+        <Setter Property="FontSize" Value="12"/>
+        <Setter Property="FontWeight" Value="Bold"/>
+        <Setter Property="Foreground" Value="{DynamicResource Brush.TextSecondary}"/>
+        <Setter Property="Margin" Value="{StaticResource Margin.FieldGroup}"/>
+    </Style>
+    
+    <!-- Input Border Container (for composite controls) -->
+    <Style x:Key="Border.InputContainer" TargetType="Border">
+        <Setter Property="Background" Value="{DynamicResource Brush.InputBackground}"/>
+        <Setter Property="BorderBrush" Value="{DynamicResource Brush.Border}"/>
+        <Setter Property="BorderThickness" Value="1"/>
+        <Setter Property="CornerRadius" Value="{StaticResource Radius.M}"/>
+        <Setter Property="MinHeight" Value="{StaticResource MinHeight.Input}"/>
+    </Style>
+    
+    <!-- Placeholder TextBlock -->
+    <Style x:Key="TextBlock.Placeholder" TargetType="TextBlock">
+        <Setter Property="Foreground" Value="{DynamicResource Brush.TextSecondary}"/>
+        <Setter Property="FontSize" Value="14"/>
+        <Setter Property="Margin" Value="16,8"/>
+        <Setter Property="VerticalAlignment" Value="Center"/>
+        <Setter Property="IsHitTestVisible" Value="False"/>
+    </Style>
+    
+</ResourceDictionary>

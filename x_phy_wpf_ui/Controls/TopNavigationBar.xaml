@@ -5,13 +5,14 @@
              xmlns:d="http://schemas.microsoft.com/expression/blend/2008" 
              mc:Ignorable="d" Height="56" Width="403">
     <UserControl.Resources>
-        <SolidColorBrush x:Key="NavBarBackground" Color="#111111"/>
-        <SolidColorBrush x:Key="NavBarBorder" Color="#2A2A2A"/>
-        <SolidColorBrush x:Key="AccentColor" Color="#E2156B"/>
-        <SolidColorBrush x:Key="AccentBrush" Color="#FF1AB4CC"/>
-        <SolidColorBrush x:Key="TextSecondaryBrush" Color="#999999"/>
-        <SolidColorBrush x:Key="NavBarTextBrush" Color="#FFFFFF"/>
-        <SolidColorBrush x:Key="NavBarHoverBackground" Color="#18FFFFFF"/>
+        <!-- Theme-aware colors -->
+        <SolidColorBrush x:Key="NavBarBackground" Color="{DynamicResource Color.Surface}"/>
+        <SolidColorBrush x:Key="NavBarBorder" Color="{DynamicResource Color.Border}"/>
+        <SolidColorBrush x:Key="AccentColor" Color="{DynamicResource Color.Primary}"/>
+        <SolidColorBrush x:Key="AccentBrush" Color="{DynamicResource Color.Secondary}"/>
+        <SolidColorBrush x:Key="TextSecondaryBrush" Color="{DynamicResource Color.TextSecondary}"/>
+        <SolidColorBrush x:Key="NavBarTextBrush" Color="{DynamicResource Color.TextPrimary}"/>
+        <SolidColorBrush x:Key="NavBarHoverBackground" Color="{DynamicResource Color.SurfaceHover}"/>
         <Style x:Key="TopNavButtonStyle" TargetType="Button">
             <Setter Property="Background" Value="Transparent"/>
             <Setter Property="Foreground" Value="{StaticResource NavBarTextBrush}"/>

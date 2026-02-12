@@ -4,61 +4,111 @@
              StartupUri="MainWindow.xaml"
              ShutdownMode="OnExplicitShutdown">
     <Application.Resources>
-        <!-- Auth resources: available app-wide so Welcome/Launch/SignIn components resolve when created (before in tree) -->
-        <SolidColorBrush x:Key="TextPrimary" Color="#FFFFFF"/>
-        <SolidColorBrush x:Key="TextSecondary" Color="#B0B0B0"/>
-        <SolidColorBrush x:Key="PrimaryPink" Color="#E2156B"/>
-        <SolidColorBrush x:Key="PrimaryPinkHover" Color="#F0458A"/>
-        <SolidColorBrush x:Key="TealColor" Color="#1AB4CC"/>
-        <SolidColorBrush x:Key="CardBackground" Color="#FFFFFF" Opacity="0.08"/>
-        <SolidColorBrush x:Key="HoverBackground" Color="#2A2A2A"/>
-        <SolidColorBrush x:Key="CloseButtonHover" Color="#E81123"/>
-        <Style x:Key="PrimaryButtonStyle" TargetType="Button">
-            <Setter Property="Background" Value="{StaticResource PrimaryPink}"/>
-            <Setter Property="Foreground" Value="White"/>
-            <Setter Property="FontSize" Value="16"/>
-            <Setter Property="FontWeight" Value="SemiBold"/>
-            <Setter Property="Padding" Value="40,14"/>
-            <Setter Property="BorderThickness" Value="0"/>
-            <Setter Property="Cursor" Value="Hand"/>
-            <Setter Property="Template">
-                <Setter.Value>
-                    <ControlTemplate TargetType="Button">
-                        <Border Background="{TemplateBinding Background}" CornerRadius="8" Padding="{TemplateBinding Padding}">
-                            <ContentPresenter HorizontalAlignment="Center" VerticalAlignment="Center"/>
-                        </Border>
-                    </ControlTemplate>
-                </Setter.Value>
-            </Setter>
-            <Style.Triggers>
-                <Trigger Property="IsMouseOver" Value="True">
-                    <Setter Property="Background" Value="{StaticResource PrimaryPinkHover}"/>
-                </Trigger>
-            </Style.Triggers>
-        </Style>
-        <Style x:Key="SecondaryButtonStyle" TargetType="Button">
-            <Setter Property="Background" Value="Transparent"/>
-            <Setter Property="Foreground" Value="White"/>
-            <Setter Property="FontSize" Value="16"/>
-            <Setter Property="FontWeight" Value="SemiBold"/>
-            <Setter Property="Padding" Value="40,14"/>
-            <Setter Property="BorderThickness" Value="1"/>
-            <Setter Property="BorderBrush" Value="{StaticResource TealColor}"/>
-            <Setter Property="Cursor" Value="Hand"/>
-            <Setter Property="Template">
-                <Setter.Value>
-                    <ControlTemplate TargetType="Button">
-                        <Border Background="{TemplateBinding Background}" BorderBrush="{TemplateBinding BorderBrush}" BorderThickness="{TemplateBinding BorderThickness}" CornerRadius="8" Padding="{TemplateBinding Padding}">
-                            <ContentPresenter HorizontalAlignment="Center" VerticalAlignment="Center"/>
-                        </Border>
-                    </ControlTemplate>
-                </Setter.Value>
-            </Setter>
-            <Style.Triggers>
-                <Trigger Property="IsMouseOver" Value="True">
-                    <Setter Property="Background" Value="#1A1A1A"/>
-                </Trigger>
-            </Style.Triggers>
-        </Style>
+        <!-- Enterprise Design System - Centralized Resources -->
+        <ResourceDictionary>
+            <ResourceDictionary.MergedDictionaries>
+                <!-- Design Tokens -->
+                <ResourceDictionary Source="Resources/Brushes.xaml"/>
+                <ResourceDictionary Source="Resources/Typography.xaml"/>
+                <ResourceDictionary Source="Resources/Spacing.xaml"/>
+                <ResourceDictionary Source="Resources/Radius.xaml"/>
+                
+                <!-- Component Styles -->
+                <ResourceDictionary Source="Resources/Styles/Buttons.xaml"/>
+                <ResourceDictionary Source="Resources/Styles/Inputs.xaml"/>
+                <ResourceDictionary Source="Resources/Styles/Cards.xaml"/>
+                <ResourceDictionary Source="Resources/Styles/Lists.xaml"/>
+            </ResourceDictionary.MergedDictionaries>
+            
+            <!-- Theme Colors -->
+            <Color x:Key="Color.Primary">#E2156B</Color>
+            <Color x:Key="Color.PrimaryHover">#F0458A</Color>
+            <Color x:Key="Color.Secondary">#1AB4CC</Color>
+            <Color x:Key="Color.SecondaryHover">#152E33</Color>
+            <Color x:Key="Color.Background">#0A0E14</Color>
+            <Color x:Key="Color.Surface">#1A1F2E</Color>
+            <Color x:Key="Color.SurfaceHover">#2A2F3E</Color>
+            <Color x:Key="Color.Card">#151922</Color>
+            <Color x:Key="Color.Border">#2D3748</Color>
+            <Color x:Key="Color.BorderFocused">#E2156B</Color>
+            <Color x:Key="Color.TextPrimary">#F7FAFC</Color>
+            <Color x:Key="Color.TextSecondary">#A0AEC0</Color>
+            <Color x:Key="Color.Success">#4CAF50</Color>
+            <Color x:Key="Color.Warning">#FFA726</Color>
+            <Color x:Key="Color.Error">#FF6B6B</Color>
+            <Color x:Key="Color.Info">#29B6F6</Color>
+            <Color x:Key="Color.Disabled">#555555</Color>
+            <Color x:Key="Color.DisabledText">#999999</Color>
+            <Color x:Key="Color.CloseButtonHover">#E81123</Color>
+            
+            <!-- Theme Brushes (ThemeManager updates these) -->
+            <SolidColorBrush x:Key="Brush.Background" Color="#0A0E14"/>
+            <SolidColorBrush x:Key="Brush.Surface" Color="#1A1F2E"/>
+            <SolidColorBrush x:Key="Brush.SurfaceHover" Color="#2A2F3E"/>
+            <SolidColorBrush x:Key="Brush.Card" Color="#151922"/>
+            <SolidColorBrush x:Key="Brush.Border" Color="#2D3748"/>
+            <SolidColorBrush x:Key="Brush.BorderFocused" Color="#E2156B"/>
+            <SolidColorBrush x:Key="Brush.TextPrimary" Color="#F7FAFC"/>
+            <SolidColorBrush x:Key="Brush.TextSecondary" Color="#A0AEC0"/>
+            <SolidColorBrush x:Key="Brush.SecondaryHover" Color="#152E33"/>
+            
+            <!-- Brand/State Colors (constant) -->
+            <SolidColorBrush x:Key="Brush.Primary" Color="#E2156B"/>
+            <SolidColorBrush x:Key="Brush.PrimaryHover" Color="#F0458A"/>
+            <SolidColorBrush x:Key="Brush.Secondary" Color="#1AB4CC"/>
+            <SolidColorBrush x:Key="Brush.Success" Color="#4CAF50"/>
+            <SolidColorBrush x:Key="Brush.Warning" Color="#FFA726"/>
+            <SolidColorBrush x:Key="Brush.Error" Color="#FF6B6B"/>
+            <SolidColorBrush x:Key="Brush.Info" Color="#29B6F6"/>
+            <SolidColorBrush x:Key="Brush.CloseButtonHover" Color="#E81123"/>
+            <SolidColorBrush x:Key="Brush.Transparent" Color="Transparent"/>
+            <SolidColorBrush x:Key="Brush.White" Color="White"/>
+            <SolidColorBrush x:Key="Brush.Disabled" Color="#555555"/>
+            <SolidColorBrush x:Key="Brush.DisabledText" Color="#999999"/>
+            <SolidColorBrush x:Key="Brush.InputBackground" Color="#151922" Opacity="0.2"/>
+            <SolidColorBrush x:Key="Brush.CardTransparent" Color="#F7FAFC" Opacity="0.08"/>
+            
+            <!-- Legacy Keys for Backward Compatibility -->
+            <SolidColorBrush x:Key="TextPrimary" Color="{DynamicResource Color.TextPrimary}"/>
+            <SolidColorBrush x:Key="TextSecondary" Color="{DynamicResource Color.TextSecondary}"/>
+            <SolidColorBrush x:Key="PrimaryPink" Color="{DynamicResource Color.Primary}"/>
+            <SolidColorBrush x:Key="PrimaryPinkHover" Color="{DynamicResource Color.PrimaryHover}"/>
+            <SolidColorBrush x:Key="TealColor" Color="{DynamicResource Color.Secondary}"/>
+            <SolidColorBrush x:Key="CardBackground" Color="#FFFFFF" Opacity="0.08"/>
+            <SolidColorBrush x:Key="HoverBackground" Color="{DynamicResource Color.SurfaceHover}"/>
+            <SolidColorBrush x:Key="CloseButtonHover" Color="{DynamicResource Color.CloseButtonHover}"/>
+            
+            <!-- Legacy Button Styles (aliased to new design system) -->
+            <Style x:Key="PrimaryButtonStyle" TargetType="Button" BasedOn="{StaticResource Button.Primary}"/>
+            <Style x:Key="SecondaryButtonStyle" TargetType="Button" BasedOn="{StaticResource Button.Secondary}"/>
+            <Style x:Key="LaunchButtonStyle" TargetType="Button" BasedOn="{StaticResource Button.Primary}"/>
+            <Style x:Key="LinkButtonStyle" TargetType="Button" BasedOn="{StaticResource Button.Link}"/>
+            <Style x:Key="BackButtonStyle" TargetType="Button" BasedOn="{StaticResource Button.Back}"/>
+            
+            <!-- Legacy Input Styles (aliased to new design system) -->
+            <Style x:Key="ModernTextBoxStyle" TargetType="TextBox" BasedOn="{StaticResource TextBox.Standard}"/>
+            <Style x:Key="ModernPasswordBoxStyle" TargetType="PasswordBox" BasedOn="{StaticResource PasswordBox.Standard}"/>
+            <Style x:Key="ModernPasswordBoxInnerStyle" TargetType="PasswordBox" BasedOn="{StaticResource PasswordBox.Inner}"/>
+            <Style x:Key="ModernTextBoxInnerStyle" TargetType="TextBox" BasedOn="{StaticResource TextBox.InnerWithIcon}"/>
+            <Style x:Key="ModernTextBoxInnerStyleFullWidth" TargetType="TextBox" BasedOn="{StaticResource TextBox.Inner}"/>
+            
+            <!-- Legacy Color Aliases -->
+            <SolidColorBrush x:Key="InputBackground" Color="{DynamicResource Color.Card}" Opacity="0.2"/>
+            <SolidColorBrush x:Key="InputBorder" Color="{DynamicResource Color.Border}"/>
+            <SolidColorBrush x:Key="InputBorderFocused" Color="{DynamicResource Color.BorderFocused}"/>
+            <SolidColorBrush x:Key="InputBorderError" Color="{DynamicResource Color.Error}"/>
+            <SolidColorBrush x:Key="ErrorText" Color="{DynamicResource Color.Error}"/>
+            <SolidColorBrush x:Key="BackButtonBorder" Color="{DynamicResource Color.Secondary}"/>
+            <SolidColorBrush x:Key="DarkTealBackground" Color="{DynamicResource Color.SecondaryHover}"/>
+            <SolidColorBrush x:Key="DarkTealBackgroundHover" Color="#152E33"/>
+            <SolidColorBrush x:Key="DarkBackground" Color="{DynamicResource Color.Background}"/>
+            <SolidColorBrush x:Key="NavBarBackground" Color="{DynamicResource Color.Surface}"/>
+            <SolidColorBrush x:Key="SecondaryTextColor" Color="{DynamicResource Color.TextSecondary}"/>
+            
+            <!-- Detection State Colors (constant across themes) -->
+            <SolidColorBrush x:Key="AnalyzingColor" Color="#F0C674"/>
+            <SolidColorBrush x:Key="RealColor" Color="#22C55E"/>
+            <SolidColorBrush x:Key="FakeColor" Color="#E2156B"/>
+        </ResourceDictionary>
     </Application.Resources>
 </Application>

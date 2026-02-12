@@ -2364,6 +2364,40 @@ videoLiveFakeProportionThreshold = 0.7
             Close();
         }
 
+        private void ThemeToggle_Click(object sender, RoutedEventArgs e)
+        {
+            try
+            {
+                System.Diagnostics.Debug.WriteLine("ThemeToggle_Click: Button clicked");
+                
+                // Toggle between Light and Dark themes
+                ThemeManager.ToggleTheme();
+                
+                System.Diagnostics.Debug.WriteLine($"ThemeToggle_Click: Theme toggled to {ThemeManager.CurrentTheme}");
+                
+                // Update button icon based on current theme
+                if (ThemeToggleButton != null)
+                {
+                    ThemeToggleButton.Content = ThemeManager.CurrentTheme == ThemeManager.Theme.Light ? "☀️" : "🌙";
+                    ThemeToggleButton.ToolTip = ThemeManager.CurrentTheme == ThemeManager.Theme.Light 
+                        ? "Switch to Dark Theme" 
+                        : "Switch to Light Theme";
+                    
+                    System.Diagnostics.Debug.WriteLine($"ThemeToggle_Click: Button updated - Icon: {ThemeToggleButton.Content}");
+                }
+                else
+                {
+                    System.Diagnostics.Debug.WriteLine("ThemeToggle_Click: WARNING - ThemeToggleButton is null!");
+                }
+            }
+            catch (Exception ex)
+            {
+                System.Diagnostics.Debug.WriteLine($"ThemeToggle_Click: ERROR - {ex.Message}");
+                System.Diagnostics.Debug.WriteLine($"ThemeToggle_Click: Stack trace - {ex.StackTrace}");
+                MessageBox.Show($"Error toggling theme: {ex.Message}", "Theme Error", MessageBoxButton.OK, MessageBoxImage.Error);
+            }
+        }
+
         protected override void OnClosed(EventArgs e)
         {
             _floatingWidget?.Close();

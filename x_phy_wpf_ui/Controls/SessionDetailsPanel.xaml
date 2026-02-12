@@ -6,14 +6,15 @@
              mc:Ignorable="d"
              d:DesignHeight="500" d:DesignWidth="900">
     <UserControl.Resources>
-        <SolidColorBrush x:Key="CardBg" Color="#FFFFFF" Opacity="0.08"/>
-        <SolidColorBrush x:Key="TextPrimaryBrush" Color="#FFFFFF"/>
-        <SolidColorBrush x:Key="TextSecondaryBrush" Color="#999999"/>
-        <SolidColorBrush x:Key="ResultRedBrush" Color="#E53935"/>
-        <SolidColorBrush x:Key="ResultGreenBrush" Color="#43A047"/>
-        <SolidColorBrush x:Key="OutcomePillBg" Color="#2A2A2A"/>
-        <SolidColorBrush x:Key="TealBrush" Color="#1AB4CC"/>
-        <SolidColorBrush x:Key="PanelGlowBorder" Color="#1AB4CC"/>
+        <!-- Theme-aware colors -->
+        <SolidColorBrush x:Key="CardBg" Color="{DynamicResource Color.Card}"/>
+        <SolidColorBrush x:Key="TextPrimaryBrush" Color="{DynamicResource Color.TextPrimary}"/>
+        <SolidColorBrush x:Key="TextSecondaryBrush" Color="{DynamicResource Color.TextSecondary}"/>
+        <SolidColorBrush x:Key="ResultRedBrush" Color="{DynamicResource Color.Error}"/>
+        <SolidColorBrush x:Key="ResultGreenBrush" Color="{DynamicResource Color.Success}"/>
+        <SolidColorBrush x:Key="OutcomePillBg" Color="{DynamicResource Color.Surface}"/>
+        <SolidColorBrush x:Key="TealBrush" Color="{DynamicResource Color.Secondary}"/>
+        <SolidColorBrush x:Key="PanelGlowBorder" Color="{DynamicResource Color.Secondary}"/>
     </UserControl.Resources>
     <StackPanel Margin="0,0,0,24">
         <TextBlock Text="Session Details" FontSize="24" FontWeight="Bold" Foreground="{StaticResource TextPrimaryBrush}" Margin="0,0,0,20"/>
@@ -33,7 +34,7 @@
                         <RowDefinition Height="Auto"/>
                         <RowDefinition Height="Auto"/>
                     </Grid.RowDefinitions>
-                    <Border Grid.Row="0" Background="#0D2E2E" CornerRadius="10" BorderBrush="{StaticResource PanelGlowBorder}" BorderThickness="1" Padding="16,14" Margin="0,0,0,24">
+                    <Border Grid.Row="0" Background="{DynamicResource Brush.SecondaryHover}" CornerRadius="10" BorderBrush="{StaticResource PanelGlowBorder}" BorderThickness="1" Padding="16,14" Margin="0,0,0,24">
                         <Grid>
                             <Grid.RowDefinitions>
                                 <RowDefinition Height="Auto"/>
@@ -53,7 +54,7 @@
                         </Grid>
                     </Border>
                     <!-- Date & Time -->
-                    <Border Grid.Row="1" Background="#1A1A1A" CornerRadius="10" Padding="18,14" Margin="0,0,0,10">
+                    <Border Grid.Row="1" Background="{DynamicResource Brush.Surface}" CornerRadius="10" Padding="18,14" Margin="0,0,0,10">
                         <Grid>
                             <Grid.ColumnDefinitions>
                                 <ColumnDefinition Width="*"/>
@@ -64,7 +65,7 @@
                         </Grid>
                     </Border>
                     <!-- Media Source -->
-                    <Border Grid.Row="2" Background="#1A1A1A" CornerRadius="10" Padding="18,14" Margin="0,0,0,10">
+                    <Border Grid.Row="2" Background="{DynamicResource Brush.Surface}" CornerRadius="10" Padding="18,14" Margin="0,0,0,10">
                         <Grid>
                             <Grid.ColumnDefinitions>
                                 <ColumnDefinition Width="*"/>
@@ -75,7 +76,7 @@
                         </Grid>
                     </Border>
                     <!-- Detection Type -->
-                    <Border Grid.Row="3" Background="#1A1A1A" CornerRadius="10" Padding="18,14" Margin="0,0,0,10">
+                    <Border Grid.Row="3" Background="{DynamicResource Brush.Surface}" CornerRadius="10" Padding="18,14" Margin="0,0,0,10">
                         <Grid>
                             <Grid.ColumnDefinitions>
                                 <ColumnDefinition Width="*"/>
@@ -86,7 +87,7 @@
                         </Grid>
                     </Border>
                     <!-- Duration -->
-                    <Border Grid.Row="4" Background="#1A1A1A" CornerRadius="10" Padding="18,14">
+                    <Border Grid.Row="4" Background="{DynamicResource Brush.Surface}" CornerRadius="10" Padding="18,14">
                         <Grid>
                             <Grid.ColumnDefinitions>
                                 <ColumnDefinition Width="*"/>
@@ -119,7 +120,7 @@
                     <TextBlock Grid.Row="0" Text="Media Evidence" FontSize="16" FontWeight="SemiBold" Foreground="{StaticResource TextPrimaryBrush}" Margin="0,0,0,4"/>
                     <TextBlock Grid.Row="1" Text="Original media used for analysis" FontSize="12" Foreground="{StaticResource TextSecondaryBrush}" Margin="0,0,0,12"/>
                     <!-- When no AI manipulation: show centered message -->
-                    <Border Grid.Row="2" x:Name="MediaEvidenceNoManipulationPanel" Background="#0D0D0D" CornerRadius="8" MinHeight="120" Visibility="Collapsed">
+                    <Border Grid.Row="2" x:Name="MediaEvidenceNoManipulationPanel" Background="{DynamicResource Brush.Card}" CornerRadius="8" MinHeight="120" Visibility="Collapsed">
                         <TextBlock x:Name="MediaEvidenceNoManipulationText" Text="No AI Manipulation Found" FontSize="18" FontWeight="SemiBold" Foreground="{StaticResource TealBrush}" HorizontalAlignment="Center" VerticalAlignment="Center"/>
                     </Border>
                     <!-- When AI manipulation detected: two-image carousel (fills Media Evidence panel) -->
@@ -135,11 +136,11 @@
                                 <ColumnDefinition Width="2"/>
                                 <ColumnDefinition Width="*" MinWidth="120"/>
                             </Grid.ColumnDefinitions>
-                            <Border Grid.Column="0" Background="#1A1A1A" CornerRadius="8" Margin="0,0,1,0" BorderBrush="{StaticResource ResultGreenBrush}" BorderThickness="2">
+                            <Border Grid.Column="0" Background="{DynamicResource Brush.Card}" CornerRadius="8" Margin="0,0,1,0" BorderBrush="{StaticResource ResultGreenBrush}" BorderThickness="2">
                                 <Image x:Name="CarouselImageLeft" Stretch="Uniform" RenderOptions.BitmapScalingMode="HighQuality"/>
                             </Border>
-                            <Border Grid.Column="1" Background="#2A2A2A" Width="2"/>
-                            <Border Grid.Column="2" Background="#1A1A1A" CornerRadius="8" Margin="1,0,0,0" BorderBrush="{StaticResource ResultRedBrush}" BorderThickness="2">
+                            <Border Grid.Column="1" Background="{DynamicResource Brush.Border}" Width="2"/>
+                            <Border Grid.Column="2" Background="{DynamicResource Brush.Card}" CornerRadius="8" Margin="1,0,0,0" BorderBrush="{StaticResource ResultRedBrush}" BorderThickness="2">
                                 <Image x:Name="CarouselImageRight" Stretch="Uniform" RenderOptions.BitmapScalingMode="HighQuality"/>
                             </Border>
                             <!-- Carousel prev/next over the full width -->
@@ -193,6 +194,6 @@
                 </Grid>
             </Border>
         </Grid>
-        <Button x:Name="BackToResultsButton" Content="Back to Results" HorizontalAlignment="Center" Margin="0,24,0,0" Padding="32,12" FontSize="14" FontWeight="SemiBold" Foreground="White" Background="#2A2A2A" BorderThickness="0" Cursor="Hand" Click="BackToResults_Click"/>
+        <Button x:Name="BackToResultsButton" Content="Back to Results" HorizontalAlignment="Center" Margin="0,24,0,0" Padding="32,12" FontSize="14" FontWeight="SemiBold" Foreground="{DynamicResource Brush.TextPrimary}" Background="{DynamicResource Brush.Surface}" BorderThickness="0" Cursor="Hand" Click="BackToResults_Click"/>
     </StackPanel>
 </UserControl>

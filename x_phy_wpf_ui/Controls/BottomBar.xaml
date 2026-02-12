@@ -6,10 +6,10 @@
              mc:Ignorable="d" 
              d:DesignHeight="60" d:DesignWidth="940">
     <UserControl.Resources>
-        <SolidColorBrush x:Key="CardBackgroundBrush" Color="#FFFFFF" Opacity="0.08"/>
-        <SolidColorBrush x:Key="TextSecondaryBrush" Color="#999999"/>
-        <SolidColorBrush x:Key="AccentBrush" Color="#E2156B"/>
-        <SolidColorBrush x:Key="TealColor" Color="#1AB4CC"/>
+        <SolidColorBrush x:Key="CardBackgroundBrush" Color="{DynamicResource Color.Card}"/>
+        <SolidColorBrush x:Key="TextSecondaryBrush" Color="{DynamicResource Color.TextSecondary}"/>
+        <SolidColorBrush x:Key="AccentBrush" Color="{DynamicResource Color.Primary}"/>
+        <SolidColorBrush x:Key="TealColor" Color="{DynamicResource Color.Secondary}"/>
         <Style x:Key="NavButtonStyle" TargetType="Button">
             <Setter Property="Background" Value="Transparent"/>
             <Setter Property="Foreground" Value="{StaticResource TextSecondaryBrush}"/>

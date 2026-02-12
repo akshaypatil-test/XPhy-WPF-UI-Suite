@@ -5,9 +5,8 @@
              xmlns:d="http://schemas.microsoft.com/expression/blend/2008" 
              mc:Ignorable="d" Height="540" Width="520">
     <UserControl.Resources>
-        <!-- Figma colors: #0A0E1C (dark blue-black), #0C82A8 (teal-blue), #E2156B (pink), #FFFFFF / #000000 -->
-        <SolidColorBrush x:Key="TextPrimary" Color="#FFFFFF"/>
-        <SolidColorBrush x:Key="TextSecondary" Color="#FFFFFF"/>
+        <SolidColorBrush x:Key="TextPrimary" Color="{DynamicResource Color.TextPrimary}"/>
+        <SolidColorBrush x:Key="TextSecondary" Color="{DynamicResource Color.TextSecondary}"/>
         <!-- bubble.svg radial gradient: #0A0E1C center, transparent at 73%, #0C82A8 81% at edge (explicit Color to avoid hex parse) -->
         <RadialGradientBrush x:Key="BubbleGradient" Center="0.5,0.5" GradientOrigin="0.5,0.5" RadiusX="1" RadiusY="1">
             <GradientStop Color="#0A0E1C" Offset="0.08"/>

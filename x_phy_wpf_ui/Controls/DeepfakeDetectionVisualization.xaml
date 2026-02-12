@@ -5,7 +5,7 @@
              xmlns:d="http://schemas.microsoft.com/expression/blend/2008" 
              mc:Ignorable="d" 
              d:DesignHeight="600" d:DesignWidth="500">
-    <Grid Background="#000000">
+    <Grid Background="{DynamicResource Brush.Background}">
         <!-- Background Image -->
         <Image Source="pack://application:,,,/facebg.png" 
                Stretch="UniformToFill" 

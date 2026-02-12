@@ -20,70 +20,10 @@
         UseAeroCaptionButtons="False"/>
 </WindowChrome.WindowChrome>
 
-    <Window.Resources>
-        <SolidColorBrush x:Key="PrimaryPink" Color="#E2156B"/>
-        <SolidColorBrush x:Key="PrimaryPinkHover" Color="#F0458A"/>
-        <SolidColorBrush x:Key="DarkBackground" Color="#000000"/>
-        <SolidColorBrush x:Key="NavBarBackground" Color="#111111"/>
-        <SolidColorBrush x:Key="CardBackground" Color="#FFFFFF" Opacity="0.08"/>
-        <SolidColorBrush x:Key="TextPrimary" Color="#FFFFFF"/>
-        <SolidColorBrush x:Key="TextSecondary" Color="#999999"/>
-        <SolidColorBrush x:Key="TealColor" Color="#1AB4CC"/>
-        <SolidColorBrush x:Key="HoverBackground" Color="#2A2A2A"/>
-        <SolidColorBrush x:Key="CloseButtonHover" Color="#E81123"/>
-        <SolidColorBrush x:Key="AnalyzingColor" Color="#F0C674"/>
-        <SolidColorBrush x:Key="RealColor" Color="#22C55E"/>
-        <SolidColorBrush x:Key="FakeColor" Color="#E2156B"/>
-        <SolidColorBrush x:Key="SecondaryTextColor" Color="#999999"/>
-        <Style x:Key="PrimaryButtonStyle" TargetType="Button">
-            <Setter Property="Background" Value="{StaticResource PrimaryPink}"/>
-            <Setter Property="Foreground" Value="White"/>
-            <Setter Property="FontSize" Value="16"/>
-            <Setter Property="FontWeight" Value="SemiBold"/>
-            <Setter Property="Padding" Value="24,12"/>
-            <Setter Property="BorderThickness" Value="0"/>
-            <Setter Property="Cursor" Value="Hand"/>
-            <Setter Property="Template">
-                <Setter.Value>
-                    <ControlTemplate TargetType="Button">
-                        <Border Background="{TemplateBinding Background}" CornerRadius="8" Padding="{TemplateBinding Padding}">
-                            <ContentPresenter HorizontalAlignment="Center" VerticalAlignment="Center"/>
-                        </Border>
-                    </ControlTemplate>
-                </Setter.Value>
-            </Setter>
-            <Style.Triggers>
-                <Trigger Property="IsMouseOver" Value="True">
-                    <Setter Property="Background" Value="{StaticResource PrimaryPinkHover}"/>
-                </Trigger>
-            </Style.Triggers>
-        </Style>
-        <Style x:Key="SecondaryButtonStyle" TargetType="Button">
-            <Setter Property="Background" Value="{StaticResource CardBackground}"/>
-            <Setter Property="Foreground" Value="{StaticResource TextPrimary}"/>
-            <Setter Property="FontSize" Value="14"/>
-            <Setter Property="FontWeight" Value="Medium"/>
-            <Setter Property="Padding" Value="20,10"/>
-            <Setter Property="BorderThickness" Value="0"/>
-            <Setter Property="Cursor" Value="Hand"/>
-            <Setter Property="Template">
-                <Setter.Value>
-                    <ControlTemplate TargetType="Button">
-                        <Border Background="{TemplateBinding Background}" CornerRadius="6" Padding="{TemplateBinding Padding}">
-                            <ContentPresenter HorizontalAlignment="Center" VerticalAlignment="Center"/>
-                        </Border>
-                    </ControlTemplate>
-                </Setter.Value>
-            </Setter>
-            <Style.Triggers>
-                <Trigger Property="IsMouseOver" Value="True">
-                    <Setter Property="Background" Value="{StaticResource HoverBackground}"/>
-                </Trigger>
-            </Style.Triggers>
-        </Style>
-    </Window.Resources>
+    <!-- Resources removed - now using centralized design system from App.xaml -->
+    <!-- All colors and styles are theme-aware via DynamicResource -->
 
-    <Border Background="{StaticResource DarkBackground}"
+    <Border Background="{DynamicResource Brush.Background}"
             CornerRadius="12"
             ClipToBounds="True">
         <Grid>
@@ -93,7 +33,7 @@
                                CloseRequested="AuthHostView_CloseRequested"/>
         
         <!-- App view (Dashboard) - shown when logged in -->
-        <Grid x:Name="AppPanel" Background="{StaticResource DarkBackground}" Visibility="Collapsed">
+        <Grid x:Name="AppPanel" Background="{DynamicResource Brush.Background}" Visibility="Collapsed">
         <Grid.RowDefinitions>
             <RowDefinition Height="Auto"/>
             <RowDefinition Height="Auto"/>
@@ -120,9 +60,37 @@
             
             <!-- Window Controls -->
             <StackPanel Grid.Column="2" Orientation="Horizontal" HorizontalAlignment="Right">
+                <!-- Theme Toggle Button -->
+                <Button x:Name="ThemeToggleButton" Content="🌙" Width="20" Height="20" 
+                        Background="Transparent"
+                        Foreground="{DynamicResource Brush.TextPrimary}"
+                        BorderThickness="0"
+                        Click="ThemeToggle_Click"
+                        Cursor="Hand"
+                        ToolTip="Toggle Light/Dark Theme"
+                        Margin="0,0,12,0">
+                    <Button.Style>
+                        <Style TargetType="Button">
+                            <Setter Property="Template">
+                                <Setter.Value>
+                                    <ControlTemplate TargetType="Button">
+                                        <Border Background="{TemplateBinding Background}" Padding="2" CornerRadius="4">
+                                            <ContentPresenter HorizontalAlignment="Center" VerticalAlignment="Center"/>
+                                        </Border>
+                                    </ControlTemplate>
+                                </Setter.Value>
+                            </Setter>
+                            <Style.Triggers>
+                                <Trigger Property="IsMouseOver" Value="True">
+                                    <Setter Property="Background" Value="#2A2A2A"/>
+                                </Trigger>
+                            </Style.Triggers>
+                        </Style>
+                    </Button.Style>
+                </Button>
                 <Button Content="🗕" Width="16" Height="16" 
                         Background="Transparent"
-                        Foreground="White"
+                        Foreground="{DynamicResource Brush.TextPrimary}"
                         BorderThickness="0"
                         Click="Minimize_Click"
                         Cursor="Hand"
@@ -148,7 +116,7 @@
                 </Button>
                 <Button Content="✕" Width="16" Height="16" 
                         Background="Transparent"
-                        Foreground="White"
+                        Foreground="{DynamicResource Brush.TextPrimary}"
                         BorderThickness="0"
                         Click="Close_Click"
                         Cursor="Hand">

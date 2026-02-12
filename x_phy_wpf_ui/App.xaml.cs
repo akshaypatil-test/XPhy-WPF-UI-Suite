@@ -62,6 +62,9 @@ namespace x_phy_wpf_ui
             catch { /* non-fatal */ }
 
             base.OnStartup(e);
+            
+            // Load user's saved theme preference (Dark/Light mode)
+            ThemeManager.LoadSavedTheme();
         }
 
         private static void BringExistingInstanceToFront()

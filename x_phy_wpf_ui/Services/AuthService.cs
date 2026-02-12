@@ -17,8 +17,8 @@ namespace x_phy_wpf_ui.Services
 
         public AuthService()
         {
-            // _baseUrl = "http://localhost:5163";
-            _baseUrl = "https://xphy-web-c5e3v.ondigitalocean.app";
+            _baseUrl = "http://localhost:5163";
+            /*_baseUrl = "https://xphy-web-c5e3v.ondigitalocean.app";*/
             _httpClient = new HttpClient
             {
                 BaseAddress = new Uri(_baseUrl),
@@ -464,6 +464,50 @@ namespace x_phy_wpf_ui.Services
             {
                 throw new Exception(ex.Message);
             }
+        }
+
+        /// <summary>Request change-password OTP; sends code to logged-in user's email. Requires Bearer token.</summary>
+        public async Task<RequestChangePasswordOtpResponse> RequestChangePasswordOtpAsync(string currentPassword, string newPassword, string accessToken)
+        {
+            var request = new ChangePasswordRequest { CurrentPassword = currentPassword, UpdatedPassword = newPassword };
+            var json = JsonConvert.SerializeObject(request);
+            var content = new StringContent(json, Encoding.UTF8, "application/json");
+            using var msg = new HttpRequestMessage(HttpMethod.Post, "/api/auth/request-change-password-otp") { Content = content };
+            msg.Headers.Add("Authorization", "Bearer " + accessToken);
+            var response = await _httpClient.SendAsync(msg);
+
+            if (response.IsSuccessStatusCode)
+            {
+                var responseJson = await response.Content.ReadAsStringAsync();
+                var o = JsonConvert.DeserializeObject<RequestChangePasswordOtpResponse>(responseJson);
+                return o ?? new RequestChangePasswordOtpResponse { Success = true, Message = "Code sent." };
+            }
+
+            var errorJson = await response.Content.ReadAsStringAsync();
+            var errorResponse = JsonConvert.DeserializeObject<ApiErrorResponse>(errorJson);
+            throw new Exception(errorResponse?.Message ?? "Failed to send verification code.");
+        }
+
+        /// <summary>Verify change-password OTP and complete password update. Requires Bearer token.</summary>
+        public async Task<VerifyChangePasswordOtpResponse> VerifyChangePasswordOtpAsync(string code, string accessToken)
+        {
+            var request = new VerifyChangePasswordOtpRequest { Code = code };
+            var json = JsonConvert.SerializeObject(request);
+            var content = new StringContent(json, Encoding.UTF8, "application/json");
+            using var msg = new HttpRequestMessage(HttpMethod.Post, "/api/auth/verify-change-password-otp") { Content = content };
+            msg.Headers.Add("Authorization", "Bearer " + accessToken);
+            var response = await _httpClient.SendAsync(msg);
+
+            if (response.IsSuccessStatusCode)
+            {
+                var responseJson = await response.Content.ReadAsStringAsync();
+                var o = JsonConvert.DeserializeObject<VerifyChangePasswordOtpResponse>(responseJson);
+                return o ?? new VerifyChangePasswordOtpResponse { Success = true, Message = "Password changed." };
+            }
+
+            var errorJson = await response.Content.ReadAsStringAsync();
+            var errorResponse = JsonConvert.DeserializeObject<ApiErrorResponse>(errorJson);
+            throw new Exception(errorResponse?.Message ?? "Verification failed.");
         }
     }
 }

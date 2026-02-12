@@ -108,6 +108,28 @@ namespace x_phy_wpf_ui.Models
         public bool Success { get; set; }
     }
 
+    public class RequestChangePasswordOtpResponse
+    {
+        [JsonProperty("success")]
+        public bool Success { get; set; }
+        [JsonProperty("message")]
+        public string Message { get; set; } = string.Empty;
+    }
+
+    public class VerifyChangePasswordOtpRequest
+    {
+        [JsonProperty("code")]
+        public string Code { get; set; } = string.Empty;
+    }
+
+    public class VerifyChangePasswordOtpResponse
+    {
+        [JsonProperty("success")]
+        public bool Success { get; set; }
+        [JsonProperty("message")]
+        public string Message { get; set; } = string.Empty;
+    }
+
     public class UserInfo
     {
         [JsonProperty("id")]

@@ -188,7 +188,7 @@ namespace x_phy_wpf_ui.Controls
         {
             if (result == null) return;
             _resultsDirectory = resultsDirectory ?? DetectionResultsLoader.GetDefaultResultsDir();
-            SessionDetailPanel.SetResult(result, _resultsDirectory);
+            _sessionDetailsPanel.SetResult(result, _resultsDirectory);
             ResultsListView.Visibility = Visibility.Collapsed;
             SessionDetailView.Visibility = Visibility.Visible;
         }

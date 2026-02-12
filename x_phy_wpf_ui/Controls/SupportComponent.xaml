@@ -6,11 +6,17 @@
              mc:Ignorable="d"
              d:DesignHeight="600" d:DesignWidth="900">
     <UserControl.Resources>
-        <!-- Match Figma: dark grey panels, light blue border, black background -->
-        <SolidColorBrush x:Key="CardColor" Color="#1C1C1E"/>
+        <!-- Match bottom bar: white at 8% opacity for card background -->
+        <SolidColorBrush x:Key="CardColor" Color="#FFFFFF" Opacity="0.08"/>
         <SolidColorBrush x:Key="TextColor" Color="#FFFFFF"/>
         <SolidColorBrush x:Key="SecondaryTextColor" Color="#B0B0B0"/>
         <SolidColorBrush x:Key="BorderColor" Color="#2D6B8C"/>
+        <!-- Glass-style border: cyan fading to transparent (top to bottom), same as Profile -->
+        <LinearGradientBrush x:Key="CardBorderBrush" StartPoint="0,0" EndPoint="0,1">
+            <GradientStop Color="#1AB4CC" Offset="0"/>
+            <GradientStop Color="#801AB4CC" Offset="0.5"/>
+            <GradientStop Color="Transparent" Offset="1"/>
+        </LinearGradientBrush>
         <SolidColorBrush x:Key="SupportButtonBg" Color="#2A2A2A"/>
         <SolidColorBrush x:Key="ButtonBg" Color="#2A2A2A"/>
         <!-- Support Resources: dark grey rounded buttons, white underlined text, centered -->
@@ -129,18 +135,13 @@
         <!-- Content -->
         <ScrollViewer Grid.Row="2" VerticalScrollBarVisibility="Auto" HorizontalScrollBarVisibility="Disabled">
             <StackPanel>
-                <!-- Support Resources: dark grey panel, light blue border -->
+                <!-- Support Resources: bottom-bar background, gradient border -->
                 <Border Background="{StaticResource CardColor}"
+                        BorderBrush="{StaticResource CardBorderBrush}"
                         BorderThickness="1"
                         CornerRadius="8"
                         Padding="24,20"
                         Margin="0,0,0,16">
-                    <Border.BorderBrush>
-                        <LinearGradientBrush EndPoint="0.5,1" StartPoint="0.5,0">
-                            <GradientStop Color="#FF0A3A56" Offset="0.945"/>
-                            <GradientStop Color="#FF151B1E" Offset="0.062"/>
-                        </LinearGradientBrush>
-                    </Border.BorderBrush>
                     <StackPanel>
                         <TextBlock Text="Support Resources"
                                    FontSize="16"
@@ -179,9 +180,9 @@
                     </StackPanel>
                 </Border>
 
-                <!-- Documentation: extended card per row, text left, PDF/MP4 button at end -->
+                <!-- Documentation: bottom-bar background, gradient border -->
                 <Border Background="{StaticResource CardColor}"
-                        BorderBrush="{StaticResource BorderColor}"
+                        BorderBrush="{StaticResource CardBorderBrush}"
                         BorderThickness="1"
                         CornerRadius="8"
                         Padding="24,20">

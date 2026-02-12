@@ -15,18 +15,21 @@ namespace x_phy_wpf_ui.Controls
     {
         private string _resultsDirectory;
         private ObservableCollection<DetectionResultItem> _items;
+        private readonly SessionDetailsPanel _sessionDetailsPanel;
 
         public DetectionResultsScreen()
         {
             InitializeComponent();
-            _items = new ObservableCollection<DetectionResultItem>();
-            ResultsDataGrid.ItemsSource = _items;
-            ResultsDataGrid.LoadingRow += ResultsDataGrid_LoadingRow;
-            SessionDetailPanel.BackToResultsRequested += (s, _) =>
+            _sessionDetailsPanel = new SessionDetailsPanel();
+            SessionDetailPanelHost.Content = _sessionDetailsPanel;
+            _sessionDetailsPanel.BackToResultsRequested += (s, _) =>
             {
                 ResultsListView.Visibility = Visibility.Visible;
                 SessionDetailView.Visibility = Visibility.Collapsed;
             };
+            _items = new ObservableCollection<DetectionResultItem>();
+            ResultsDataGrid.ItemsSource = _items;
+            ResultsDataGrid.LoadingRow += ResultsDataGrid_LoadingRow;
         }
 
         private void ResultsDataGrid_LoadingRow(object sender, DataGridRowEventArgs e)
@@ -175,7 +178,7 @@ namespace x_phy_wpf_ui.Controls
         private void ShowSessionDetail(DetectionResultItem result, string resultsDirectory)
         {
             if (result == null) return;
-            SessionDetailPanel.SetResult(result, resultsDirectory);
+            _sessionDetailsPanel.SetResult(result, resultsDirectory);
             ResultsListView.Visibility = Visibility.Collapsed;
             SessionDetailView.Visibility = Visibility.Visible;
         }

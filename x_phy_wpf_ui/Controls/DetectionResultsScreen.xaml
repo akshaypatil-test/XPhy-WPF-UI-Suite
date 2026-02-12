@@ -3,7 +3,6 @@
              xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
              xmlns:mc="http://schemas.openxmlformats.org/markup-compatibility/2006"
              xmlns:d="http://schemas.microsoft.com/expression/blend/2008"
-             xmlns:controls="clr-namespace:x_phy_wpf_ui.Controls"
              mc:Ignorable="d"
              d:DesignHeight="500" d:DesignWidth="900">
     <UserControl.Resources>
@@ -315,9 +314,9 @@
                     Click="ExportExcel_Click"/>
         </StackPanel>
 
-        <!-- Detail view: Session Details (replaces list when View Result is clicked) -->
+        <!-- Detail view: Session Details (replaces list when View Result is clicked). Panel is created in code-behind to avoid XAML type resolution issues. -->
         <ScrollViewer x:Name="SessionDetailView" Grid.Row="0" Visibility="Collapsed" VerticalScrollBarVisibility="Hidden" HorizontalScrollBarVisibility="Disabled">
-            <controls:SessionDetailsPanel x:Name="SessionDetailPanel"/>
+            <ContentControl x:Name="SessionDetailPanelHost"/>
         </ScrollViewer>
     </Grid>
 </UserControl>

@@ -40,11 +40,20 @@ namespace x_phy_wpf_ui.Controls
 
         /// <summary>
         /// Sets the results directory path (from controller.GetResultsDir() or fallback) and reloads the list from local DB.
+        /// Catches exceptions (e.g. SQLite native DLL missing when run from installer) so the app does not crash.
         /// </summary>
         public void SetResultsDirectoryAndRefresh(string resultsDir)
         {
-            _resultsDirectory = resultsDir ?? DetectionResultsLoader.GetDefaultResultsDir();
-            RefreshResults();
+            try
+            {
+                _resultsDirectory = resultsDir ?? DetectionResultsLoader.GetDefaultResultsDir();
+                RefreshResults();
+            }
+            catch (Exception ex)
+            {
+                _items.Clear();
+                System.Diagnostics.Debug.WriteLine($"DetectionResultsScreen.SetResultsDirectoryAndRefresh: {ex.Message}");
+            }
         }
 
         /// <summary>
@@ -74,9 +83,16 @@ namespace x_phy_wpf_ui.Controls
         public void RefreshResults()
         {
             _items.Clear();
-            var list = DetectionResultsLoader.LoadFromResultsDir(_resultsDirectory ?? DetectionResultsLoader.GetDefaultResultsDir());
-            foreach (var item in list)
-                _items.Add(item);
+            try
+            {
+                var list = DetectionResultsLoader.LoadFromResultsDir(_resultsDirectory ?? DetectionResultsLoader.GetDefaultResultsDir());
+                foreach (var item in list)
+                    _items.Add(item);
+            }
+            catch (Exception ex)
+            {
+                System.Diagnostics.Debug.WriteLine($"DetectionResultsScreen.RefreshResults: {ex.Message}");
+            }
         }
 
         private void ResultsDirectory_Click(object sender, RoutedEventArgs e)

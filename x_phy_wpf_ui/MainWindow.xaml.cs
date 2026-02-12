@@ -1498,14 +1498,28 @@ videoLiveFakeProportionThreshold = 0.7
                 TopNavBar.SelectedPage = "Results";
 
             DetectionResultsScreen.Visibility = Visibility.Visible;
+
             string resultsDir = null;
             try
             {
                 if (controller != null)
                     resultsDir = controller.GetResultsDir();
             }
-            catch { }
-            DetectionResultsScreen.SetResultsDirectoryAndRefresh(resultsDir);
+            catch (Exception ex)
+            {
+                System.Diagnostics.Debug.WriteLine($"GetResultsDir: {ex.Message}");
+            }
+
+            try
+            {
+                DetectionResultsScreen.SetResultsDirectoryAndRefresh(resultsDir);
+            }
+            catch (Exception ex)
+            {
+                System.Diagnostics.Debug.WriteLine($"SetResultsDirectoryAndRefresh failed (e.g. SQLite not available when installed): {ex.Message}");
+                try { DetectionResultsScreen.SetResultsFromApi(Array.Empty<ResultDto>()); } catch { }
+            }
+
             Dispatcher.InvokeAsync(async () =>
             {
                 try

@@ -99,7 +99,14 @@
                 </Grid>
             </Border>
             <!-- Right: Media Evidence -->
-            <Border Grid.Column="2" Background="{StaticResource CardBg}" CornerRadius="12" BorderBrush="{StaticResource PanelGlowBorder}" BorderThickness="1" Padding="16">
+            <Border Grid.Column="2" Background="{StaticResource CardBg}" CornerRadius="12" BorderThickness="1" Padding="16">
+                <Border.BorderBrush>
+                    <LinearGradientBrush EndPoint="0.5,1" StartPoint="0.5,0">
+                        <GradientStop Color="#FF040404" Offset="1"/>
+                        <GradientStop Color="#FF060606" Offset="0.998"/>
+                        <GradientStop Color="#FF0D8E8E" Offset="0"/>
+                    </LinearGradientBrush>
+                </Border.BorderBrush>
                 <Border.Effect>
                     <DropShadowEffect Color="#1AB4CC" BlurRadius="12" ShadowDepth="0" Opacity="0.4"/>
                 </Border.Effect>

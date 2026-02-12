@@ -77,9 +77,13 @@
 
         <!-- List view: DETECTION RESULTS table (scrollable; buttons are in row below) -->
         <ScrollViewer x:Name="ResultsListView" Grid.Row="0" VerticalScrollBarVisibility="Auto" HorizontalScrollBarVisibility="Disabled">
-            <StackPanel Margin="0,0,0,0">
+            <Grid Margin="0,0,0,0" HorizontalAlignment="Stretch">
+                <Grid.RowDefinitions>
+                    <RowDefinition Height="Auto"/>
+                    <RowDefinition Height="Auto"/>
+                </Grid.RowDefinitions>
                 <!-- Title and Legend -->
-                <Grid Margin="0,0,0,20">
+                <Grid Grid.Row="0" Margin="0,0,0,20">
                     <Grid.ColumnDefinitions>
                         <ColumnDefinition Width="*"/>
                         <ColumnDefinition Width="Auto"/>
@@ -98,8 +102,8 @@
                     </StackPanel>
                 </Grid>
 
-                <!-- Results Table: cyan top border (1px to match row lines) + glass look -->
-                <Border CornerRadius="8" Margin="0,0,0,0" BorderBrush="{StaticResource PanelGlowBorder}" BorderThickness="0,1,0,0">
+                <!-- Results Table: cyan top border (1px to match row lines) + glass look; stretches to full width -->
+                <Border Grid.Row="1" CornerRadius="8" Margin="0,0,0,0" BorderBrush="{StaticResource PanelGlowBorder}" BorderThickness="0,1,0,0" HorizontalAlignment="Stretch">
                     <Border CornerRadius="8" Padding="0" UseLayoutRounding="True">
                         <Border.Background>
                             <LinearGradientBrush StartPoint="0,0" EndPoint="0,1">
@@ -117,7 +121,7 @@
                               CanUserAddRows="False"
                               CanUserDeleteRows="False"
                               CanUserReorderColumns="False"
-                              CanUserResizeColumns="False"
+                              CanUserResizeColumns="True"
                               CanUserResizeRows="False"
                               CanUserSortColumns="True"
                               HeadersVisibility="Column"
@@ -131,7 +135,8 @@
                               FontSize="13"
                               SelectionMode="Single"
                               SelectionUnit="FullRow"
-                              UseLayoutRounding="True">
+                              UseLayoutRounding="True"
+                              HorizontalAlignment="Stretch">
                         <DataGrid.ColumnHeaderStyle>
                             <Style TargetType="DataGridColumnHeader">
                                 <Setter Property="Background" Value="#1A1A1A"/>
@@ -219,14 +224,14 @@
                             </Style>
                         </DataGrid.CellStyle>
                         <DataGrid.Columns>
-                            <DataGridTextColumn Header="Timestamp" Binding="{Binding Timestamp, StringFormat='HH:mm MMM d, yyyy'}" Width="*" MinWidth="130">
+                            <DataGridTextColumn Header="Timestamp" Binding="{Binding Timestamp, StringFormat='HH:mm MMM d, yyyy'}" Width="1.2*" MinWidth="120">
                                 <DataGridTextColumn.ElementStyle>
                                     <Style TargetType="TextBlock">
                                         <Setter Property="HorizontalAlignment" Value="Center"/>
                                     </Style>
                                 </DataGridTextColumn.ElementStyle>
                             </DataGridTextColumn>
-                            <DataGridTemplateColumn Header="Type" Width="100" MinWidth="80">
+                            <DataGridTemplateColumn Header="Type" Width="0.5*" MinWidth="70">
                                 <DataGridTemplateColumn.CellTemplate>
                                     <DataTemplate>
                                         <Border Background="{StaticResource TypePillBg}" CornerRadius="14" Padding="8,3" HorizontalAlignment="Center">
@@ -235,7 +240,7 @@
                                     </DataTemplate>
                                 </DataGridTemplateColumn.CellTemplate>
                             </DataGridTemplateColumn>
-                            <DataGridTemplateColumn Header="Result" Width="*" MinWidth="180">
+                            <DataGridTemplateColumn Header="Result" Width="2*" MinWidth="160">
                                 <DataGridTemplateColumn.CellTemplate>
                                     <DataTemplate>
                                         <TextBlock Text="{Binding ResultText}" HorizontalAlignment="Center">
@@ -256,7 +261,7 @@
                                     </DataTemplate>
                                 </DataGridTemplateColumn.CellTemplate>
                             </DataGridTemplateColumn>
-                            <DataGridTemplateColumn Header="Detection Confidence" Width="150" MinWidth="140">
+                            <DataGridTemplateColumn Header="Detection Confidence" Width="1.5*" MinWidth="180">
                                 <DataGridTemplateColumn.CellTemplate>
                                     <DataTemplate>
                                         <TextBlock Text="{Binding ConfidenceText}" HorizontalAlignment="Center">
@@ -277,7 +282,7 @@
                                     </DataTemplate>
                                 </DataGridTemplateColumn.CellTemplate>
                             </DataGridTemplateColumn>
-                            <DataGridTemplateColumn Header="Actions" Width="100" MinWidth="90">
+                            <DataGridTemplateColumn Header="Actions" Width="0.6*" MinWidth="90">
                                 <DataGridTemplateColumn.CellTemplate>
                                     <DataTemplate>
                                         <Button Background="Transparent"
@@ -298,7 +303,7 @@
                     </DataGrid>
                     </Border>
                 </Border>
-            </StackPanel>
+            </Grid>
         </ScrollViewer>
 
         <!-- Buttons: always at bottom right -->

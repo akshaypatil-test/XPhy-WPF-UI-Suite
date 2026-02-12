@@ -42,12 +42,11 @@ namespace x_phy_wpf_ui.Controls
         private const int NotificationWindowSeconds = 15;
         private const int NotificationWindowCount = 4;
         private int _lastNotificationWindowIndex = -1;
-        private double _windowSumScore;
-        private int _windowCount;
+        private double _windowMaxScore;  // max ProbFakeScore in current window (for notification confidence %)
         private bool _windowHadFake;
-        private System.Windows.Media.Imaging.BitmapSource _windowEvidenceImage;
+        private System.Windows.Media.Imaging.BitmapSource _windowEvidenceImage;  // image from the batch where _windowMaxScore occurred
 
-        /// <summary>Last average fake percentage (0-100) when deepfake was detected. Used by deepfake notification.</summary>
+        /// <summary>Last max fake percentage (0-100) when deepfake was detected. Used by deepfake notification.</summary>
         public int LastConfidencePercent { get; private set; }
         /// <summary>Latest evidence frame image for notification. Used by deepfake notification.</summary>
         public System.Windows.Media.Imaging.BitmapSource LatestEvidenceImage { get; private set; }
@@ -112,8 +111,7 @@ namespace x_phy_wpf_ui.Controls
             _hasReceivedFaceResults = false;
             _detectedFaces.Clear();
             _lastNotificationWindowIndex = -1;
-            _windowSumScore = 0;
-            _windowCount = 0;
+            _windowMaxScore = 0;
             _windowHadFake = false;
             _windowEvidenceImage = null;
 
@@ -135,7 +133,7 @@ namespace x_phy_wpf_ui.Controls
             StartDetectionArcAnimation();
         }
 
-        /// <summary>Update from face callback. At most 4 notifications in 60s (windows 0-15, 15-30, 30-45, 45-60). Each notification uses average ProbFakeScore*100 and the evidence image from that window.</summary>
+        /// <summary>Update from face callback. At most 4 notifications in 60s (windows 0-15, 15-30, 30-45, 45-60). Each notification uses max ProbFakeScore*100 in the window and the evidence image from the batch where that max occurred.</summary>
         public void UpdateDetectedFaces(DetectedFace[] faces, Func<string, SolidColorBrush> getResourceBrush)
         {
             if (faces == null || faces.Length == 0) return;
@@ -144,59 +142,61 @@ namespace x_phy_wpf_ui.Controls
             var elapsed = (DateTime.UtcNow - _detectionStartTime).TotalSeconds;
             int currentWindow = Math.Min(NotificationWindowCount - 1, (int)(elapsed / NotificationWindowSeconds));
 
-            // Evidence image for this batch (same instance as this face data)
-            DetectedFace? latestWithImage = null;
-            for (int i = faces.Length - 1; i >= 0; i--)
+            // Evidence image: combined image when multiple faces have image data; otherwise single face (the one with max ProbFakeScore in batch).
+            double maxInBatch = faces.Length > 0 ? faces.Max(f => f.ProbFakeScore) : 0;
+            System.Windows.Media.Imaging.BitmapSource currentFrameBitmap = null;
+            try
             {
-                if (faces[i].ImageData != null && faces[i].ImageData.Length > 0)
+                int facesWithImage = faces.Count(f => f.ImageData != null && f.ImageData.Length > 0);
+                if (facesWithImage > 1)
+                    currentFrameBitmap = ImageHelper.CombineFaceImagesIntoGrid(faces);
+                else if (facesWithImage == 1)
                 {
-                    latestWithImage = faces[i];
-                    break;
+                    DetectedFace? single = null;
+                    for (int i = 0; i < faces.Length; i++)
+                    {
+                        if (faces[i].ImageData != null && faces[i].ImageData.Length > 0)
+                        {
+                            single = faces[i];
+                            break;
+                        }
+                    }
+                    if (single.HasValue)
+                        currentFrameBitmap = ImageHelper.ConvertToBitmapSource(single.Value);
                 }
             }
-            System.Windows.Media.Imaging.BitmapSource currentFrameBitmap = null;
-            if (latestWithImage.HasValue)
+            catch (Exception ex)
             {
-                try
-                {
-                    var bitmap = ImageHelper.ConvertToBitmapSource(latestWithImage.Value);
-                    if (bitmap != null) currentFrameBitmap = bitmap;
-                }
-                catch (Exception ex)
-                {
-                    System.Diagnostics.Debug.WriteLine($"DetectionResultsComponent image convert: {ex.Message}");
-                }
+                System.Diagnostics.Debug.WriteLine($"DetectionResultsComponent image convert: {ex.Message}");
             }
 
-            // When crossing into a new window: flush previous window and show at most one notification with that window's confidence and image
+            // When crossing into a new window: flush previous window and show at most one notification with that window's max confidence and combined image
             if (currentWindow > _lastNotificationWindowIndex && _lastNotificationWindowIndex >= 0)
             {
-                if (_windowHadFake && _windowCount > 0)
+                if (_windowHadFake && _windowMaxScore >= 0)
                 {
-                    double avgScore = _windowSumScore / _windowCount;
-                    LastConfidencePercent = (int)Math.Round(Math.Min(100, Math.Max(0, avgScore * 100)));
+                    LastConfidencePercent = (int)Math.Round(Math.Min(100, Math.Max(0, _windowMaxScore * 100)));
                     LatestEvidenceImage = _windowEvidenceImage;
                     DeepfakeDetected?.Invoke(this, EventArgs.Empty);
                 }
-                _windowSumScore = 0;
-                _windowCount = 0;
+                _windowMaxScore = 0;
                 _windowHadFake = false;
                 _windowEvidenceImage = null;
             }
             _lastNotificationWindowIndex = currentWindow;
 
-            // Accumulate this batch into current window (confidence = average ProbFakeScore; image = from this instance)
-            double batchSum = 0;
+            // Update current window: max ProbFakeScore in window; evidence image = combined or single image from the batch where that max occurred
             int fakeCount = 0;
             foreach (var face in faces)
             {
-                batchSum += face.ProbFakeScore;
                 if (face.IsFake) fakeCount++;
             }
-            _windowSumScore += batchSum;
-            _windowCount += faces.Length;
             if (fakeCount > 0) _windowHadFake = true;
-            if (currentFrameBitmap != null) _windowEvidenceImage = currentFrameBitmap;
+            if (maxInBatch > _windowMaxScore && currentFrameBitmap != null)
+            {
+                _windowMaxScore = maxInBatch;
+                _windowEvidenceImage = currentFrameBitmap;
+            }
 
             // Keep _detectedFaces for final result when detection completes
             _detectedFaces.Clear();
@@ -308,10 +308,9 @@ namespace x_phy_wpf_ui.Controls
         /// <summary>Flush the last 15s window so the 4th notification (45-60s) can be shown if that window had fake.</summary>
         private void FlushLastNotificationWindow()
         {
-            if (_windowHadFake && _windowCount > 0)
+            if (_windowHadFake && _windowMaxScore >= 0)
             {
-                double avgScore = _windowSumScore / _windowCount;
-                LastConfidencePercent = (int)Math.Round(Math.Min(100, Math.Max(0, avgScore * 100)));
+                LastConfidencePercent = (int)Math.Round(Math.Min(100, Math.Max(0, _windowMaxScore * 100)));
                 LatestEvidenceImage = _windowEvidenceImage;
                 DeepfakeDetected?.Invoke(this, EventArgs.Empty);
             }

@@ -1361,8 +1361,7 @@ videoLiveFakeProportionThreshold = 0.7
                     ShowDetectionResultsScreen();
                     break;
                 case "Profile":
-                    // TODO: Show profile page
-                    MessageBox.Show("Profile page coming soon!", "Profile", MessageBoxButton.OK, MessageBoxImage.Information);
+                    ShowProfileComponent();
                     break;
                 case "Settings":
                     // TODO: Show settings page
@@ -1414,6 +1413,8 @@ videoLiveFakeProportionThreshold = 0.7
             CorpRegisterComponent.Visibility = Visibility.Collapsed;
             if (DetectionResultsScreen != null)
                 DetectionResultsScreen.Visibility = Visibility.Collapsed;
+            if (ProfileComponent != null)
+                ProfileComponent.Visibility = Visibility.Collapsed;
             SupportComponent.Visibility = Visibility.Visible;
         }
 
@@ -1421,6 +1422,36 @@ videoLiveFakeProportionThreshold = 0.7
         {
             ShowDetectionContent();
             SupportComponent.Visibility = Visibility.Collapsed;
+        }
+
+        private void ShowProfileComponent()
+        {
+            DetectionContentGrid.Visibility = Visibility.Collapsed;
+            StatisticsCardsGrid.Visibility = Visibility.Collapsed;
+            PlansComponent.Visibility = Visibility.Collapsed;
+            StripePaymentComponentContainer.Visibility = Visibility.Collapsed;
+            CorpRegisterComponent.Visibility = Visibility.Collapsed;
+            SupportComponent.Visibility = Visibility.Collapsed;
+            if (DetectionResultsScreen != null)
+                DetectionResultsScreen.Visibility = Visibility.Collapsed;
+            if (TopNavBar != null)
+                TopNavBar.SelectedPage = "Profile";
+            ProfileComponent.Visibility = Visibility.Visible;
+            _ = ProfileComponent.LoadProfileAsync();
+        }
+
+        private void ProfileComponent_BackRequested(object sender, EventArgs e)
+        {
+            ShowDetectionContent();
+            ProfileComponent.Visibility = Visibility.Collapsed;
+            if (TopNavBar != null)
+                TopNavBar.SelectedPage = "Home";
+        }
+
+        private void ProfileComponent_ChangePasswordRequested(object sender, EventArgs e)
+        {
+            // TODO: Open change password flow when implemented
+            MessageBox.Show("Change password will be available soon.", "Change Password", MessageBoxButton.OK, MessageBoxImage.Information);
         }
 
         private void BottomBar_LogoutClicked(object sender, EventArgs e)
@@ -1474,6 +1505,8 @@ videoLiveFakeProportionThreshold = 0.7
             SupportComponent.Visibility = Visibility.Collapsed;
             if (DetectionResultsScreen != null)
                 DetectionResultsScreen.Visibility = Visibility.Collapsed;
+            if (ProfileComponent != null)
+                ProfileComponent.Visibility = Visibility.Collapsed;
             PlansComponent.Visibility = Visibility.Visible;
             StripePaymentComponentContainer.Visibility = Visibility.Collapsed;
         }
@@ -1486,6 +1519,8 @@ videoLiveFakeProportionThreshold = 0.7
             StripePaymentComponentContainer.Visibility = Visibility.Collapsed;
             CorpRegisterComponent.Visibility = Visibility.Collapsed;
             SupportComponent.Visibility = Visibility.Collapsed;
+            if (ProfileComponent != null)
+                ProfileComponent.Visibility = Visibility.Collapsed;
             if (TopNavBar != null)
                 TopNavBar.SelectedPage = "Results";
 
@@ -1532,11 +1567,13 @@ videoLiveFakeProportionThreshold = 0.7
             // Show detection content and statistics
             DetectionContentGrid.Visibility = Visibility.Visible;
             StatisticsCardsGrid.Visibility = Visibility.Visible;
-            // Hide plans, payment, corp register, and support components
+            // Hide plans, payment, corp register, support, and profile components
             PlansComponent.Visibility = Visibility.Collapsed;
             StripePaymentComponentContainer.Visibility = Visibility.Collapsed;
             CorpRegisterComponent.Visibility = Visibility.Collapsed;
             SupportComponent.Visibility = Visibility.Collapsed;
+            if (ProfileComponent != null)
+                ProfileComponent.Visibility = Visibility.Collapsed;
             if (DetectionResultsScreen != null)
                 DetectionResultsScreen.Visibility = Visibility.Collapsed;
         }

@@ -220,6 +220,12 @@
                                        Visibility="Collapsed"
                                        BackRequested="SupportComponent_BackRequested"/>
 
+            <!-- Profile Component -->
+            <controls:ProfileComponent x:Name="ProfileComponent"
+                                       Visibility="Collapsed"
+                                       BackRequested="ProfileComponent_BackRequested"
+                                       ChangePasswordRequested="ProfileComponent_ChangePasswordRequested"/>
+
             <!-- Add Corp User (Admin only) -->
             <controls:CreateCorpAccountComponent x:Name="CorpRegisterComponent"
                                                  Visibility="Collapsed"

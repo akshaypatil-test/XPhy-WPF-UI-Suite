@@ -182,5 +182,15 @@ namespace x_phy_wpf_ui.Controls
             ResultsListView.Visibility = Visibility.Collapsed;
             SessionDetailView.Visibility = Visibility.Visible;
         }
+
+        /// <summary>Shows the Session Details panel for the given result (e.g. after "Stop & View Results" from notification).</summary>
+        public void ShowSessionDetailForResult(DetectionResultItem result, string resultsDirectory)
+        {
+            if (result == null) return;
+            _resultsDirectory = resultsDirectory ?? DetectionResultsLoader.GetDefaultResultsDir();
+            SessionDetailPanel.SetResult(result, _resultsDirectory);
+            ResultsListView.Visibility = Visibility.Collapsed;
+            SessionDetailView.Visibility = Visibility.Visible;
+        }
     }
 }

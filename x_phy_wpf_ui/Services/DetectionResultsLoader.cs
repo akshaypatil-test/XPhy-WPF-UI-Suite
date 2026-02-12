@@ -24,6 +24,43 @@ namespace x_phy_wpf_ui.Services
         }
 
         /// <summary>
+        /// Returns the full artifact path (e.g. resultsDir/video/02-02-2026/18-56) when the given path
+        /// is the base results directory. Finds the most recently written run folder. Returns path unchanged if it already looks like a run subpath.
+        /// </summary>
+        public static string ResolveFullArtifactPath(string path, bool isAudio)
+        {
+            if (string.IsNullOrEmpty(path)) return path;
+            string typeFolder = isAudio ? "audio" : "video";
+            string normalized = path.TrimEnd(Path.DirectorySeparatorChar, '/', '\\');
+            if (normalized.EndsWith("video", StringComparison.OrdinalIgnoreCase) || normalized.EndsWith("audio", StringComparison.OrdinalIgnoreCase))
+                return path;
+            if (path.IndexOf(Path.DirectorySeparatorChar + "video" + Path.DirectorySeparatorChar, StringComparison.OrdinalIgnoreCase) >= 0
+                || path.IndexOf(Path.DirectorySeparatorChar + "audio" + Path.DirectorySeparatorChar, StringComparison.OrdinalIgnoreCase) >= 0)
+                return path;
+            string typePath = Path.Combine(path, typeFolder);
+            if (!Directory.Exists(typePath)) return path;
+            string latestRun = null;
+            DateTime latestWrite = DateTime.MinValue;
+            try
+            {
+                foreach (var dateDir in Directory.EnumerateDirectories(typePath))
+                {
+                    foreach (var timeDir in Directory.EnumerateDirectories(dateDir))
+                    {
+                        var info = new DirectoryInfo(timeDir);
+                        if (info.LastWriteTimeUtc > latestWrite)
+                        {
+                            latestWrite = info.LastWriteTimeUtc;
+                            latestRun = timeDir;
+                        }
+                    }
+                }
+            }
+            catch { /* ignore */ }
+            return string.IsNullOrEmpty(latestRun) ? path : latestRun;
+        }
+
+        /// <summary>
         /// Loads all detection results from the SQLite DB in the given results directory.
         /// Returns a combined list of face and voice results, sorted by timestamp descending.
         /// </summary>

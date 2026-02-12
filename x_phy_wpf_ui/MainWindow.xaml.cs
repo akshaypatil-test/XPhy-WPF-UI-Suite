@@ -30,8 +30,12 @@ namespace x_phy_wpf_ui
         private bool _deepfakeDetectedDuringRun = false;
         private bool isWebSurfingMode = false; // Track if current detection is Web Surfing mode
         private bool isStoppingDetection = false; // Track if we're in the process of stopping
-        /// <summary>When true, open results folder after stop completes (e.g. after "Stop & View Results" from notification).</summary>
+        /// <summary>When true, show Results tab and Session Details after stop completes (e.g. after "Stop & View Results" from notification).</summary>
         private bool openResultsFolderAfterStop = false;
+        /// <summary>When true, CreateResult was already called from "Stop & View Results" click; ShowFinalResult should skip PushDetectionResultToBackend to avoid duplicate.</summary>
+        private bool _resultPushedForStopAndViewResults = false;
+        /// <summary>True when we just navigated to Results after "Stop & View Results"; finally block should skip ResetAppContentToHome so user stays on Results.</summary>
+        private bool _openedResultsAfterStop = false;
         private bool isAudioDetection = false; // Track if current detection is Audio mode (vs Video mode)
         /// <summary>Display name for current detection source (e.g. "Zoom", "Google Chrome") for CreateResult MediaSource.</summary>
         private string _currentMediaSourceDisplayName = "Local";
@@ -1100,10 +1104,7 @@ videoLiveFakeProportionThreshold = 0.7
                                             {
                                                 isStoppingDetection = false;
                                                 if (openResultsFolderAfterStop)
-                                                {
-                                                    openResultsFolderAfterStop = false;
-                                                    try { controller?.OpenResultsFolder(); } catch { }
-                                                }
+                                                    OpenResultsAndShowSessionDetailAfterStop(resultPath ?? "");
                                             }
                                         }
                                     }
@@ -1151,10 +1152,7 @@ videoLiveFakeProportionThreshold = 0.7
                                             {
                                                 isStoppingDetection = false;
                                                 if (openResultsFolderAfterStop)
-                                                {
-                                                    openResultsFolderAfterStop = false;
-                                                    try { controller?.OpenResultsFolder(); } catch { }
-                                                }
+                                                    OpenResultsAndShowSessionDetailAfterStop(resultPath ?? "");
                                             }
                                         }
                                     }
@@ -1204,10 +1202,7 @@ videoLiveFakeProportionThreshold = 0.7
                                         {
                                             isStoppingDetection = false;
                                             if (openResultsFolderAfterStop)
-                                            {
-                                                openResultsFolderAfterStop = false;
-                                                try { controller?.OpenResultsFolder(); } catch { }
-                                            }
+                                                OpenResultsAndShowSessionDetailAfterStop(resultPath ?? "");
                                         }
                                     }
                                 }
@@ -1253,10 +1248,7 @@ videoLiveFakeProportionThreshold = 0.7
                                         {
                                             isStoppingDetection = false;
                                             if (openResultsFolderAfterStop)
-                                            {
-                                                openResultsFolderAfterStop = false;
-                                                try { controller?.OpenResultsFolder(); } catch { }
-                                            }
+                                                OpenResultsAndShowSessionDetailAfterStop(resultPath ?? "");
                                         }
                                     }
                                 }
@@ -1788,7 +1780,15 @@ videoLiveFakeProportionThreshold = 0.7
                             if (isStoppingDetection)
                             {
                                 isStoppingDetection = false;
-                                openResultsFolderAfterStop = false;
+                                // Native may not invoke result callback on stop — still open Results and Session Details (on UI thread).
+                                if (openResultsFolderAfterStop)
+                                {
+                                    _openedResultsAfterStop = true;
+                                    string path = null;
+                                    try { path = controller?.GetResultsDir(); } catch { }
+                                    var pathCapture = path ?? "";
+                                    Dispatcher.Invoke(() => OpenResultsAndShowSessionDetailAfterStop(pathCapture));
+                                }
                             }
                             else
                                 await Task.Delay(500);
@@ -1805,10 +1805,15 @@ videoLiveFakeProportionThreshold = 0.7
             {
                 if (openResultsFolderAfterStop)
                 {
-                    openResultsFolderAfterStop = false;
-                    try { controller?.OpenResultsFolder(); } catch { }
+                    _openedResultsAfterStop = true;
+                    string path = null;
+                    try { path = controller?.GetResultsDir(); } catch { }
+                    var pathCapture = path ?? "";
+                    Dispatcher.Invoke(() => OpenResultsAndShowSessionDetailAfterStop(pathCapture));
                 }
-                ResetAppContentToHome();
+                if (!_openedResultsAfterStop)
+                    ResetAppContentToHome();
+                _openedResultsAfterStop = false;
                 RefreshLicenseDisplayAfterDetectionAsync();
             }
         }
@@ -1881,6 +1886,8 @@ videoLiveFakeProportionThreshold = 0.7
             {
                 try { displayPath = controller?.GetResultsDir() ?? ""; } catch { }
             }
+            // When path is the base results dir (e.g. .../Deepfake - results), resolve to full run folder (.../video/DD-MM-YYYY/HH-mm) so DB and images use correct path.
+            displayPath = DetectionResultsLoader.ResolveFullArtifactPath(displayPath ?? "", isAudioDetection) ?? displayPath;
             DetectionResultsComponent?.ShowFinalResult(displayPath ?? resultPath);
 
             int faceCount = DetectionResultsComponent?.DetectedFacesCount ?? 0;
@@ -1903,7 +1910,53 @@ videoLiveFakeProportionThreshold = 0.7
             }
 
             // Save detection result to backend (CreateResult) only when detection is completed or stopped.
-            PushDetectionResultToBackend(displayPath ?? resultPath ?? "Local", hadDeepfake);
+            // Skip if we already saved when user clicked "Stop & View Results" (avoid duplicate).
+            if (!_resultPushedForStopAndViewResults)
+                PushDetectionResultToBackend(displayPath ?? resultPath ?? "Local", hadDeepfake);
+            _resultPushedForStopAndViewResults = false;
+        }
+
+        /// <summary>Navigate to Results tab, show Session Details for the given result path, and bring main window to front. Used by "Stop & View Results" and by "View Results" on detection completion.</summary>
+        private void NavigateToResultsAndShowSessionDetail(string resultPath)
+        {
+            string resultsDir = null;
+            try { resultsDir = controller?.GetResultsDir(); } catch { }
+            resultsDir = resultsDir ?? DetectionResultsLoader.GetDefaultResultsDir();
+            // When path is the base results dir, resolve to full run folder (.../video/DD-MM-YYYY/HH-mm) so Session Details can load images.
+            string artifactPath = DetectionResultsLoader.ResolveFullArtifactPath(resultPath ?? resultsDir ?? "", isAudioDetection);
+            if (string.IsNullOrEmpty(artifactPath)) artifactPath = resultPath ?? resultsDir ?? "";
+            var item = new DetectionResultItem
+            {
+                Timestamp = DateTime.Now,
+                Type = isAudioDetection ? "Audio" : "Video",
+                IsAiManipulationDetected = _deepfakeDetectedDuringRun,
+                ConfidencePercent = DetectionResultsComponent?.LastConfidencePercent ?? 97,
+                ResultPathOrId = artifactPath,
+                MediaSourceDisplay = _currentMediaSourceDisplayName ?? "Local",
+                SerialNumber = 0,
+                DurationSeconds = (decimal)(DetectionResultsComponent?.GetDetectionDurationSeconds() ?? 0)
+            };
+            ShowDetectionResultsScreen();
+            DetectionResultsScreen?.ShowSessionDetailForResult(item, resultsDir);
+            // Bring main window to front so user sees the Results page (notification may have been on top).
+            try
+            {
+                if (WindowState == WindowState.Minimized)
+                    WindowState = WindowState.Normal;
+                Activate();
+                Topmost = true;
+                Topmost = false;
+            }
+            catch { }
+        }
+
+        /// <summary>Called when "Stop & View Results" was used: navigate to Results tab and show Session Details for the just-saved result.</summary>
+        private void OpenResultsAndShowSessionDetailAfterStop(string resultPath)
+        {
+            openResultsFolderAfterStop = false;
+            _resultPushedForStopAndViewResults = false;
+            _openedResultsAfterStop = true;
+            NavigateToResultsAndShowSessionDetail(resultPath);
         }
 
         /// <summary>Calls CreateResult API with current detection outcome so result is saved in DB and appears in Results tab.</summary>
@@ -2207,6 +2260,14 @@ videoLiveFakeProportionThreshold = 0.7
                     },
                     stopDetectionAndOpenResults: () =>
                     {
+                        // 1) Call CreateResult now (native may not invoke result callback on stop) using resolved full path so DB has correct ArtifactPath.
+                        string baseDir = resultPath;
+                        if (string.IsNullOrEmpty(baseDir)) try { baseDir = controller?.GetResultsDir() ?? ""; } catch { }
+                        string artifactPath = DetectionResultsLoader.ResolveFullArtifactPath(baseDir ?? "", isAudioDetection);
+                        if (string.IsNullOrEmpty(artifactPath)) artifactPath = baseDir ?? "Local";
+                        _resultPushedForStopAndViewResults = true;
+                        PushDetectionResultToBackend(artifactPath, true);
+                        // 2) Stop detection; when done, OpenResultsAndShowSessionDetailAfterStop will show Session Details.
                         openResultsFolderAfterStop = true;
                         StopDetection_Click(null, EventArgs.Empty);
                     },
@@ -2234,7 +2295,7 @@ videoLiveFakeProportionThreshold = 0.7
                                 MessageBoxButton.OK, MessageBoxImage.Error);
                         }
                     },
-                    navigateToResultsPage: () => ShowDetectionResultsScreen());
+                    navigateToResultsPage: () => NavigateToResultsAndShowSessionDetail(resultPath));
                 popup.ShowAtBottomRight(autoCloseSeconds: 0);
             }));
         }
@@ -2259,7 +2320,7 @@ videoLiveFakeProportionThreshold = 0.7
                     },
                     evidenceImageLeft: evidenceImage,
                     evidenceImageRight: null,
-                    navigateToResultsPage: () => ShowDetectionResultsScreen());
+                    navigateToResultsPage: () => NavigateToResultsAndShowSessionDetail(resultPath));
                 popup.ShowAtBottomRight(autoCloseSeconds: 0);
             }));
         }

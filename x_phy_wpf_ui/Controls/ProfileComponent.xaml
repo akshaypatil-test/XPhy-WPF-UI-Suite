@@ -6,14 +6,6 @@
              mc:Ignorable="d"
              d:DesignHeight="600" d:DesignWidth="900">
     <UserControl.Resources>
-        <!-- Match bottom bar: white at 8% opacity for card background -->
-        <SolidColorBrush x:Key="CardBg" Color="#FFFFFF" Opacity="0.08"/>
-        <SolidColorBrush x:Key="TextPrimary" Color="#FFFFFF"/>
-        <SolidColorBrush x:Key="TextSecondary" Color="#B0B0B0"/>
-        <SolidColorBrush x:Key="TealBorder" Color="#1AB4CC"/>
-        <SolidColorBrush x:Key="TealLink" Color="#1AB4CC"/>
-        <SolidColorBrush x:Key="PrimaryPink" Color="#E2156B"/>
-        <SolidColorBrush x:Key="ActiveGreen" Color="#22C55E"/>
         <!-- Glass-style border: cyan fading to transparent (top to bottom) -->
         <LinearGradientBrush x:Key="CardBorderBrush" StartPoint="0,0" EndPoint="0,1">
             <GradientStop Color="#1AB4CC" Offset="0"/>
@@ -21,22 +13,22 @@
             <GradientStop Color="Transparent" Offset="1"/>
         </LinearGradientBrush>
         <Style x:Key="CardBorder" TargetType="Border">
-            <Setter Property="Background" Value="{StaticResource CardBg}"/>
+            <Setter Property="Background" Value="{DynamicResource Brush.Card}"/>
             <Setter Property="BorderBrush" Value="{StaticResource CardBorderBrush}"/>
             <Setter Property="BorderThickness" Value="1"/>
             <Setter Property="CornerRadius" Value="8"/>
             <Setter Property="Padding" Value="14,10"/>
         </Style>
         <Style x:Key="ProfileDisplayTextBox" TargetType="TextBox">
-            <Setter Property="Background" Value="#252525"/>
-            <Setter Property="Foreground" Value="White"/>
+            <Setter Property="Background" Value="{DynamicResource Brush.InputBackground}"/>
+            <Setter Property="Foreground" Value="{DynamicResource Brush.TextPrimary}"/>
             <Setter Property="BorderThickness" Value="0"/>
             <Setter Property="Padding" Value="10,8"/>
             <Setter Property="IsReadOnly" Value="True"/>
             <Setter Property="Template">
                 <Setter.Value>
                     <ControlTemplate TargetType="TextBox">
-                        <Border Background="{TemplateBinding Background}" CornerRadius="6" BorderThickness="1" BorderBrush="#1AB4CC" Padding="{TemplateBinding Padding}">
+                        <Border Background="{TemplateBinding Background}" CornerRadius="6" BorderThickness="1" BorderBrush="{DynamicResource Brush.Secondary}" Padding="{TemplateBinding Padding}">
                             <ScrollViewer x:Name="PART_ContentHost" VerticalAlignment="Center"/>
                         </Border>
                     </ControlTemplate>
@@ -44,8 +36,8 @@
             </Setter>
         </Style>
         <Style x:Key="PinkButton" TargetType="Button">
-            <Setter Property="Background" Value="{StaticResource PrimaryPink}"/>
-            <Setter Property="Foreground" Value="White"/>
+            <Setter Property="Background" Value="{DynamicResource Brush.Primary}"/>
+            <Setter Property="Foreground" Value="{DynamicResource Brush.White}"/>
             <Setter Property="FontSize" Value="14"/>
             <Setter Property="FontWeight" Value="SemiBold"/>
             <Setter Property="Padding" Value="20,10"/>
@@ -63,15 +55,15 @@
         </Style>
         <Style x:Key="TealOutlinedButton" TargetType="Button">
             <Setter Property="Background" Value="Transparent"/>
-            <Setter Property="Foreground" Value="{StaticResource TextPrimary}"/>
-            <Setter Property="BorderBrush" Value="{StaticResource TealBorder}"/>
+            <Setter Property="Foreground" Value="{DynamicResource Brush.TextPrimary}"/>
+            <Setter Property="BorderBrush" Value="{DynamicResource Brush.Secondary}"/>
             <Setter Property="BorderThickness" Value="1"/>
             <Setter Property="Padding" Value="16,8"/>
             <Setter Property="Cursor" Value="Hand"/>
         </Style>
         <Style x:Key="BackButtonStyle" TargetType="Button">
             <Setter Property="Background" Value="Transparent"/>
-            <Setter Property="Foreground" Value="{StaticResource TextSecondary}"/>
+            <Setter Property="Foreground" Value="{DynamicResource Brush.TextSecondary}"/>
             <Setter Property="FontSize" Value="14"/>
             <Setter Property="Padding" Value="12,8"/>
             <Setter Property="BorderThickness" Value="0"/>
@@ -89,8 +81,8 @@
         <Button Grid.Row="0" Content="← Back to Detection" Style="{StaticResource BackButtonStyle}" Click="BackButton_Click" Margin="0,0,0,12" HorizontalAlignment="Left"/>
 
         <StackPanel Grid.Row="1" Margin="0,0,0,20">
-            <TextBlock Text="Profile" FontSize="24" FontWeight="Bold" Foreground="{StaticResource TextPrimary}"/>
-            <TextBlock Text="View And Manage Your Account Information" FontSize="14" Foreground="{StaticResource TextSecondary}" Margin="0,4,0,0"/>
+            <TextBlock Text="Profile" FontSize="24" FontWeight="Bold" Foreground="{DynamicResource Brush.TextPrimary}"/>
+            <TextBlock Text="View And Manage Your Account Information" FontSize="14" Foreground="{DynamicResource Brush.TextSecondary}" Margin="0,4,0,0"/>
         </StackPanel>
 
         <ScrollViewer Grid.Row="2" VerticalScrollBarVisibility="Disabled" HorizontalScrollBarVisibility="Disabled">
@@ -111,11 +103,8 @@
                                 <ColumnDefinition Width="*"/>
                                 <ColumnDefinition Width="Auto"/>
                             </Grid.ColumnDefinitions>
-                            <Ellipse Grid.Column="0" Width="40" Height="40" Margin="0,0,10,0">
-                                <Ellipse.Stroke><SolidColorBrush Color="#1AB4CC"/></Ellipse.Stroke>
-                                <Ellipse.Fill><SolidColorBrush Color="#0D1117"/></Ellipse.Fill>
-                            </Ellipse>
-                            <TextBlock Grid.Column="1" x:Name="ProfileFullName" Text="—" FontSize="14" FontWeight="SemiBold" Foreground="{StaticResource TextPrimary}" VerticalAlignment="Center"/>
+                            <Ellipse Grid.Column="0" Width="40" Height="40" Margin="0,0,10,0" Stroke="{DynamicResource Brush.Secondary}" Fill="{DynamicResource Brush.Surface}"/>
+                            <TextBlock Grid.Column="1" x:Name="ProfileFullName" Text="—" FontSize="14" FontWeight="SemiBold" Foreground="{DynamicResource Brush.TextPrimary}" VerticalAlignment="Center"/>
                             <Button Grid.Column="2" Content="Change Password" Style="{StaticResource PinkButton}" Click="ChangePassword_Click" VerticalAlignment="Center" Padding="12,6" FontSize="12"/>
                         </Grid>
                     </Border>
@@ -127,18 +116,18 @@
                                 <ColumnDefinition Width="*"/>
                                 <ColumnDefinition Width="Auto"/>
                             </Grid.ColumnDefinitions>
-                            <TextBlock Grid.Column="0" Text="Email Preferences" FontSize="14" FontWeight="SemiBold" Foreground="{StaticResource TextPrimary}" VerticalAlignment="Center"/>
+                            <TextBlock Grid.Column="0" Text="Email Preferences" FontSize="14" FontWeight="SemiBold" Foreground="{DynamicResource Brush.TextPrimary}" VerticalAlignment="Center"/>
                             <ToggleButton Grid.Column="1" x:Name="EmailPreferencesToggle" IsEnabled="False" IsChecked="False" Width="44" Height="24" VerticalAlignment="Center">
                                 <ToggleButton.Template>
                                     <ControlTemplate TargetType="ToggleButton">
-                                        <Border x:Name="Track" Background="#4A4A4A" CornerRadius="12" Width="44" Height="24">
-                                            <Ellipse x:Name="Knob" Width="20" Height="20" Fill="White" HorizontalAlignment="Left" Margin="2,0,0,0" VerticalAlignment="Center"/>
+                                        <Border x:Name="Track" Background="{DynamicResource Brush.Border}" CornerRadius="12" Width="44" Height="24">
+                                            <Ellipse x:Name="Knob" Width="20" Height="20" Fill="{DynamicResource Brush.White}" HorizontalAlignment="Left" Margin="2,0,0,0" VerticalAlignment="Center"/>
                                         </Border>
                                         <ControlTemplate.Triggers>
                                             <Trigger Property="IsChecked" Value="True">
                                                 <Setter TargetName="Knob" Property="HorizontalAlignment" Value="Right"/>
                                                 <Setter TargetName="Knob" Property="Margin" Value="0,0,2,0"/>
-                                                <Setter TargetName="Track" Property="Background" Value="{StaticResource TealBorder}"/>
+                                                <Setter TargetName="Track" Property="Background" Value="{DynamicResource Brush.Secondary}"/>
                                             </Trigger>
                                             <Trigger Property="IsEnabled" Value="False">
                                                 <Setter TargetName="Track" Property="Opacity" Value="0.9"/>
@@ -154,31 +143,31 @@
                     <Border Style="{StaticResource CardBorder}" Margin="0,0,0,8">
                         <StackPanel>
                             <Grid Margin="0,0,0,6">
-                                <TextBlock Text="Subscription Summary" FontSize="14" FontWeight="SemiBold" Foreground="{StaticResource TextPrimary}" VerticalAlignment="Center"/>
+                                <TextBlock Text="Subscription Summary" FontSize="14" FontWeight="SemiBold" Foreground="{DynamicResource Brush.TextPrimary}" VerticalAlignment="Center"/>
                                 <Button HorizontalAlignment="Right" Content="View Plans" Style="{StaticResource TealOutlinedButton}" IsEnabled="False" Opacity="0.6" Padding="10,6" FontSize="12"/>
                             </Grid>
-                            <TextBlock x:Name="PlanNameText" Text="Annual Plan" FontSize="13" Foreground="{StaticResource TextPrimary}" Margin="0,0,0,2"/>
+                            <TextBlock x:Name="PlanNameText" Text="Annual Plan" FontSize="13" Foreground="{DynamicResource Brush.TextPrimary}" Margin="0,0,0,2"/>
                             <StackPanel Orientation="Horizontal" Margin="0,0,0,4">
-                                <Border Background="{StaticResource ActiveGreen}" CornerRadius="4" Padding="6,2" Margin="0,0,6,0">
-                                    <TextBlock x:Name="SubscriptionStatusTag" Text="Active" Foreground="White" FontSize="11" FontWeight="SemiBold"/>
+                                <Border Background="{DynamicResource Brush.Success}" CornerRadius="4" Padding="6,2" Margin="0,0,6,0">
+                                    <TextBlock x:Name="SubscriptionStatusTag" Text="Active" Foreground="{DynamicResource Brush.White}" FontSize="11" FontWeight="SemiBold"/>
                                 </Border>
                             </StackPanel>
-                            <TextBlock x:Name="PlanTypeText" Text="Plan Type: Annual" FontSize="12" Foreground="{StaticResource TextSecondary}" Margin="0,0,0,2"/>
-                            <TextBlock x:Name="PlanExpiryText" Text="Expiry Date: —" FontSize="12" Foreground="{StaticResource TextSecondary}" Margin="0,0,0,4"/>
-                            <TextBlock Text="View full details" Foreground="{StaticResource TealLink}" FontSize="12" Cursor="Hand" IsHitTestVisible="False" Opacity="0.6"/>
+                            <TextBlock x:Name="PlanTypeText" Text="Plan Type: Annual" FontSize="12" Foreground="{DynamicResource Brush.TextSecondary}" Margin="0,0,0,2"/>
+                            <TextBlock x:Name="PlanExpiryText" Text="Expiry Date: —" FontSize="12" Foreground="{DynamicResource Brush.TextSecondary}" Margin="0,0,0,4"/>
+                            <TextBlock Text="View full details" Foreground="{DynamicResource Brush.Secondary}" FontSize="12" Cursor="Hand" IsHitTestVisible="False" Opacity="0.6"/>
                         </StackPanel>
                     </Border>
 
                     <!-- Card 4: Account Summary -->
                     <Border Style="{StaticResource CardBorder}" Margin="0,0,0,0">
                         <StackPanel>
-                            <TextBlock Text="Account Summary" FontSize="14" FontWeight="SemiBold" Foreground="{StaticResource TextPrimary}" Margin="0,0,0,6"/>
-                            <TextBlock x:Name="MemberSinceText" Text="Member Since: —" FontSize="12" Foreground="{StaticResource TextSecondary}" Margin="0,0,0,2"/>
-                            <TextBlock x:Name="LastLoginText" Text="Last Login: —" FontSize="12" Foreground="{StaticResource TextSecondary}" Margin="0,0,0,2"/>
+                            <TextBlock Text="Account Summary" FontSize="14" FontWeight="SemiBold" Foreground="{DynamicResource Brush.TextPrimary}" Margin="0,0,0,6"/>
+                            <TextBlock x:Name="MemberSinceText" Text="Member Since: —" FontSize="12" Foreground="{DynamicResource Brush.TextSecondary}" Margin="0,0,0,2"/>
+                            <TextBlock x:Name="LastLoginText" Text="Last Login: —" FontSize="12" Foreground="{DynamicResource Brush.TextSecondary}" Margin="0,0,0,2"/>
                             <StackPanel Orientation="Horizontal">
-                                <TextBlock Text="Account Status: " FontSize="12" Foreground="{StaticResource TextSecondary}"/>
-                                <Border x:Name="AccountStatusTag" Background="{StaticResource ActiveGreen}" CornerRadius="4" Padding="6,2">
-                                    <TextBlock x:Name="AccountStatusText" Text="Verified" Foreground="White" FontSize="11" FontWeight="SemiBold"/>
+                                <TextBlock Text="Account Status: " FontSize="12" Foreground="{DynamicResource Brush.TextSecondary}"/>
+                                <Border x:Name="AccountStatusTag" Background="{DynamicResource Brush.Success}" CornerRadius="4" Padding="6,2">
+                                    <TextBlock x:Name="AccountStatusText" Text="Verified" Foreground="{DynamicResource Brush.White}" FontSize="11" FontWeight="SemiBold"/>
                                 </Border>
                             </StackPanel>
                         </StackPanel>
@@ -188,15 +177,15 @@
                 <!-- Right: Personal Information (equal width) -->
                 <Border Grid.Column="2" Style="{StaticResource CardBorder}" VerticalAlignment="Top">
                     <StackPanel>
-                        <TextBlock Text="Personal Information" FontSize="14" FontWeight="SemiBold" Foreground="{StaticResource TextPrimary}" Margin="0,0,0,10"/>
-                        <TextBlock Text="First Name" FontSize="12" Foreground="{StaticResource TextSecondary}" Margin="0,0,0,4"/>
+                        <TextBlock Text="Personal Information" FontSize="14" FontWeight="SemiBold" Foreground="{DynamicResource Brush.TextPrimary}" Margin="0,0,0,10"/>
+                        <TextBlock Text="First Name" FontSize="12" Foreground="{DynamicResource Brush.TextSecondary}" Margin="0,0,0,4"/>
                         <TextBox x:Name="FirstNameBox" Style="{StaticResource ProfileDisplayTextBox}" Margin="0,0,0,10"/>
-                        <TextBlock Text="Last Name" FontSize="12" Foreground="{StaticResource TextSecondary}" Margin="0,0,0,4"/>
+                        <TextBlock Text="Last Name" FontSize="12" Foreground="{DynamicResource Brush.TextSecondary}" Margin="0,0,0,4"/>
                         <TextBox x:Name="LastNameBox" Style="{StaticResource ProfileDisplayTextBox}" Margin="0,0,0,10"/>
-                        <TextBlock Text="Username" FontSize="12" Foreground="{StaticResource TextSecondary}" Margin="0,0,0,4"/>
+                        <TextBlock Text="Username" FontSize="12" Foreground="{DynamicResource Brush.TextSecondary}" Margin="0,0,0,4"/>
                         <TextBox x:Name="UsernameBox" Style="{StaticResource ProfileDisplayTextBox}" Margin="0,0,0,10"/>
-                        <TextBlock Text="Account Created" FontSize="12" Foreground="{StaticResource TextSecondary}" Margin="0,0,0,4"/>
-                        <TextBlock x:Name="AccountCreatedText" Text="—" FontSize="13" Foreground="{StaticResource TextPrimary}"/>
+                        <TextBlock Text="Account Created" FontSize="12" Foreground="{DynamicResource Brush.TextSecondary}" Margin="0,0,0,4"/>
+                        <TextBlock x:Name="AccountCreatedText" Text="—" FontSize="13" Foreground="{DynamicResource Brush.TextPrimary}"/>
                     </StackPanel>
                 </Border>
             </Grid>

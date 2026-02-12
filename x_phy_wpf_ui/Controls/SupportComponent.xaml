@@ -6,23 +6,17 @@
              mc:Ignorable="d"
              d:DesignHeight="600" d:DesignWidth="900">
     <UserControl.Resources>
-        <!-- Match bottom bar: white at 8% opacity for card background -->
-        <SolidColorBrush x:Key="CardColor" Color="#FFFFFF" Opacity="0.08"/>
-        <SolidColorBrush x:Key="TextColor" Color="#FFFFFF"/>
-        <SolidColorBrush x:Key="SecondaryTextColor" Color="#B0B0B0"/>
-        <SolidColorBrush x:Key="BorderColor" Color="#2D6B8C"/>
-        <!-- Glass-style border: cyan fading to transparent (top to bottom), same as Profile -->
+        <!-- Glass-style border: cyan fading to transparent (top to bottom) -->
         <LinearGradientBrush x:Key="CardBorderBrush" StartPoint="0,0" EndPoint="0,1">
             <GradientStop Color="#1AB4CC" Offset="0"/>
             <GradientStop Color="#801AB4CC" Offset="0.5"/>
             <GradientStop Color="Transparent" Offset="1"/>
         </LinearGradientBrush>
-        <SolidColorBrush x:Key="SupportButtonBg" Color="#2A2A2A"/>
-        <SolidColorBrush x:Key="ButtonBg" Color="#2A2A2A"/>
-        <!-- Support Resources: dark grey rounded buttons, white underlined text, centered -->
+        
+        <!-- Support Resources Button Style -->
         <Style x:Key="SupportResourceButtonStyle" TargetType="Button">
-            <Setter Property="Background" Value="{StaticResource SupportButtonBg}"/>
-            <Setter Property="Foreground" Value="{StaticResource TextColor}"/>
+            <Setter Property="Background" Value="{DynamicResource Brush.Card}"/>
+            <Setter Property="Foreground" Value="{DynamicResource Brush.TextPrimary}"/>
             <Setter Property="BorderThickness" Value="0"/>
             <Setter Property="Padding" Value="20,12"/>
             <Setter Property="FontSize" Value="14"/>
@@ -40,22 +34,25 @@
                         </Border>
                         <ControlTemplate.Triggers>
                             <Trigger Property="IsMouseOver" Value="True">
-                                <Setter TargetName="border" Property="Background" Value="#3A3A3A"/>
+                                <Setter TargetName="border" Property="Background" Value="{DynamicResource Brush.SurfaceHover}"/>
                             </Trigger>
                         </ControlTemplate.Triggers>
                     </ControlTemplate>
                 </Setter.Value>
             </Setter>
         </Style>
-        <!-- Doc row card: extended dark grey card with text left, button right -->
+        
+        <!-- Doc Row Card Style -->
         <Style x:Key="DocRowCardStyle" TargetType="Border">
-            <Setter Property="Background" Value="{StaticResource SupportButtonBg}"/>
+            <Setter Property="Background" Value="{DynamicResource Brush.Card}"/>
             <Setter Property="CornerRadius" Value="8"/>
             <Setter Property="Padding" Value="16,12"/>
         </Style>
+        
+        <!-- Doc Button Style -->
         <Style x:Key="DocButtonStyle" TargetType="Button">
-            <Setter Property="Background" Value="#333333"/>
-            <Setter Property="Foreground" Value="{StaticResource TextColor}"/>
+            <Setter Property="Background" Value="{DynamicResource Brush.Surface}"/>
+            <Setter Property="Foreground" Value="{DynamicResource Brush.TextPrimary}"/>
             <Setter Property="BorderThickness" Value="0"/>
             <Setter Property="Padding" Value="14,8"/>
             <Setter Property="FontSize" Value="13"/>
@@ -72,16 +69,18 @@
                         </Border>
                         <ControlTemplate.Triggers>
                             <Trigger Property="IsMouseOver" Value="True">
-                                <Setter TargetName="docBtnBorder" Property="Background" Value="#404040"/>
+                                <Setter TargetName="docBtnBorder" Property="Background" Value="{DynamicResource Brush.SurfaceHover}"/>
                             </Trigger>
                         </ControlTemplate.Triggers>
                     </ControlTemplate>
                 </Setter.Value>
             </Setter>
         </Style>
+        
+        <!-- Back Button Style -->
         <Style x:Key="BackButtonStyle" TargetType="Button">
             <Setter Property="Background" Value="Transparent"/>
-            <Setter Property="Foreground" Value="{StaticResource SecondaryTextColor}"/>
+            <Setter Property="Foreground" Value="{DynamicResource Brush.TextSecondary}"/>
             <Setter Property="FontSize" Value="14"/>
             <Setter Property="Padding" Value="12,8"/>
             <Setter Property="BorderThickness" Value="0"/>
@@ -98,7 +97,7 @@
             </Setter>
             <Style.Triggers>
                 <Trigger Property="IsMouseOver" Value="True">
-                    <Setter Property="Foreground" Value="{StaticResource TextColor}"/>
+                    <Setter Property="Foreground" Value="{DynamicResource Brush.TextPrimary}"/>
                 </Trigger>
             </Style.Triggers>
         </Style>
@@ -124,11 +123,10 @@
             <TextBlock Text="Support"
                        FontSize="24"
                        FontWeight="Bold"
-                       Foreground="{StaticResource TextColor}"/>
+                       Foreground="{DynamicResource Brush.TextPrimary}"/>
             <TextBlock Text="Access Support Resources And Documentation"
                        FontSize="14"
-                       Foreground="{StaticResource TextColor}"
-                       Opacity="0.9"
+                       Foreground="{DynamicResource Brush.TextSecondary}"
                        Margin="0,4,0,0"/>
         </StackPanel>
 
@@ -136,7 +134,7 @@
         <ScrollViewer Grid.Row="2" VerticalScrollBarVisibility="Auto" HorizontalScrollBarVisibility="Disabled">
             <StackPanel>
                 <!-- Support Resources: bottom-bar background, gradient border -->
-                <Border Background="{StaticResource CardColor}"
+                <Border Background="{DynamicResource Brush.Surface}"
                         BorderBrush="{StaticResource CardBorderBrush}"
                         BorderThickness="1"
                         CornerRadius="8"
@@ -146,7 +144,7 @@
                         <TextBlock Text="Support Resources"
                                    FontSize="16"
                                    FontWeight="SemiBold"
-                                   Foreground="{StaticResource TextColor}"
+                                   Foreground="{DynamicResource Brush.TextPrimary}"
                                    Margin="0,0,0,12"/>
                         <Grid>
                             <Grid.ColumnDefinitions>
@@ -159,7 +157,7 @@
                                     HorizontalAlignment="Stretch"
                                     Click="OpenTicket_Click">
                                 <TextBlock Text="Open Support Ticket"
-                                           Foreground="{StaticResource TextColor}"
+                                           Foreground="{DynamicResource Brush.TextPrimary}"
                                            FontSize="14"
                                            TextDecorations="Underline"
                                            HorizontalAlignment="Center"
@@ -170,7 +168,7 @@
                                     HorizontalAlignment="Stretch"
                                     Click="HelpSupport_Click">
                                 <TextBlock Text="Help &amp; Support Page"
-                                           Foreground="{StaticResource TextColor}"
+                                           Foreground="{DynamicResource Brush.TextPrimary}"
                                            FontSize="14"
                                            TextDecorations="Underline"
                                            HorizontalAlignment="Center"
@@ -181,7 +179,7 @@
                 </Border>
 
                 <!-- Documentation: bottom-bar background, gradient border -->
-                <Border Background="{StaticResource CardColor}"
+                <Border Background="{DynamicResource Brush.Surface}"
                         BorderBrush="{StaticResource CardBorderBrush}"
                         BorderThickness="1"
                         CornerRadius="8"
@@ -190,7 +188,7 @@
                         <TextBlock Text="Documentation"
                                    FontSize="16"
                                    FontWeight="SemiBold"
-                                   Foreground="{StaticResource TextColor}"
+                                   Foreground="{DynamicResource Brush.TextPrimary}"
                                    Margin="0,0,0,16"/>
                         <!-- Row 1: Installation Setup & User Guide (extended card) -->
                         <Border Style="{StaticResource DocRowCardStyle}" Margin="0,0,0,8">
@@ -201,7 +199,7 @@
                                 </Grid.ColumnDefinitions>
                                 <TextBlock Grid.Column="0"
                                            Text="Installation Setup &amp; User Guide"
-                                           Foreground="{StaticResource TextColor}"
+                                           Foreground="{DynamicResource Brush.TextPrimary}"
                                            FontSize="14"
                                            VerticalAlignment="Center"
                                            HorizontalAlignment="Left"/>
@@ -221,7 +219,7 @@
                                 </Grid.ColumnDefinitions>
                                 <TextBlock Grid.Column="0"
                                            Text="FAQ / Knowledge Base"
-                                           Foreground="{StaticResource TextColor}"
+                                           Foreground="{DynamicResource Brush.TextPrimary}"
                                            FontSize="14"
                                            VerticalAlignment="Center"
                                            HorizontalAlignment="Left"/>
@@ -241,7 +239,7 @@
                                 </Grid.ColumnDefinitions>
                                 <TextBlock Grid.Column="0"
                                            Text="User Guide Video"
-                                           Foreground="{StaticResource TextColor}"
+                                           Foreground="{DynamicResource Brush.TextPrimary}"
                                            FontSize="14"
                                            VerticalAlignment="Center"
                                            HorizontalAlignment="Left"/>

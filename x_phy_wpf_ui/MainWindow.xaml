@@ -60,34 +60,6 @@
             
             <!-- Window Controls -->
             <StackPanel Grid.Column="2" Orientation="Horizontal" HorizontalAlignment="Right">
-                <!-- Theme Toggle Button -->
-                <Button x:Name="ThemeToggleButton" Content="🌙" Width="20" Height="20" 
-                        Background="Transparent"
-                        Foreground="{DynamicResource Brush.TextPrimary}"
-                        BorderThickness="0"
-                        Click="ThemeToggle_Click"
-                        Cursor="Hand"
-                        ToolTip="Toggle Light/Dark Theme"
-                        Margin="0,0,12,0">
-                    <Button.Style>
-                        <Style TargetType="Button">
-                            <Setter Property="Template">
-                                <Setter.Value>
-                                    <ControlTemplate TargetType="Button">
-                                        <Border Background="{TemplateBinding Background}" Padding="2" CornerRadius="4">
-                                            <ContentPresenter HorizontalAlignment="Center" VerticalAlignment="Center"/>
-                                        </Border>
-                                    </ControlTemplate>
-                                </Setter.Value>
-                            </Setter>
-                            <Style.Triggers>
-                                <Trigger Property="IsMouseOver" Value="True">
-                                    <Setter Property="Background" Value="#2A2A2A"/>
-                                </Trigger>
-                            </Style.Triggers>
-                        </Style>
-                    </Button.Style>
-                </Button>
                 <Button Content="🗕" Width="16" Height="16" 
                         Background="Transparent"
                         Foreground="{DynamicResource Brush.TextPrimary}"
@@ -225,6 +197,10 @@
                                        Visibility="Collapsed"
                                        BackRequested="ProfileComponent_BackRequested"
                                        ChangePasswordRequested="ProfileComponent_ChangePasswordRequested"/>
+
+            <!-- Settings Component -->
+            <controls:SettingsComponent x:Name="SettingsComponent"
+                                        Visibility="Collapsed"/>
 
             <!-- Add Corp User (Admin only) -->
             <controls:CreateCorpAccountComponent x:Name="CorpRegisterComponent"

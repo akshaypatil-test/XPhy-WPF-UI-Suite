@@ -1364,8 +1364,7 @@ videoLiveFakeProportionThreshold = 0.7
                     ShowProfileComponent();
                     break;
                 case "Settings":
-                    // TODO: Show settings page
-                    MessageBox.Show("Settings page coming soon!", "Settings", MessageBoxButton.OK, MessageBoxImage.Information);
+                    ShowSettingsComponent();
                     break;
             }
         }
@@ -1411,6 +1410,7 @@ videoLiveFakeProportionThreshold = 0.7
             PlansComponent.Visibility = Visibility.Collapsed;
             StripePaymentComponentContainer.Visibility = Visibility.Collapsed;
             CorpRegisterComponent.Visibility = Visibility.Collapsed;
+            SettingsComponent.Visibility = Visibility.Collapsed;
             if (DetectionResultsScreen != null)
                 DetectionResultsScreen.Visibility = Visibility.Collapsed;
             if (ProfileComponent != null)
@@ -1432,12 +1432,29 @@ videoLiveFakeProportionThreshold = 0.7
             StripePaymentComponentContainer.Visibility = Visibility.Collapsed;
             CorpRegisterComponent.Visibility = Visibility.Collapsed;
             SupportComponent.Visibility = Visibility.Collapsed;
+            SettingsComponent.Visibility = Visibility.Collapsed;
             if (DetectionResultsScreen != null)
                 DetectionResultsScreen.Visibility = Visibility.Collapsed;
             if (TopNavBar != null)
                 TopNavBar.SelectedPage = "Profile";
             ProfileComponent.Visibility = Visibility.Visible;
             _ = ProfileComponent.LoadProfileAsync();
+        }
+
+        private void ShowSettingsComponent()
+        {
+            DetectionContentGrid.Visibility = Visibility.Collapsed;
+            StatisticsCardsGrid.Visibility = Visibility.Collapsed;
+            PlansComponent.Visibility = Visibility.Collapsed;
+            StripePaymentComponentContainer.Visibility = Visibility.Collapsed;
+            CorpRegisterComponent.Visibility = Visibility.Collapsed;
+            SupportComponent.Visibility = Visibility.Collapsed;
+            ProfileComponent.Visibility = Visibility.Collapsed;
+            if (DetectionResultsScreen != null)
+                DetectionResultsScreen.Visibility = Visibility.Collapsed;
+            if (TopNavBar != null)
+                TopNavBar.SelectedPage = "Settings";
+            SettingsComponent.Visibility = Visibility.Visible;
         }
 
         private void ProfileComponent_BackRequested(object sender, EventArgs e)
@@ -1503,6 +1520,7 @@ videoLiveFakeProportionThreshold = 0.7
             DetectionContentGrid.Visibility = Visibility.Collapsed;
             StatisticsCardsGrid.Visibility = Visibility.Collapsed;
             SupportComponent.Visibility = Visibility.Collapsed;
+            SettingsComponent.Visibility = Visibility.Collapsed;
             if (DetectionResultsScreen != null)
                 DetectionResultsScreen.Visibility = Visibility.Collapsed;
             if (ProfileComponent != null)
@@ -1519,6 +1537,7 @@ videoLiveFakeProportionThreshold = 0.7
             StripePaymentComponentContainer.Visibility = Visibility.Collapsed;
             CorpRegisterComponent.Visibility = Visibility.Collapsed;
             SupportComponent.Visibility = Visibility.Collapsed;
+            SettingsComponent.Visibility = Visibility.Collapsed;
             if (ProfileComponent != null)
                 ProfileComponent.Visibility = Visibility.Collapsed;
             if (TopNavBar != null)
@@ -1572,6 +1591,7 @@ videoLiveFakeProportionThreshold = 0.7
             StripePaymentComponentContainer.Visibility = Visibility.Collapsed;
             CorpRegisterComponent.Visibility = Visibility.Collapsed;
             SupportComponent.Visibility = Visibility.Collapsed;
+            SettingsComponent.Visibility = Visibility.Collapsed;
             if (ProfileComponent != null)
                 ProfileComponent.Visibility = Visibility.Collapsed;
             if (DetectionResultsScreen != null)
@@ -1583,6 +1603,7 @@ videoLiveFakeProportionThreshold = 0.7
             // Hide plans component and statistics
             PlansComponent.Visibility = Visibility.Collapsed;
             StatisticsCardsGrid.Visibility = Visibility.Collapsed;
+            SettingsComponent.Visibility = Visibility.Collapsed;
             
             // Create new payment component with selected plan
             var paymentComponent = new StripePaymentComponent(e.Plan);
@@ -2212,6 +2233,7 @@ videoLiveFakeProportionThreshold = 0.7
             StatisticsCardsGrid.Visibility = Visibility.Collapsed;
             PlansComponent.Visibility = Visibility.Collapsed;
             StripePaymentComponentContainer.Visibility = Visibility.Collapsed;
+            SettingsComponent.Visibility = Visibility.Collapsed;
             if (DetectionResultsScreen != null)
                 DetectionResultsScreen.Visibility = Visibility.Collapsed;
             CorpRegisterComponent.ClearInputs();
@@ -2401,39 +2423,7 @@ videoLiveFakeProportionThreshold = 0.7
             Close();
         }
 
-        private void ThemeToggle_Click(object sender, RoutedEventArgs e)
-        {
-            try
-            {
-                System.Diagnostics.Debug.WriteLine("ThemeToggle_Click: Button clicked");
-                
-                // Toggle between Light and Dark themes
-                ThemeManager.ToggleTheme();
-                
-                System.Diagnostics.Debug.WriteLine($"ThemeToggle_Click: Theme toggled to {ThemeManager.CurrentTheme}");
-                
-                // Update button icon based on current theme
-                if (ThemeToggleButton != null)
-                {
-                    ThemeToggleButton.Content = ThemeManager.CurrentTheme == ThemeManager.Theme.Light ? "☀️" : "🌙";
-                    ThemeToggleButton.ToolTip = ThemeManager.CurrentTheme == ThemeManager.Theme.Light 
-                        ? "Switch to Dark Theme" 
-                        : "Switch to Light Theme";
-                    
-                    System.Diagnostics.Debug.WriteLine($"ThemeToggle_Click: Button updated - Icon: {ThemeToggleButton.Content}");
-                }
-                else
-                {
-                    System.Diagnostics.Debug.WriteLine("ThemeToggle_Click: WARNING - ThemeToggleButton is null!");
-                }
-            }
-            catch (Exception ex)
-            {
-                System.Diagnostics.Debug.WriteLine($"ThemeToggle_Click: ERROR - {ex.Message}");
-                System.Diagnostics.Debug.WriteLine($"ThemeToggle_Click: Stack trace - {ex.StackTrace}");
-                MessageBox.Show($"Error toggling theme: {ex.Message}", "Theme Error", MessageBoxButton.OK, MessageBoxImage.Error);
-            }
-        }
+        // Theme toggle removed - now handled in Settings screen
 
         protected override void OnClosed(EventArgs e)
         {

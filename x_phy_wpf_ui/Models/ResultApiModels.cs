@@ -14,6 +14,8 @@ namespace x_phy_wpf_ui.Models
         public string MediaSource { get; set; } = string.Empty; // App name (Zoom, Google Chrome)
         /// <summary>Local path to evidence/artifact folder for loading images in Session Details.</summary>
         public string? ArtifactPath { get; set; }
+        /// <summary>Device/machine fingerprint so backend can filter results by current machine only.</summary>
+        public string? MachineFingerprint { get; set; }
         public decimal? Duration { get; set; }
     }
 
@@ -53,6 +55,7 @@ namespace x_phy_wpf_ui.Models
         public string MediaSource { get; set; } = string.Empty;
         /// <summary>Local path to evidence/artifact folder for loading images.</summary>
         public string? ArtifactPath { get; set; }
+        public string? MachineFingerprint { get; set; }
         public decimal? Duration { get; set; }
         public DateTime CreatedAt { get; set; }
     }

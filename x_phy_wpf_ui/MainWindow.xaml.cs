@@ -1966,6 +1966,8 @@ videoLiveFakeProportionThreshold = 0.7
             {
                 int confidence = DetectionResultsComponent?.LastConfidencePercent ?? 0;
                 double durationSec = DetectionResultsComponent?.GetDetectionDurationSeconds() ?? 60;
+                string machineFingerprint = null;
+                try { machineFingerprint = new DeviceFingerprintService().GetDeviceFingerprint(); } catch { }
                 var request = new CreateResultRequest
                 {
                     Timestamp = DateTime.UtcNow,
@@ -1974,6 +1976,7 @@ videoLiveFakeProportionThreshold = 0.7
                     DetectionConfidence = (decimal)Math.Min(100, Math.Max(0, confidence)),
                     MediaSource = _currentMediaSourceDisplayName ?? "Local", // App name (Zoom, Google Chrome)
                     ArtifactPath = string.IsNullOrEmpty(artifactPath) || artifactPath == "Local" ? null : artifactPath, // Path for loading evidence images
+                    MachineFingerprint = machineFingerprint,
                     Duration = (decimal)durationSec
                 };
 #pragma warning disable CS4014

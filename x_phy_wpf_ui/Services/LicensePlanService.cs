@@ -18,7 +18,11 @@ namespace x_phy_wpf_ui.Services
 
         public LicensePlanService()
         {
+#if DEBUG
+            _baseUrl = "http://localhost:5163";
+#else
             _baseUrl = "https://xphy-web-c5e3v.ondigitalocean.app";
+#endif
             _httpClient = new HttpClient
             {
                 BaseAddress = new Uri(_baseUrl),

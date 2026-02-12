@@ -21,9 +21,11 @@ namespace x_phy_wpf_ui.Services
 
         public ResultsApiService()
         {
-            // Use same base URL as AuthService/LicensePlanService (localhost for dev, or uncomment production)
+#if DEBUG
+            _baseUrl = "http://localhost:5163";
+#else
             _baseUrl = "https://xphy-web-c5e3v.ondigitalocean.app";
-            /*_baseUrl = "http://localhost:5163";*/
+#endif
             _httpClient = new HttpClient
             {
                 BaseAddress = new Uri(_baseUrl),
@@ -80,7 +82,7 @@ namespace x_phy_wpf_ui.Services
         }
 
         /// <summary>
-        /// GET api/Result - get all detection results for the current user.
+        /// GET api/Result - get detection results for the current user, filtered by current machine when machineFingerprint is sent.
         /// </summary>
         public async Task<GetResultsResponse?> GetResultsAsync()
         {
@@ -91,9 +93,15 @@ namespace x_phy_wpf_ui.Services
             _httpClient.DefaultRequestHeaders.Remove("Authorization");
             _httpClient.DefaultRequestHeaders.Add("Authorization", $"Bearer {tokens.AccessToken}");
 
+            string machineFingerprint = null;
+            try { machineFingerprint = new DeviceFingerprintService().GetDeviceFingerprint(); } catch { }
+
             try
             {
-                var response = await _httpClient.GetAsync("/api/Result");
+                var url = string.IsNullOrEmpty(machineFingerprint)
+                    ? "/api/Result"
+                    : "/api/Result?machineFingerprint=" + Uri.EscapeDataString(machineFingerprint);
+                var response = await _httpClient.GetAsync(url);
                 if (response.IsSuccessStatusCode)
                 {
                     var responseJson = await response.Content.ReadAsStringAsync();

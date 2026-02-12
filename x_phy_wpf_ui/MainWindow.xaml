@@ -35,6 +35,11 @@
         <SolidColorBrush x:Key="RealColor" Color="#22C55E"/>
         <SolidColorBrush x:Key="FakeColor" Color="#E2156B"/>
         <SolidColorBrush x:Key="SecondaryTextColor" Color="#999999"/>
+        <LinearGradientBrush x:Key="ChangePasswordOverlayBorderBrush" StartPoint="0,0" EndPoint="0,1">
+            <GradientStop Color="#1AB4CC" Offset="0"/>
+            <GradientStop Color="#801AB4CC" Offset="0.5"/>
+            <GradientStop Color="Transparent" Offset="1"/>
+        </LinearGradientBrush>
         <Style x:Key="PrimaryButtonStyle" TargetType="Button">
             <Setter Property="Background" Value="{StaticResource PrimaryPink}"/>
             <Setter Property="Foreground" Value="White"/>
@@ -279,6 +284,15 @@
                                SupportClicked="BottomBar_SupportClicked"
                                LogoutClicked="BottomBar_LogoutClicked"/>
         </Grid>
+        </Grid>
+
+        <!-- Change Password overlay: teal tint, glass dialog -->
+        <Grid x:Name="ChangePasswordOverlay" Visibility="Collapsed" Background="#801AB4CC" IsHitTestVisible="True">
+            <Border HorizontalAlignment="Center" VerticalAlignment="Center" MinWidth="420" MaxWidth="480"
+                    Background="#E0101010" BorderBrush="{StaticResource ChangePasswordOverlayBorderBrush}"
+                    BorderThickness="1" CornerRadius="12" Padding="32,28">
+                <ContentControl x:Name="ChangePasswordOverlayContent"/>
+            </Border>
         </Grid>
         </Grid>
     </Border>

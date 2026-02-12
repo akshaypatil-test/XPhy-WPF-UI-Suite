@@ -62,6 +62,12 @@ namespace x_phy_wpf_ui
         private CorporateSignInComponent _corporateSignInComponent;
         private UpdatePasswordComponent _updatePasswordComponent;
         private bool _appViewShownOnce = false;
+        private ChangePasswordDialog _changePasswordDialog;
+        private VerifyChangePasswordOtpDialog _verifyChangePasswordOtpDialog;
+        private PasswordChangedSuccessDialog _passwordChangedSuccessDialog;
+        private AuthService _authServiceForChangePassword;
+        private string _changePasswordCurrent = "";
+        private string _changePasswordNew = "";
         private FloatingWidgetWindow _floatingWidget;
         /// <summary>Set to true to show the floating app launcher when minimized. Disabled for now; re-enable later.</summary>
         private const bool FloatingWidgetEnabled = false;
@@ -148,6 +154,15 @@ namespace x_phy_wpf_ui
             _resetPasswordComponent = new ResetPasswordComponent();
             _corporateSignInComponent = new CorporateSignInComponent();
             _updatePasswordComponent = new UpdatePasswordComponent();
+            _changePasswordDialog = new ChangePasswordDialog();
+            _verifyChangePasswordOtpDialog = new VerifyChangePasswordOtpDialog();
+            _passwordChangedSuccessDialog = new PasswordChangedSuccessDialog();
+            _authServiceForChangePassword = new AuthService();
+            ChangePasswordOverlayContent.Content = _changePasswordDialog;
+            _changePasswordDialog.BackRequested += (s, ev) => { ChangePasswordOverlay.Visibility = Visibility.Collapsed; };
+            _changePasswordDialog.UpdatePasswordRequested += ChangePasswordDialog_UpdatePasswordRequested;
+            _verifyChangePasswordOtpDialog.VerifyRequested += VerifyChangePasswordOtpDialog_VerifyRequested;
+            _verifyChangePasswordOtpDialog.ResendRequested += VerifyChangePasswordOtpDialog_ResendRequested;
 
             // Initial app start: Welcome → Get Started (Launch) → Sign In / Create Account / Corporate Sign In
             _welcomeComponent.NavigateToLaunch += (s, e) => { AuthPanel.SetContent(_launchComponent); };
@@ -1376,26 +1391,23 @@ videoLiveFakeProportionThreshold = 0.7
                 MessageBoxButton.YesNo, MessageBoxImage.Question);
             
             if (result == MessageBoxResult.Yes)
+                DoLogout();
+        }
+
+        private void DoLogout()
+        {
+            try
             {
-                try
-                {
-                    // Clear stored tokens (standard auth: clean logout for multiple login/logout cycles)
-                    var tokenStorage = new TokenStorage();
-                    tokenStorage.ClearTokens();
-
-                    // Release native controller so the next user gets a fresh init with their license.
-                    // This ensures Keygen validates the current user's key against this machine (one user per machine).
-                    controller = null;
-                    controllerInitializationAttempted = false;
-
-                    // Shell: Show LoginView again; do not close the app
-                    ShowAuthView();
-                }
-                catch (Exception ex)
-                {
-                    MessageBox.Show($"Error during logout: {ex.Message}", "Error", 
-                        MessageBoxButton.OK, MessageBoxImage.Error);
-                }
+                var tokenStorage = new TokenStorage();
+                tokenStorage.ClearTokens();
+                controller = null;
+                controllerInitializationAttempted = false;
+                ShowAuthView();
+            }
+            catch (Exception ex)
+            {
+                MessageBox.Show($"Error during logout: {ex.Message}", "Error", 
+                    MessageBoxButton.OK, MessageBoxImage.Error);
             }
         }
         
@@ -1450,8 +1462,112 @@ videoLiveFakeProportionThreshold = 0.7
 
         private void ProfileComponent_ChangePasswordRequested(object sender, EventArgs e)
         {
-            // TODO: Open change password flow when implemented
-            MessageBox.Show("Change password will be available soon.", "Change Password", MessageBoxButton.OK, MessageBoxImage.Information);
+            _changePasswordDialog.ClearAndHideError();
+            ChangePasswordOverlayContent.Content = _changePasswordDialog;
+            ChangePasswordOverlay.Visibility = Visibility.Visible;
+        }
+
+        private async void ChangePasswordDialog_UpdatePasswordRequested(object sender, EventArgs e)
+        {
+            if (!_changePasswordDialog.Validate(out var err))
+            {
+                _changePasswordDialog.ShowError(err);
+                return;
+            }
+            var tokenStorage = new TokenStorage();
+            var tokens = tokenStorage.GetTokens();
+            if (tokens?.AccessToken == null)
+            {
+                _changePasswordDialog.ShowError("Session expired. Please sign in again.");
+                return;
+            }
+            _changePasswordDialog.SetBusy(true);
+            _changePasswordDialog.ClearAndHideError();
+            try
+            {
+                await _authServiceForChangePassword.RequestChangePasswordOtpAsync(
+                    _changePasswordDialog.CurrentPassword,
+                    _changePasswordDialog.NewPassword,
+                    tokens.AccessToken);
+                _changePasswordCurrent = _changePasswordDialog.CurrentPassword;
+                _changePasswordNew = _changePasswordDialog.NewPassword;
+                _verifyChangePasswordOtpDialog.Clear();
+                ChangePasswordOverlayContent.Content = _verifyChangePasswordOtpDialog;
+            }
+            catch (Exception ex)
+            {
+                _changePasswordDialog.ShowError(ex.Message);
+            }
+            finally
+            {
+                _changePasswordDialog.SetBusy(false);
+            }
+        }
+
+        private async void VerifyChangePasswordOtpDialog_VerifyRequested(object sender, EventArgs e)
+        {
+            var tokenStorage = new TokenStorage();
+            var tokens = tokenStorage.GetTokens();
+            if (tokens?.AccessToken == null)
+            {
+                _verifyChangePasswordOtpDialog.ShowError("Session expired. Please sign in again.");
+                return;
+            }
+            _verifyChangePasswordOtpDialog.SetBusy(true);
+            _verifyChangePasswordOtpDialog.ShowError(""); // clear
+            try
+            {
+                await _authServiceForChangePassword.VerifyChangePasswordOtpAsync(
+                    _verifyChangePasswordOtpDialog.Code,
+                    tokens.AccessToken);
+                _passwordChangedSuccessDialog.StopCountdown();
+                ChangePasswordOverlayContent.Content = _passwordChangedSuccessDialog;
+                _passwordChangedSuccessDialog.StartCountdown(() =>
+                {
+                    Dispatcher.Invoke(() =>
+                    {
+                        ChangePasswordOverlay.Visibility = Visibility.Collapsed;
+                        DoLogout();
+                    });
+                });
+            }
+            catch (Exception ex)
+            {
+                _verifyChangePasswordOtpDialog.ShowError(ex.Message);
+            }
+            finally
+            {
+                _verifyChangePasswordOtpDialog.SetBusy(false);
+            }
+        }
+
+        private async void VerifyChangePasswordOtpDialog_ResendRequested(object sender, EventArgs e)
+        {
+            var tokenStorage = new TokenStorage();
+            var tokens = tokenStorage.GetTokens();
+            if (tokens?.AccessToken == null)
+            {
+                _verifyChangePasswordOtpDialog.ShowError("Session expired. Please sign in again.");
+                return;
+            }
+            if (string.IsNullOrEmpty(_changePasswordCurrent) || string.IsNullOrEmpty(_changePasswordNew))
+            {
+                _verifyChangePasswordOtpDialog.ShowError("Cannot resend. Please start over from Change Password.");
+                return;
+            }
+            try
+            {
+                await _authServiceForChangePassword.RequestChangePasswordOtpAsync(
+                    _changePasswordCurrent,
+                    _changePasswordNew,
+                    tokens.AccessToken);
+                _verifyChangePasswordOtpDialog.Clear();
+                _verifyChangePasswordOtpDialog.ShowError(""); // clear any previous error
+            }
+            catch (Exception ex)
+            {
+                _verifyChangePasswordOtpDialog.ShowError(ex.Message);
+            }
         }
 
         private void BottomBar_LogoutClicked(object sender, EventArgs e)

@@ -6,16 +6,6 @@
              mc:Ignorable="d" 
              d:DesignHeight="600" d:DesignWidth="800">
     <UserControl.Resources>
-        <SolidColorBrush x:Key="CardBackground" Color="#FFFFFF" Opacity="0.08"/>
-        <SolidColorBrush x:Key="CardOuterBackground" Color="#252525"/>
-        <SolidColorBrush x:Key="UnselectedButtonBackground" Color="#343434"/>
-        <SolidColorBrush x:Key="TextPrimary" Color="#FFFFFF"/>
-        <SolidColorBrush x:Key="TextSecondary" Color="#999999"/>
-        <SolidColorBrush x:Key="TealColor" Color="#1AB4CC"/>
-        <SolidColorBrush x:Key="PrimaryPink" Color="#E2156B"/>
-        <SolidColorBrush x:Key="PrimaryPinkHover" Color="#F0458A"/>
-        <SolidColorBrush x:Key="HoverBackground" Color="#2A2A2A"/>
-        <SolidColorBrush x:Key="UnselectedBorder" Color="#444444"/>
         <!-- Selected fill: dark teal left to dark purple/magenta right (reference) -->
         <LinearGradientBrush x:Key="SelectedGradientBrush" StartPoint="0,0" EndPoint="1,0">
             <GradientStop Color="#1A4A5C" Offset="0"/>
@@ -23,14 +13,14 @@
         </LinearGradientBrush>
         <!-- Border: bright cyan top-left to vibrant pink bottom-right (thin glowing border) -->
         <LinearGradientBrush x:Key="NavBarBorderGradient" StartPoint="0,0" EndPoint="1,1">
-            <GradientStop Color="#1AB4CC" Offset="0"/>
-            <GradientStop Color="#E2156B" Offset="1"/>
+            <GradientStop Color="{DynamicResource Color.Secondary}" Offset="0"/>
+            <GradientStop Color="{DynamicResource Color.Primary}" Offset="1"/>
         </LinearGradientBrush>
         
         <!-- Primary Button Style -->
         <Style x:Key="PrimaryButtonStyle" TargetType="Button">
-            <Setter Property="Background" Value="{StaticResource PrimaryPink}"/>
-            <Setter Property="Foreground" Value="White"/>
+            <Setter Property="Background" Value="{DynamicResource Brush.Primary}"/>
+            <Setter Property="Foreground" Value="{DynamicResource Brush.White}"/>
             <Setter Property="FontSize" Value="13"/>
             <Setter Property="FontWeight" Value="SemiBold"/>
             <Setter Property="Padding" Value="18,8"/>
@@ -49,7 +39,7 @@
             </Setter>
             <Style.Triggers>
                 <Trigger Property="IsMouseOver" Value="True">
-                    <Setter Property="Background" Value="{StaticResource PrimaryPinkHover}"/>
+                    <Setter Property="Background" Value="{DynamicResource Brush.PrimaryHover}"/>
                 </Trigger>
                 <Trigger Property="IsEnabled" Value="False">
                     <Setter Property="Opacity" Value="0.5"/>
@@ -59,8 +49,8 @@
         
         <!-- Secondary Button Style -->
         <Style x:Key="SecondaryButtonStyle" TargetType="Button">
-            <Setter Property="Background" Value="{StaticResource CardBackground}"/>
-            <Setter Property="Foreground" Value="{StaticResource TextPrimary}"/>
+            <Setter Property="Background" Value="{DynamicResource Brush.Card}"/>
+            <Setter Property="Foreground" Value="{DynamicResource Brush.TextPrimary}"/>
             <Setter Property="FontSize" Value="13"/>
             <Setter Property="FontWeight" Value="Medium"/>
             <Setter Property="Padding" Value="18,8"/>
@@ -79,7 +69,7 @@
             </Setter>
             <Style.Triggers>
                 <Trigger Property="IsMouseOver" Value="True">
-                    <Setter Property="Background" Value="{StaticResource HoverBackground}"/>
+                    <Setter Property="Background" Value="{DynamicResource Brush.SurfaceHover}"/>
                 </Trigger>
             </Style.Triggers>
         </Style>
@@ -87,7 +77,7 @@
         <!-- Close Button Style -->
         <Style x:Key="CloseButtonStyle" TargetType="Button">
             <Setter Property="Background" Value="Transparent"/>
-            <Setter Property="Foreground" Value="{StaticResource TextSecondary}"/>
+            <Setter Property="Foreground" Value="{DynamicResource Brush.TextSecondary}"/>
             <Setter Property="FontSize" Value="18"/>
             <Setter Property="FontWeight" Value="Bold"/>
             <Setter Property="Padding" Value="8,4"/>
@@ -108,21 +98,21 @@
             </Setter>
             <Style.Triggers>
                 <Trigger Property="IsMouseOver" Value="True">
-                    <Setter Property="Background" Value="{StaticResource HoverBackground}"/>
-                    <Setter Property="Foreground" Value="{StaticResource TextPrimary}"/>
+                    <Setter Property="Background" Value="{DynamicResource Brush.SurfaceHover}"/>
+                    <Setter Property="Foreground" Value="{DynamicResource Brush.TextPrimary}"/>
                 </Trigger>
             </Style.Triggers>
         </Style>
         
         <!-- Process Button Style (unselected: dark grey like reference) -->
         <Style x:Key="ProcessButtonStyle" TargetType="Button">
-            <Setter Property="Background" Value="{StaticResource UnselectedButtonBackground}"/>
-            <Setter Property="Foreground" Value="{StaticResource TextPrimary}"/>
+            <Setter Property="Background" Value="{DynamicResource Brush.Surface}"/>
+            <Setter Property="Foreground" Value="{DynamicResource Brush.TextPrimary}"/>
             <Setter Property="FontSize" Value="12"/>
             <Setter Property="FontWeight" Value="Medium"/>
             <Setter Property="Padding" Value="10,8"/>
             <Setter Property="BorderThickness" Value="1"/>
-            <Setter Property="BorderBrush" Value="{StaticResource UnselectedBorder}"/>
+            <Setter Property="BorderBrush" Value="{DynamicResource Brush.Border}"/>
             <Setter Property="Cursor" Value="Hand"/>
             <Setter Property="Template">
                 <Setter.Value>
@@ -139,7 +129,7 @@
             </Setter>
             <Style.Triggers>
                 <Trigger Property="IsMouseOver" Value="True">
-                    <Setter Property="Background" Value="{StaticResource HoverBackground}"/>
+                    <Setter Property="Background" Value="{DynamicResource Brush.SurfaceHover}"/>
                 </Trigger>
             </Style.Triggers>
         </Style>
@@ -147,7 +137,7 @@
         <!-- Selected Process Button: gradient fill + gradient border (reference) -->
         <Style x:Key="SelectedProcessButtonStyle" TargetType="Button">
             <Setter Property="Background" Value="{StaticResource SelectedGradientBrush}"/>
-            <Setter Property="Foreground" Value="{StaticResource TextPrimary}"/>
+            <Setter Property="Foreground" Value="{DynamicResource Brush.TextPrimary}"/>
             <Setter Property="FontSize" Value="12"/>
             <Setter Property="FontWeight" Value="Medium"/>
             <Setter Property="Padding" Value="10,8"/>
@@ -176,7 +166,7 @@
         <!-- Selected Source Button: gradient fill + gradient border (reference) -->
         <Style x:Key="SelectedSourceButtonStyle" TargetType="Button">
             <Setter Property="Background" Value="{StaticResource SelectedGradientBrush}"/>
-            <Setter Property="Foreground" Value="{StaticResource TextPrimary}"/>
+            <Setter Property="Foreground" Value="{DynamicResource Brush.TextPrimary}"/>
             <Setter Property="FontSize" Value="12"/>
             <Setter Property="FontWeight" Value="Medium"/>
             <Setter Property="Padding" Value="10,8"/>
@@ -200,7 +190,7 @@
     </UserControl.Resources>
     
     <!-- Single card with grey background (like bottom bar) -->
-    <Border Background="{StaticResource CardOuterBackground}" 
+    <Border Background="{DynamicResource Brush.Surface}" 
             CornerRadius="12" 
             Padding="14">
         <Grid>
@@ -215,7 +205,7 @@
                 <TextBlock Text="Select Detection Source" 
                            FontSize="14" 
                            FontWeight="SemiBold" 
-                           Foreground="{StaticResource TextPrimary}"
+                           Foreground="{DynamicResource Brush.TextPrimary}"
                            VerticalAlignment="Center"/>
                 <Button Content="✕" 
                         Style="{StaticResource CloseButtonStyle}"
@@ -238,7 +228,7 @@
                     <TextBlock Text="Select Input Type" 
                                FontSize="13" 
                                FontWeight="SemiBold" 
-                               Foreground="{StaticResource TextPrimary}"
+                               Foreground="{DynamicResource Brush.TextPrimary}"
                                Margin="0,0,0,6"/>
                     <Grid x:Name="SourceOptionsGrid" Margin="0,0,0,6">
                         <Grid.ColumnDefinitions>
@@ -251,7 +241,7 @@
                     <TextBlock x:Name="StatusText"
                                Text="Please select a process to continue" 
                                FontSize="12" 
-                               Foreground="{StaticResource TextSecondary}"
+                               Foreground="{DynamicResource Brush.TextSecondary}"
                                TextWrapping="Wrap"
                                Margin="0,4,0,0"/>
                 </StackPanel>

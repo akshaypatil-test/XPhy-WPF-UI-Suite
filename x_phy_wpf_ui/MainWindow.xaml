@@ -234,11 +234,11 @@
         </Grid>
         </Grid>
 
-        <!-- Change Password overlay: teal tint, glass dialog -->
-        <Grid x:Name="ChangePasswordOverlay" Visibility="Collapsed" Background="#801AB4CC" IsHitTestVisible="True">
+        <!-- Change Password overlay: semi-transparent backdrop, themed dialog -->
+        <Grid x:Name="ChangePasswordOverlay" Visibility="Collapsed" Background="#80000000" IsHitTestVisible="True">
             <Border HorizontalAlignment="Center" VerticalAlignment="Center" MinWidth="420" MaxWidth="480"
-                    Background="#E0101010" BorderBrush="{DynamicResource Brush.Secondary}"
-                    BorderThickness="1" CornerRadius="12" Padding="32,28">
+                    Background="{DynamicResource Brush.Card}" BorderBrush="{DynamicResource Brush.Secondary}"
+                    BorderThickness="2" CornerRadius="12" Padding="32,28">
                 <ContentControl x:Name="ChangePasswordOverlayContent"/>
             </Border>
         </Grid>

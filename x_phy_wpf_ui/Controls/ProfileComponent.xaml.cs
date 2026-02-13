@@ -10,6 +10,8 @@ namespace x_phy_wpf_ui.Controls
     {
         public event EventHandler? BackRequested;
         public event EventHandler? ChangePasswordRequested;
+        public event EventHandler? ViewFullDetailsRequested;
+        public event EventHandler? ViewPlansRequested;
 
         private readonly UserProfileService _profileService = new UserProfileService();
 
@@ -35,11 +37,11 @@ namespace x_phy_wpf_ui.Controls
                 UsernameBox.Text = "";
                 AccountCreatedText.Text = "—";
                 PlanNameText.Text = "—";
-                SubscriptionStatusTag.Text = "—";
-                PlanTypeText.Text = "Plan Type: —";
-                PlanExpiryText.Text = "Expiry Date: —";
-                MemberSinceText.Text = "Member Since: —";
-                LastLoginText.Text = "Last Login: —";
+                SubscriptionStatusTagText.Text = "—";
+                PlanTypeValue.Text = "—";
+                PlanExpiryValue.Text = "—";
+                MemberSinceValue.Text = "—";
+                LastLoginValue.Text = "—";
                 AccountStatusText.Text = "—";
                 return;
             }
@@ -49,18 +51,20 @@ namespace x_phy_wpf_ui.Controls
             LastNameBox.Text = profile.LastName;
             UsernameBox.Text = profile.Username;
             AccountCreatedText.Text = profile.AccountCreatedDisplay;
-            MemberSinceText.Text = "Member Since: " + profile.MemberSinceDisplay;
-            LastLoginText.Text = "Last Login: " + profile.LastLoginDisplay;
+            MemberSinceValue.Text = profile.MemberSinceDisplay;
+            LastLoginValue.Text = profile.LastLoginDisplay;
             AccountStatusText.Text = profile.AccountStatusDisplay;
 
             PlanNameText.Text = string.IsNullOrEmpty(profile.PlanType) ? "—" : profile.PlanType + " Plan";
-            SubscriptionStatusTag.Text = profile.SubscriptionStatus ?? "—";
-            PlanTypeText.Text = "Plan Type: " + (profile.PlanType ?? "—");
-            PlanExpiryText.Text = "Expiry Date: " + profile.PlanExpiryDisplay;
+            SubscriptionStatusTagText.Text = profile.SubscriptionStatus ?? "—";
+            PlanTypeValue.Text = profile.PlanType ?? "—";
+            PlanExpiryValue.Text = profile.PlanExpiryDisplay;
 
             if (!profile.IsActive && AccountStatusTag != null)
             {
-                AccountStatusTag.Background = new System.Windows.Media.SolidColorBrush(System.Windows.Media.Colors.OrangeRed);
+                var orangeRed = new System.Windows.Media.SolidColorBrush(System.Windows.Media.Colors.OrangeRed);
+                AccountStatusTag.BorderBrush = orangeRed;
+                AccountStatusText.Foreground = orangeRed;
                 AccountStatusText.Text = "Inactive";
             }
         }
@@ -73,6 +77,17 @@ namespace x_phy_wpf_ui.Controls
         private void ChangePassword_Click(object sender, RoutedEventArgs e)
         {
             ChangePasswordRequested?.Invoke(this, EventArgs.Empty);
+        }
+
+        private void ViewFullDetails_MouseLeftButtonDown(object sender, System.Windows.Input.MouseButtonEventArgs e)
+        {
+            e.Handled = true;
+            ViewFullDetailsRequested?.Invoke(this, EventArgs.Empty);
+        }
+
+        private void ViewPlans_Click(object sender, RoutedEventArgs e)
+        {
+            ViewPlansRequested?.Invoke(this, EventArgs.Empty);
         }
     }
 }

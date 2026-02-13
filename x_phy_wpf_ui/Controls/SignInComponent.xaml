@@ -142,7 +142,7 @@
 
                 <!-- Remember Me -->
                 <CheckBox x:Name="RememberMeCheckBox"
-                          Content="Remember me (stay signed in for 30 days)"
+                          Content="Remember Me"
                           Style="{StaticResource CheckBox.Standard}"
                           IsChecked="True"
                           Margin="{StaticResource Spacing.S}"

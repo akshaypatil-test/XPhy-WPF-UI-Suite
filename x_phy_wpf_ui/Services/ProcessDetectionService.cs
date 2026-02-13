@@ -43,36 +43,63 @@ namespace x_phy_wpf_ui.Services
 
         private delegate bool EnumWindowsProc(IntPtr hWnd, IntPtr lParam);
 
-        // Video calling applications
+        // Video calling applications (from Media Applications list)
         private static readonly HashSet<string> VideoCallingProcesses = new HashSet<string>(StringComparer.OrdinalIgnoreCase)
         {
             "Zoom.exe",
-            "CptHost.exe", // Zoom's process name
+            "CptHost.exe", // Zoom
             "ms-teams.exe",
             "Teams.exe",
+            "Meet.exe", // Google Meet standalone
+            "msedgewebview2.exe", // Teams Chat
+            "msedge.exe", // Teams Chat / Google Meet (Web)
+            "webex.exe", // Cisco Webex
             "Skype.exe",
             "SkypeApp.exe",
             "SkypeHost.exe",
-            "Meet.exe", // Google Meet standalone
-            "msedgewebview2.exe", // Teams Chat
-            "msedge.exe" // Teams Chat (sometimes runs as Edge)
+            "slack.exe",
+            "discord.exe",
+            "bluejeans.exe",
+            "g2mcomm.exe", // GoTo Meeting
+            "jiomeet.exe"  // JioMeet
         };
 
-        // Media players
+        // Media players (from Media Applications list)
         private static readonly HashSet<string> MediaPlayerProcesses = new HashSet<string>(StringComparer.OrdinalIgnoreCase)
         {
             "vlc.exe",
-            "wmplayer.exe", // Windows Media Player
+            "wmplayer.exe",
             "wmpshare.exe",
-            "MediaPlayer.exe"
+            "MediaPlayer.exe",
+            "mplayer2.exe",   // Windows Media Player Legacy
+            "quicktimeplayer.exe",
+            "kmplayer.exe",
+            "gom.exe",        // GOM Player
+            "potplayer.exe",
+            "mxplayer.exe",
+            "netflix.exe",    // Netflix app
+            "microsoft.media.player.exe"  // Windows 11 Media Player (UWP)
         };
 
-        // Browsers (for YouTube detection)
+        // Virtual camera / streaming (from Media Applications list)
+        private static readonly HashSet<string> StreamingProcesses = new HashSet<string>(StringComparer.OrdinalIgnoreCase)
+        {
+            "obs64.exe",           // OBS Studio
+            "streamlabs.exe",      // Streamlabs
+            "xsplit.core.exe",     // XSplit Broadcaster
+            "manycam.exe",
+            "snapcamera.exe",      // Snap Camera
+            "nvidia broadcast.exe" // NVIDIA Broadcast
+        };
+
+        // Browsers (for YouTube/streaming detection)
         private static readonly HashSet<string> BrowserProcesses = new HashSet<string>(StringComparer.OrdinalIgnoreCase)
         {
             "chrome.exe",
             "msedge.exe",
-            "firefox.exe"
+            "firefox.exe",
+            "opera.exe",
+            "brave.exe"
         };
 
         public List<DetectedProcess> DetectRelevantProcesses()
@@ -192,6 +219,20 @@ namespace x_phy_wpf_ui.Services
                             WindowTitle = GetMainWindowTitle(process, processWindows)
                         };
                     }
+                    // Check for virtual camera / streaming apps
+                    else if (StreamingProcesses.Contains(processName))
+                    {
+                        string displayName = GetDisplayName(processName);
+                        detected = new DetectedProcess
+                        {
+                            ProcessId = process.Id,
+                            ProcessName = processName,
+                            DisplayName = displayName,
+                            ProcessType = "Streaming",
+                            HasYouTubeTab = false,
+                            WindowTitle = GetMainWindowTitle(process, processWindows)
+                        };
+                    }
                     // Check for browsers with YouTube tabs
                     else if (BrowserProcesses.Contains(processName))
                     {
@@ -234,6 +275,31 @@ namespace x_phy_wpf_ui.Services
                         {
                             detected = browserDetected;
                         }
+                        else
+                        {
+                            // Show browser even without YouTube (e.g. Edge/Chrome with any page) so user can select it
+                            foreach (var browserProcess in allBrowserProcesses)
+                            {
+                                if (processWindows.ContainsKey((uint)browserProcess.Id))
+                                {
+                                    var titles = processWindows[(uint)browserProcess.Id];
+                                    if (titles.Count > 0)
+                                    {
+                                        string displayName = GetDisplayName(processName);
+                                        detected = new DetectedProcess
+                                        {
+                                            ProcessId = browserProcess.Id,
+                                            ProcessName = processName,
+                                            DisplayName = displayName,
+                                            ProcessType = "Browser",
+                                            HasYouTubeTab = false,
+                                            WindowTitle = titles[0]
+                                        };
+                                        break;
+                                    }
+                                }
+                            }
+                        }
 
                         // Mark this browser type as checked
                         checkedBrowsers.Add(processName);
@@ -256,6 +322,53 @@ namespace x_phy_wpf_ui.Services
                 }
             }
 
+            // Fallback: detect apps by window title when process name is not in our list (e.g. Task Manager shows no process name)
+            // This handles UWP apps (ApplicationFrameHost.exe) and grouped apps where the visible window is under a host process
+            foreach (var kv in processWindows)
+            {
+                uint processId = kv.Key;
+                var windowTitles = kv.Value;
+                if (windowTitles == null || windowTitles.Count == 0) continue;
+                if (addedProcessIds.Contains((int)processId)) continue;
+
+                try
+                {
+                    using var proc = Process.GetProcessById((int)processId);
+                    string procName = proc.ProcessName + ".exe";
+                    bool isKnown = VideoCallingProcesses.Contains(procName) || MediaPlayerProcesses.Contains(procName)
+                        || StreamingProcesses.Contains(procName) || BrowserProcesses.Contains(procName);
+                    if (isKnown) continue;
+
+                    // UWP / host processes that often have no process name shown in Task Manager
+                    bool isHostProcess = procName.Equals("ApplicationFrameHost.exe", StringComparison.OrdinalIgnoreCase)
+                        || procName.Equals("RuntimeBroker.exe", StringComparison.OrdinalIgnoreCase)
+                        || procName.Equals("SearchApp.exe", StringComparison.OrdinalIgnoreCase);
+
+                    if (!isHostProcess) continue;
+
+                    var match = TryMatchAppByWindowTitle(windowTitles);
+                    if (match == null) continue;
+
+                    var fallbackDetected = new DetectedProcess
+                    {
+                        ProcessId = (int)processId,
+                        ProcessName = procName,
+                        DisplayName = match.Value.DisplayName,
+                        ProcessType = match.Value.ProcessType,
+                        HasYouTubeTab = match.Value.ProcessType == "Browser" && windowTitles.Any(t =>
+                            t.IndexOf("YouTube", StringComparison.OrdinalIgnoreCase) >= 0 ||
+                            t.IndexOf("youtube.com", StringComparison.OrdinalIgnoreCase) >= 0),
+                        WindowTitle = windowTitles[0]
+                    };
+                    addedProcessIds.Add((int)processId);
+                    detectedProcesses.Add(fallbackDetected);
+                }
+                catch
+                {
+                    // Process may have exited
+                }
+            }
+
             // Remove duplicates by DisplayName (in case same app appears with different ProcessIds)
             // Group by DisplayName and take the first occurrence of each
             var uniqueByDisplayName = detectedProcesses
@@ -273,13 +386,60 @@ namespace x_phy_wpf_ui.Services
             // Combine non-browsers with one browser
             var combined = nonBrowsers.Concat(selectedBrowsers).ToList();
             
-            // Sort by priority: VideoCalling > MediaPlayer > Browser, then take top 3
+            // Sort by priority: VideoCalling > MediaPlayer > Streaming > Browser, then take top 3 only
+            int Priority(DetectedProcess p)
+            {
+                return p.ProcessType == "VideoCalling" ? 4
+                    : p.ProcessType == "MediaPlayer" ? 3
+                    : p.ProcessType == "Streaming" ? 2
+                    : 1; // Browser
+            }
             var sorted = combined
-                .OrderByDescending(p => p.ProcessType == "VideoCalling" ? 3 : p.ProcessType == "MediaPlayer" ? 2 : 1)
+                .OrderByDescending(Priority)
                 .Take(3)
                 .ToList();
 
             return sorted;
+        }
+
+        /// <summary>Match app by window title for UWP/host processes (e.g. ApplicationFrameHost) where Task Manager shows no process name.</summary>
+        private static (string DisplayName, string ProcessType)? TryMatchAppByWindowTitle(List<string> windowTitles)
+        {
+            foreach (var title in windowTitles)
+            {
+                if (string.IsNullOrWhiteSpace(title)) continue;
+                string t = title.Trim();
+
+                if (t.IndexOf("Media Player", StringComparison.OrdinalIgnoreCase) >= 0)
+                    return ("Media Player", "MediaPlayer");
+                if (t.IndexOf("Microsoft Edge", StringComparison.OrdinalIgnoreCase) >= 0)
+                    return ("Microsoft Edge", "Browser");
+                if (t.IndexOf("Google Chrome", StringComparison.OrdinalIgnoreCase) >= 0)
+                    return ("Google Chrome", "Browser");
+                if (t.IndexOf("Mozilla Firefox", StringComparison.OrdinalIgnoreCase) >= 0 || (t.IndexOf("Firefox", StringComparison.OrdinalIgnoreCase) >= 0 && t.Length < 50))
+                    return ("Mozilla Firefox", "Browser");
+                if (t.IndexOf("Opera", StringComparison.OrdinalIgnoreCase) >= 0)
+                    return ("Opera", "Browser");
+                if (t.IndexOf("Brave", StringComparison.OrdinalIgnoreCase) >= 0)
+                    return ("Brave", "Browser");
+                if (t.IndexOf("Microsoft Teams", StringComparison.OrdinalIgnoreCase) >= 0 || t.IndexOf("Teams", StringComparison.OrdinalIgnoreCase) >= 0)
+                    return ("Microsoft Teams", "VideoCalling");
+                if (t.IndexOf("VLC", StringComparison.OrdinalIgnoreCase) >= 0)
+                    return ("VLC Media Player", "MediaPlayer");
+                if (t.IndexOf("Zoom", StringComparison.OrdinalIgnoreCase) >= 0)
+                    return ("Zoom", "VideoCalling");
+                if (t.IndexOf("Webex", StringComparison.OrdinalIgnoreCase) >= 0)
+                    return ("Cisco Webex", "VideoCalling");
+                if (t.IndexOf("Slack", StringComparison.OrdinalIgnoreCase) >= 0)
+                    return ("Slack", "VideoCalling");
+                if (t.IndexOf("Discord", StringComparison.OrdinalIgnoreCase) >= 0)
+                    return ("Discord", "VideoCalling");
+                if (t.IndexOf("Skype", StringComparison.OrdinalIgnoreCase) >= 0)
+                    return ("Skype", "VideoCalling");
+                if (t.IndexOf("Windows Media Player", StringComparison.OrdinalIgnoreCase) >= 0)
+                    return ("Windows Media Player", "MediaPlayer");
+            }
+            return null;
         }
 
         private string GetDisplayName(string processName)
@@ -298,10 +458,33 @@ namespace x_phy_wpf_ui.Services
                 "msedgewebview2.exe" => "Microsoft Teams Chat",
                 "skype.exe" or "skypeapp.exe" or "skypehost.exe" => "Skype",
                 "meet.exe" => "Google Meet",
+                "webex.exe" => "Cisco Webex",
+                "slack.exe" => "Slack",
+                "discord.exe" => "Discord",
+                "bluejeans.exe" => "BlueJeans",
+                "g2mcomm.exe" => "GoTo Meeting",
+                "jiomeet.exe" => "JioMeet",
                 "vlc.exe" => "VLC Media Player",
                 "wmplayer.exe" or "wmpshare.exe" or "mediaplayer.exe" => "Windows Media Player",
+                "mplayer2.exe" => "Windows Media Player Legacy",
+                "quicktimeplayer.exe" => "QuickTime Player",
+                "kmplayer.exe" => "KMPlayer",
+                "gom.exe" => "GOM Player",
+                "potplayer.exe" => "PotPlayer",
+                "mxplayer.exe" => "MX Player",
+                "netflix.exe" => "Netflix",
+                "microsoft.media.player.exe" => "Media Player",
+                "obs64.exe" => "OBS Studio",
+                "streamlabs.exe" => "Streamlabs",
+                "xsplit.core.exe" => "XSplit Broadcaster",
+                "manycam.exe" => "ManyCam",
+                "snapcamera.exe" => "Snap Camera",
+                "nvidia broadcast.exe" => "NVIDIA Broadcast",
                 "chrome.exe" => "Google Chrome",
+                "msedge.exe" => "Microsoft Edge",
                 "firefox.exe" => "Mozilla Firefox",
+                "opera.exe" => "Opera",
+                "brave.exe" => "Brave",
                 _ => processName.Replace(".exe", "")
             };
         }

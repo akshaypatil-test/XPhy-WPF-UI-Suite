@@ -271,7 +271,7 @@
 
                 <!-- Remember Me -->
                 <CheckBox x:Name="RememberMeCheckBox"
-                          Content="Remember me (stay signed in for 30 days)"
+                          Content="Remember Me"
                           Foreground="{DynamicResource Brush.TextSecondary}"
                           FontSize="14"
                           IsChecked="True"

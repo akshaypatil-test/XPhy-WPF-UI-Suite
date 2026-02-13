@@ -127,7 +127,7 @@ namespace x_phy_wpf_ui.Controls
             {
                 var noProcessesText = new TextBlock
                 {
-                    Text = "No relevant processes detected.\n\nPlease start a video calling app (Zoom, Teams, Google Chat), media player (VLC, Windows Media Player), or open YouTube in your browser.",
+                    Text = "No relevant processes detected.\n\nPlease start a supported app (e.g. Zoom, Teams, Webex, Slack, Discord, VLC, OBS, or open YouTube in Chrome/Edge/Firefox). Only the top 3 detected apps are shown.",
                     Foreground = new SolidColorBrush(Color.FromRgb(153, 153, 153)),
                     TextWrapping = TextWrapping.Wrap,
                     Margin = new Thickness(0, 16, 0, 0),
@@ -252,7 +252,7 @@ namespace x_phy_wpf_ui.Controls
                 StartDetectionButton.IsEnabled = true;
                 StatusText.Text = "Ready to start detection";
             }
-            else if (process.ProcessType == "MediaPlayer" || process.ProcessType == "Browser")
+            else if (process.ProcessType == "MediaPlayer" || process.ProcessType == "Streaming" || process.ProcessType == "Browser")
             {
                 var videoSource = process.ProcessType == "Browser" ? DetectionSource.YouTubeWebStreamVideo : DetectionSource.VLCWebStreamVideo;
                 var webVideoButton = new Button
@@ -269,7 +269,7 @@ namespace x_phy_wpf_ui.Controls
                 {
                     Content = CreateSourceButtonContent("Web Stream Audio", "🎤"),
                     Style = (Style)FindResource("SourceButtonStyle"),
-                    Tag = process.ProcessType == "Browser" ? DetectionSource.YouTubeWebStreamAudio : DetectionSource.VLCWebStreamAudio
+                    Tag = (process.ProcessType == "Browser") ? DetectionSource.YouTubeWebStreamAudio : DetectionSource.VLCWebStreamAudio
                 };
                 webAudioButton.Click += SourceButton_Click;
                 Grid.SetColumn(webAudioButton, 2);

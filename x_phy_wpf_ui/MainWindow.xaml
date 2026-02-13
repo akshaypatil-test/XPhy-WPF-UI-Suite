@@ -261,7 +261,15 @@
             <controls:ProfileComponent x:Name="ProfileComponent"
                                        Visibility="Collapsed"
                                        BackRequested="ProfileComponent_BackRequested"
-                                       ChangePasswordRequested="ProfileComponent_ChangePasswordRequested"/>
+                                       ChangePasswordRequested="ProfileComponent_ChangePasswordRequested"
+                                       ViewFullDetailsRequested="ProfileComponent_ViewFullDetailsRequested"
+                                       ViewPlansRequested="ProfileComponent_ViewPlansRequested"/>
+
+            <!-- License & Subscription (from Profile "View full details") -->
+            <controls:LicenseSubscriptionComponent x:Name="LicenseSubscriptionComponent"
+                                                   Visibility="Collapsed"
+                                                   BackRequested="LicenseSubscriptionComponent_BackRequested"
+                                                   UpgradePlanRequested="LicenseSubscriptionComponent_UpgradePlanRequested"/>
 
             <!-- Add Corp User (Admin only) -->
             <controls:CreateCorpAccountComponent x:Name="CorpRegisterComponent"

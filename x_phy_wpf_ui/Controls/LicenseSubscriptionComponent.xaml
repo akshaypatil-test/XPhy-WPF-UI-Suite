@@ -1,0 +1,97 @@
+<UserControl x:Class="x_phy_wpf_ui.Controls.LicenseSubscriptionComponent"
+             xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
+             xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+             xmlns:mc="http://schemas.openxmlformats.org/markup-compatibility/2006"
+             xmlns:d="http://schemas.microsoft.com/expression/blend/2008"
+             mc:Ignorable="d"
+             d:DesignHeight="600" d:DesignWidth="900">
+    <UserControl.Resources>
+        <SolidColorBrush x:Key="CardBg" Color="#FFFFFF" Opacity="0.08"/>
+        <SolidColorBrush x:Key="TextPrimary" Color="#FFFFFF"/>
+        <SolidColorBrush x:Key="TextSecondary" Color="#B0B0B0"/>
+        <SolidColorBrush x:Key="TealBorder" Color="#1AB4CC"/>
+        <SolidColorBrush x:Key="TealLink" Color="#1AB4CC"/>
+        <SolidColorBrush x:Key="PrimaryPink" Color="#E2156B"/>
+        <SolidColorBrush x:Key="ActiveGreen" Color="#22C55E"/>
+        <SolidColorBrush x:Key="ExpiredRed" Color="#EF4444"/>
+        <LinearGradientBrush x:Key="CardBorderBrush" StartPoint="0,0" EndPoint="0,1">
+            <GradientStop Color="#1AB4CC" Offset="0"/>
+            <GradientStop Color="#801AB4CC" Offset="0.5"/>
+            <GradientStop Color="Transparent" Offset="1"/>
+        </LinearGradientBrush>
+        <Style x:Key="CardBorder" TargetType="Border">
+            <Setter Property="Background" Value="{StaticResource CardBg}"/>
+            <Setter Property="BorderBrush" Value="{StaticResource CardBorderBrush}"/>
+            <Setter Property="BorderThickness" Value="1"/>
+            <Setter Property="CornerRadius" Value="8"/>
+            <Setter Property="Padding" Value="14,10"/>
+        </Style>
+        <Style x:Key="BackButtonStyle" TargetType="Button">
+            <Setter Property="Background" Value="Transparent"/>
+            <Setter Property="Foreground" Value="{StaticResource TextSecondary}"/>
+            <Setter Property="FontSize" Value="14"/>
+            <Setter Property="Padding" Value="12,8"/>
+            <Setter Property="BorderThickness" Value="0"/>
+            <Setter Property="Cursor" Value="Hand"/>
+            <Setter Property="HorizontalAlignment" Value="Left"/>
+        </Style>
+        <Style x:Key="PinkButton" TargetType="Button">
+            <Setter Property="Background" Value="{StaticResource PrimaryPink}"/>
+            <Setter Property="Foreground" Value="White"/>
+            <Setter Property="FontSize" Value="12"/>
+            <Setter Property="FontWeight" Value="SemiBold"/>
+            <Setter Property="Padding" Value="12,6"/>
+            <Setter Property="BorderThickness" Value="0"/>
+            <Setter Property="Cursor" Value="Hand"/>
+            <Setter Property="HorizontalAlignment" Value="Left"/>
+            <Setter Property="Template">
+                <Setter.Value>
+                    <ControlTemplate TargetType="Button">
+                        <Border Background="{TemplateBinding Background}" CornerRadius="8" Padding="{TemplateBinding Padding}">
+                            <ContentPresenter HorizontalAlignment="Center" VerticalAlignment="Center"/>
+                        </Border>
+                    </ControlTemplate>
+                </Setter.Value>
+            </Setter>
+        </Style>
+    </UserControl.Resources>
+    <ScrollViewer VerticalScrollBarVisibility="Auto" HorizontalScrollBarVisibility="Disabled">
+        <StackPanel Margin="24,16">
+            <Button x:Name="BackButton" Content="← Back" Style="{StaticResource BackButtonStyle}" Click="BackButton_Click" Margin="0,0,0,12"/>
+            <TextBlock Text="License &amp; Subscription" FontSize="20" FontWeight="SemiBold" Foreground="{StaticResource TextPrimary}" Margin="0,0,0,16"/>
+            <TextBlock x:Name="LoadingText" Text="Loading..." Foreground="{StaticResource TextSecondary}" Visibility="Visible" Margin="0,8,0,8"/>
+            <ItemsControl x:Name="PlansList" Visibility="Collapsed">
+                <ItemsControl.ItemTemplate>
+                    <DataTemplate>
+                        <Border Style="{StaticResource CardBorder}" Margin="0,0,0,12">
+                            <StackPanel>
+                                <StackPanel Orientation="Horizontal" Margin="0,0,0,8">
+                                    <TextBlock Text="{Binding PlanDisplayName}" FontSize="14" FontWeight="SemiBold" Foreground="{StaticResource TextPrimary}" VerticalAlignment="Center"/>
+                                    <Border Margin="8,0,0,0" VerticalAlignment="Center" Background="{Binding StatusBrush}" CornerRadius="4" Padding="8,4">
+                                        <TextBlock Text="{Binding Status}" Foreground="White" FontSize="11" FontWeight="SemiBold"/>
+                                    </Border>
+                                </StackPanel>
+                                <TextBlock FontSize="12" Foreground="{StaticResource TextSecondary}" Margin="0,0,0,2">
+                                    <Run Text="Billing Cycle: "/>
+                                    <Run Text="{Binding BillingCycle}"/>
+                                </TextBlock>
+                                <TextBlock FontSize="12" Foreground="{StaticResource TextSecondary}" Margin="0,0,0,2">
+                                    <Run Text="Expiry Date: "/>
+                                    <Run Text="{Binding ExpiryDateDisplay}"/>
+                                </TextBlock>
+                                <StackPanel Visibility="{Binding RenewalAmountVisibility}">
+                                    <TextBlock FontSize="12" Foreground="{StaticResource TextSecondary}" Margin="0,0,0,8">
+                                        <Run Text="Renewal Amount: "/>
+                                        <Run Text="{Binding RenewalAmount}"/>
+                                    </TextBlock>
+                                </StackPanel>
+                                <Button Content="Upgrade Plan" Style="{StaticResource PinkButton}" Visibility="{Binding UpgradeButtonVisibility}" Click="UpgradePlan_Click" Margin="0,4,0,0"/>
+                            </StackPanel>
+                        </Border>
+                    </DataTemplate>
+                </ItemsControl.ItemTemplate>
+            </ItemsControl>
+            <TextBlock x:Name="NoPlansText" Text="No licenses found." Foreground="{StaticResource TextSecondary}" Visibility="Collapsed" Margin="0,8,0,8"/>
+        </StackPanel>
+    </ScrollViewer>
+</UserControl>

@@ -52,6 +52,14 @@ namespace x_phy_wpf_ui.Controls
             System.Diagnostics.Debug.WriteLine($"AuthHostView: Loading background image: {imageName}");
             MainBgImage.Source = new BitmapImage(uri);
             
+            // Update logo
+            if (LogoImage != null)
+            {
+                var logoName = isLight ? "/x-phy-inverted-logo.png" : "/x-phy.png";
+                LogoImage.Source = new BitmapImage(new Uri(logoName, UriKind.Relative));
+                System.Diagnostics.Debug.WriteLine($"AuthHostView: Set logo to: {logoName}");
+            }
+            
             // Update left panel overlay
             if (LeftPanelOverlay != null)
             {

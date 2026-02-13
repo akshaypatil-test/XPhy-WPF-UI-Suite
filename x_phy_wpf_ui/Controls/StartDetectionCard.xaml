@@ -69,7 +69,8 @@
     </UserControl.Resources>
 
     <!-- Card: rounded corners, no border -->
-    <Border CornerRadius="36"
+    <Border x:Name="CardBorder"
+            CornerRadius="36"
             Padding="56,44,56,44"
             BorderThickness="0"
             MaxWidth="560"
@@ -77,7 +78,8 @@
             VerticalAlignment="Center"
             ClipToBounds="True">
         <Border.Background>
-            <ImageBrush ImageSource="pack://application:,,,/facebg.png"
+            <ImageBrush x:Name="BackgroundImageBrush"
+                        ImageSource="pack://application:,,,/facebg.png"
                         Stretch="UniformToFill"
                         AlignmentX="Center"
                         AlignmentY="Center"/>

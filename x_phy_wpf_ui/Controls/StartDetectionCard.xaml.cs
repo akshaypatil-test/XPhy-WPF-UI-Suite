@@ -1,6 +1,9 @@
 using System;
 using System.Windows;
 using System.Windows.Controls;
+using System.Windows.Media.Imaging;
+using x_phy_wpf_ui.Services;
+using static x_phy_wpf_ui.Services.ThemeManager;
 
 namespace x_phy_wpf_ui.Controls
 {
@@ -21,6 +24,40 @@ namespace x_phy_wpf_ui.Controls
         public StartDetectionCard()
         {
             InitializeComponent();
+            Loaded += StartDetectionCard_Loaded;
+            IsVisibleChanged += StartDetectionCard_IsVisibleChanged;
+        }
+
+        private void StartDetectionCard_Loaded(object sender, RoutedEventArgs e)
+        {
+            UpdateBackgroundImage();
+        }
+
+        private void StartDetectionCard_IsVisibleChanged(object sender, DependencyPropertyChangedEventArgs e)
+        {
+            if (IsVisible)
+            {
+                UpdateBackgroundImage();
+            }
+        }
+
+        private void UpdateBackgroundImage()
+        {
+            if (BackgroundImageBrush == null) return;
+
+            try
+            {
+                var isLight = ThemeManager.CurrentTheme == Theme.Light;
+                var imagePath = isLight ? "pack://application:,,,/facebg-white.png" : "pack://application:,,,/facebg.png";
+                
+                BackgroundImageBrush.ImageSource = new BitmapImage(new Uri(imagePath));
+                
+                System.Diagnostics.Debug.WriteLine($"StartDetectionCard: Updated background to {(isLight ? "facebg-white.png" : "facebg.png")}");
+            }
+            catch (Exception ex)
+            {
+                System.Diagnostics.Debug.WriteLine($"StartDetectionCard: Error updating background - {ex.Message}");
+            }
         }
 
         private void StartButton_Click(object sender, RoutedEventArgs e)

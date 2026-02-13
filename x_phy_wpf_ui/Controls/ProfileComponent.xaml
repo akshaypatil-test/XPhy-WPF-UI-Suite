@@ -58,8 +58,26 @@
             <Setter Property="Foreground" Value="{DynamicResource Brush.TextPrimary}"/>
             <Setter Property="BorderBrush" Value="{DynamicResource Brush.Secondary}"/>
             <Setter Property="BorderThickness" Value="1"/>
-            <Setter Property="Padding" Value="16,8"/>
+            <Setter Property="Padding" Value="10,6"/>
+            <Setter Property="FontSize" Value="12"/>
             <Setter Property="Cursor" Value="Hand"/>
+            <Setter Property="Template">
+                <Setter.Value>
+                    <ControlTemplate TargetType="Button">
+                        <Border Background="{TemplateBinding Background}" BorderBrush="{TemplateBinding BorderBrush}" BorderThickness="{TemplateBinding BorderThickness}" CornerRadius="6" Padding="{TemplateBinding Padding}">
+                            <ContentPresenter HorizontalAlignment="Center" VerticalAlignment="Center"/>
+                        </Border>
+                    </ControlTemplate>
+                </Setter.Value>
+            </Setter>
+        </Style>
+        <!-- Green status tag: outline only (no fill) -->
+        <Style x:Key="StatusTagOutline" TargetType="Border">
+            <Setter Property="Background" Value="Transparent"/>
+            <Setter Property="BorderBrush" Value="{DynamicResource Brush.Success}"/>
+            <Setter Property="BorderThickness" Value="1"/>
+            <Setter Property="CornerRadius" Value="4"/>
+            <Setter Property="Padding" Value="6,2"/>
         </Style>
         <Style x:Key="BackButtonStyle" TargetType="Button">
             <Setter Property="Background" Value="Transparent"/>
@@ -142,34 +160,68 @@
                     <!-- Card 3: Subscription Summary -->
                     <Border Style="{StaticResource CardBorder}" Margin="0,0,0,8">
                         <StackPanel>
-                            <Grid Margin="0,0,0,6">
+                            <Grid Margin="0,0,0,0">
                                 <TextBlock Text="Subscription Summary" FontSize="14" FontWeight="SemiBold" Foreground="{DynamicResource Brush.TextPrimary}" VerticalAlignment="Center"/>
-                                <Button HorizontalAlignment="Right" Content="View Plans" Style="{StaticResource TealOutlinedButton}" IsEnabled="False" Opacity="0.6" Padding="10,6" FontSize="12"/>
+                                <Button x:Name="ViewPlansButton" HorizontalAlignment="Right" Content="View Plans" Style="{StaticResource TealOutlinedButton}" Click="ViewPlans_Click"/>
                             </Grid>
-                            <TextBlock x:Name="PlanNameText" Text="Annual Plan" FontSize="13" Foreground="{DynamicResource Brush.TextPrimary}" Margin="0,0,0,2"/>
+                            <Border Height="1" Background="{DynamicResource Brush.Secondary}" Margin="10,6,10,8"/>
                             <StackPanel Orientation="Horizontal" Margin="0,0,0,4">
-                                <Border Background="{DynamicResource Brush.Success}" CornerRadius="4" Padding="6,2" Margin="0,0,6,0">
-                                    <TextBlock x:Name="SubscriptionStatusTag" Text="Active" Foreground="{DynamicResource Brush.White}" FontSize="11" FontWeight="SemiBold"/>
+                                <TextBlock x:Name="PlanNameText" Text="Annual Plan" FontSize="13" Foreground="{DynamicResource Brush.TextPrimary}" VerticalAlignment="Center"/>
+                                <Border x:Name="SubscriptionStatusTag" Style="{StaticResource StatusTagOutline}" Margin="8,0,0,0" VerticalAlignment="Center">
+                                    <TextBlock x:Name="SubscriptionStatusTagText" Text="Active" Foreground="{DynamicResource Brush.Success}" FontSize="11" FontWeight="SemiBold"/>
                                 </Border>
                             </StackPanel>
-                            <TextBlock x:Name="PlanTypeText" Text="Plan Type: Annual" FontSize="12" Foreground="{DynamicResource Brush.TextSecondary}" Margin="0,0,0,2"/>
-                            <TextBlock x:Name="PlanExpiryText" Text="Expiry Date: —" FontSize="12" Foreground="{DynamicResource Brush.TextSecondary}" Margin="0,0,0,4"/>
-                            <TextBlock Text="View full details" Foreground="{DynamicResource Brush.Secondary}" FontSize="12" Cursor="Hand" IsHitTestVisible="False" Opacity="0.6"/>
+                            <Grid Margin="0,0,0,2">
+                                <Grid.ColumnDefinitions>
+                                    <ColumnDefinition Width="*"/>
+                                    <ColumnDefinition Width="Auto"/>
+                                </Grid.ColumnDefinitions>
+                                <TextBlock Text="Plan Type:" FontSize="12" Foreground="{DynamicResource Brush.TextSecondary}" VerticalAlignment="Center"/>
+                                <TextBlock x:Name="PlanTypeValue" Grid.Column="1" Text="—" FontSize="12" FontWeight="SemiBold" Foreground="{DynamicResource Brush.TextPrimary}" HorizontalAlignment="Right" VerticalAlignment="Center"/>
+                            </Grid>
+                            <Grid Margin="0,0,0,6">
+                                <Grid.ColumnDefinitions>
+                                    <ColumnDefinition Width="*"/>
+                                    <ColumnDefinition Width="Auto"/>
+                                </Grid.ColumnDefinitions>
+                                <TextBlock Text="Expiry Date:" FontSize="12" Foreground="{DynamicResource Brush.TextSecondary}" VerticalAlignment="Center"/>
+                                <TextBlock x:Name="PlanExpiryValue" Grid.Column="1" Text="—" FontSize="12" FontWeight="SemiBold" Foreground="{DynamicResource Brush.TextPrimary}" HorizontalAlignment="Right" VerticalAlignment="Center"/>
+                            </Grid>
+                            <TextBlock Text="View full details" Foreground="{DynamicResource Brush.Secondary}" FontSize="12" Cursor="Hand" MouseLeftButtonDown="ViewFullDetails_MouseLeftButtonDown" HorizontalAlignment="Right"/>
                         </StackPanel>
                     </Border>
 
                     <!-- Card 4: Account Summary -->
                     <Border Style="{StaticResource CardBorder}" Margin="0,0,0,0">
                         <StackPanel>
-                            <TextBlock Text="Account Summary" FontSize="14" FontWeight="SemiBold" Foreground="{DynamicResource Brush.TextPrimary}" Margin="0,0,0,6"/>
-                            <TextBlock x:Name="MemberSinceText" Text="Member Since: —" FontSize="12" Foreground="{DynamicResource Brush.TextSecondary}" Margin="0,0,0,2"/>
-                            <TextBlock x:Name="LastLoginText" Text="Last Login: —" FontSize="12" Foreground="{DynamicResource Brush.TextSecondary}" Margin="0,0,0,2"/>
-                            <StackPanel Orientation="Horizontal">
-                                <TextBlock Text="Account Status: " FontSize="12" Foreground="{DynamicResource Brush.TextSecondary}"/>
-                                <Border x:Name="AccountStatusTag" Background="{DynamicResource Brush.Success}" CornerRadius="4" Padding="6,2">
-                                    <TextBlock x:Name="AccountStatusText" Text="Verified" Foreground="{DynamicResource Brush.White}" FontSize="11" FontWeight="SemiBold"/>
+                            <TextBlock Text="Account Summary" FontSize="14" FontWeight="SemiBold" Foreground="{DynamicResource Brush.TextPrimary}" Margin="0,0,0,0"/>
+                            <Border Height="1" Background="{DynamicResource Brush.Secondary}" Margin="10,6,10,8"/>
+                            <Grid Margin="0,0,0,2">
+                                <Grid.ColumnDefinitions>
+                                    <ColumnDefinition Width="*"/>
+                                    <ColumnDefinition Width="Auto"/>
+                                </Grid.ColumnDefinitions>
+                                <TextBlock Text="Member Since:" FontSize="12" Foreground="{DynamicResource Brush.TextSecondary}" VerticalAlignment="Center"/>
+                                <TextBlock x:Name="MemberSinceValue" Grid.Column="1" Text="—" FontSize="12" FontWeight="SemiBold" Foreground="{DynamicResource Brush.TextPrimary}" HorizontalAlignment="Right" VerticalAlignment="Center"/>
+                            </Grid>
+                            <Grid Margin="0,0,0,2">
+                                <Grid.ColumnDefinitions>
+                                    <ColumnDefinition Width="*"/>
+                                    <ColumnDefinition Width="Auto"/>
+                                </Grid.ColumnDefinitions>
+                                <TextBlock Text="Last Login:" FontSize="12" Foreground="{DynamicResource Brush.TextSecondary}" VerticalAlignment="Center"/>
+                                <TextBlock x:Name="LastLoginValue" Grid.Column="1" Text="—" FontSize="12" FontWeight="SemiBold" Foreground="{DynamicResource Brush.TextPrimary}" HorizontalAlignment="Right" VerticalAlignment="Center"/>
+                            </Grid>
+                            <Grid>
+                                <Grid.ColumnDefinitions>
+                                    <ColumnDefinition Width="*"/>
+                                    <ColumnDefinition Width="Auto"/>
+                                </Grid.ColumnDefinitions>
+                                <TextBlock Text="Account Status:" FontSize="12" Foreground="{DynamicResource Brush.TextSecondary}" VerticalAlignment="Center"/>
+                                <Border x:Name="AccountStatusTag" Grid.Column="1" Style="{StaticResource StatusTagOutline}">
+                                    <TextBlock x:Name="AccountStatusText" Text="Verified" Foreground="{DynamicResource Brush.Success}" FontSize="11" FontWeight="SemiBold"/>
                                 </Border>
-                            </StackPanel>
+                            </Grid>
                         </StackPanel>
                     </Border>
                 </StackPanel>

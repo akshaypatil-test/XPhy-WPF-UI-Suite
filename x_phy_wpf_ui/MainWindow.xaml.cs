@@ -1427,6 +1427,8 @@ videoLiveFakeProportionThreshold = 0.7
                 DetectionResultsScreen.Visibility = Visibility.Collapsed;
             if (ProfileComponent != null)
                 ProfileComponent.Visibility = Visibility.Collapsed;
+            if (LicenseSubscriptionComponent != null)
+                LicenseSubscriptionComponent.Visibility = Visibility.Collapsed;
             SupportComponent.Visibility = Visibility.Visible;
         }
 
@@ -1444,6 +1446,8 @@ videoLiveFakeProportionThreshold = 0.7
             StripePaymentComponentContainer.Visibility = Visibility.Collapsed;
             CorpRegisterComponent.Visibility = Visibility.Collapsed;
             SupportComponent.Visibility = Visibility.Collapsed;
+            if (LicenseSubscriptionComponent != null)
+                LicenseSubscriptionComponent.Visibility = Visibility.Collapsed;
             SettingsComponent.Visibility = Visibility.Collapsed;
             if (DetectionResultsScreen != null)
                 DetectionResultsScreen.Visibility = Visibility.Collapsed;
@@ -1475,6 +1479,31 @@ videoLiveFakeProportionThreshold = 0.7
             ProfileComponent.Visibility = Visibility.Collapsed;
             if (TopNavBar != null)
                 TopNavBar.SelectedPage = "Home";
+        }
+
+        private void ProfileComponent_ViewFullDetailsRequested(object sender, EventArgs e)
+        {
+            ProfileComponent.Visibility = Visibility.Collapsed;
+            LicenseSubscriptionComponent.Visibility = Visibility.Visible;
+            _ = LicenseSubscriptionComponent.LoadLicensesAsync();
+        }
+
+        private void ProfileComponent_ViewPlansRequested(object sender, EventArgs e)
+        {
+            ProfileComponent.Visibility = Visibility.Collapsed;
+            ShowPlansComponent();
+        }
+
+        private void LicenseSubscriptionComponent_BackRequested(object sender, EventArgs e)
+        {
+            LicenseSubscriptionComponent.Visibility = Visibility.Collapsed;
+            ShowProfileComponent();
+        }
+
+        private void LicenseSubscriptionComponent_UpgradePlanRequested(object sender, EventArgs e)
+        {
+            LicenseSubscriptionComponent.Visibility = Visibility.Collapsed;
+            ShowPlansComponent();
         }
 
         private void ProfileComponent_ChangePasswordRequested(object sender, EventArgs e)
@@ -1641,6 +1670,8 @@ videoLiveFakeProportionThreshold = 0.7
                 DetectionResultsScreen.Visibility = Visibility.Collapsed;
             if (ProfileComponent != null)
                 ProfileComponent.Visibility = Visibility.Collapsed;
+            if (LicenseSubscriptionComponent != null)
+                LicenseSubscriptionComponent.Visibility = Visibility.Collapsed;
             PlansComponent.Visibility = Visibility.Visible;
             StripePaymentComponentContainer.Visibility = Visibility.Collapsed;
         }
@@ -1656,6 +1687,8 @@ videoLiveFakeProportionThreshold = 0.7
             SettingsComponent.Visibility = Visibility.Collapsed;
             if (ProfileComponent != null)
                 ProfileComponent.Visibility = Visibility.Collapsed;
+            if (LicenseSubscriptionComponent != null)
+                LicenseSubscriptionComponent.Visibility = Visibility.Collapsed;
             if (TopNavBar != null)
                 TopNavBar.SelectedPage = "Results";
 
@@ -1710,6 +1743,8 @@ videoLiveFakeProportionThreshold = 0.7
             SettingsComponent.Visibility = Visibility.Collapsed;
             if (ProfileComponent != null)
                 ProfileComponent.Visibility = Visibility.Collapsed;
+            if (LicenseSubscriptionComponent != null)
+                LicenseSubscriptionComponent.Visibility = Visibility.Collapsed;
             if (DetectionResultsScreen != null)
                 DetectionResultsScreen.Visibility = Visibility.Collapsed;
         }

@@ -51,7 +51,8 @@
             </Grid.ColumnDefinitions>
             
             <!-- Logo -->
-            <Image Grid.Column="0" 
+            <Image x:Name="LogoImage"
+                   Grid.Column="0" 
                    Source="/x-phy.png" 
                    Width="57" 
                    Height="32" 

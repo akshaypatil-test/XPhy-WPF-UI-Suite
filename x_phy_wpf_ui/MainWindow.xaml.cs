@@ -11,12 +11,14 @@ using System.Windows.Controls;
 using System.Windows.Input;
 using System.Windows.Interop;
 using System.Windows.Media;
+using System.Windows.Media.Imaging;
 using System.Windows.Threading;
 using Forms = System.Windows.Forms;
 using XPhyWrapper;
 using x_phy_wpf_ui.Services;
 using x_phy_wpf_ui.Models;
 using x_phy_wpf_ui.Controls;
+using static x_phy_wpf_ui.Services.ThemeManager;
 
 namespace x_phy_wpf_ui
 {
@@ -473,6 +475,9 @@ namespace x_phy_wpf_ui
 
         private void MainWindow_Loaded(object sender, RoutedEventArgs e)
         {
+            // Update logo based on theme
+            UpdateLogo();
+            
             // Set exact window size (1000x783)
             this.Width = 1000;
             this.Height = 783;
@@ -1005,6 +1010,23 @@ videoLiveFakeProportionThreshold = 0.7
             else
             {
                 _floatingWidget?.Hide();
+            }
+        }
+
+        private void UpdateLogo()
+        {
+            if (LogoImage == null) return;
+
+            try
+            {
+                var isLight = ThemeManager.CurrentTheme == Theme.Light;
+                var logoPath = isLight ? "/x-phy-inverted-logo.png" : "/x-phy.png";
+                LogoImage.Source = new BitmapImage(new Uri(logoPath, UriKind.Relative));
+                System.Diagnostics.Debug.WriteLine($"MainWindow: Set logo to {logoPath}");
+            }
+            catch (Exception ex)
+            {
+                System.Diagnostics.Debug.WriteLine($"MainWindow: Error updating logo - {ex.Message}");
             }
         }
 

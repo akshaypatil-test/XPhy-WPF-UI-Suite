@@ -58,7 +58,8 @@
                     </Grid.ColumnDefinitions>
 
                     <!-- X-PHY logo from resources -->
-                    <Image Grid.Column="0"
+                    <Image x:Name="LogoImage"
+                           Grid.Column="0"
                            Source="/x-phy.png"
                            Width="60"
                            Height="32"

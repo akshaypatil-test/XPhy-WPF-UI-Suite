@@ -14,7 +14,8 @@
 
             <!-- Main Heading -->
             <!-- X-PHY Logo -->
-            <Image Source="/x-phy.png" 
+            <Image x:Name="LogoImage"
+                   Source="/x-phy.png" 
                    Width="140" 
                    Height="80" 
                    Stretch="Uniform"

@@ -91,6 +91,9 @@
     <Resource Include="..\X-PHY Resource Files\faceBg.png">
       <Link>facebg.png</Link>
     </Resource>
+    <Resource Include="..\X-PHY Resource Files\facebg-white.png">
+      <Link>facebg-white.png</Link>
+    </Resource>
     <Resource Include="..\X-PHY Resource Files\mainbg.png">
       <Link>mainbg.png</Link>
     </Resource>

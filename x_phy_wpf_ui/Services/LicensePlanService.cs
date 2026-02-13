@@ -15,6 +15,7 @@ namespace x_phy_wpf_ui.Services
     {
         private readonly HttpClient _httpClient;
         private readonly string _baseUrl;
+        private readonly TokenStorage _tokenStorage;
 
         public LicensePlanService()
         {
@@ -26,17 +27,29 @@ namespace x_phy_wpf_ui.Services
                 Timeout = TimeSpan.FromSeconds(30)
             };
             _httpClient.DefaultRequestHeaders.Add("Accept", "application/json");
+            _tokenStorage = new TokenStorage();
 
             // Ignore SSL certificate errors for localhost (development only)
             ServicePointManager.ServerCertificateValidationCallback += 
                 (sender, certificate, chain, sslPolicyErrors) => true;
         }
 
+        /// <summary>PlanType for API: CorpUser or NonCorpUser. Matches backend XPhy.Licensing.Api.Models.PlanType.</summary>
+        private string GetPlanTypeForApi()
+        {
+            var tokens = _tokenStorage.GetTokens();
+            var userType = tokens?.UserInfo?.UserType?.Trim();
+            if (string.Equals(userType, "Corp", StringComparison.OrdinalIgnoreCase))
+                return "CorpUser";
+            return "NonCorpUser";
+        }
+
         public async Task<List<LicensePlanDto>> GetPlansAsync()
         {
             try
             {
-                var response = await _httpClient.GetAsync("/api/License/plans");
+                var planType = GetPlanTypeForApi();
+                var response = await _httpClient.GetAsync($"/api/License/plans?planType={Uri.EscapeDataString(planType)}");
 
                 if (response.IsSuccessStatusCode)
                 {

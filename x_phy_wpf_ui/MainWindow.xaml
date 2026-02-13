@@ -105,7 +105,7 @@
                             </Setter>
                             <Style.Triggers>
                                 <Trigger Property="IsMouseOver" Value="True">
-                                    <Setter Property="Background" Value="{StaticResource CloseButtonHover}"/>
+                                    <Setter Property="Background" Value="{DynamicResource Brush.Danger}"/>
                                 </Trigger>
                             </Style.Triggers>
                         </Style>
@@ -223,6 +223,15 @@
                                SupportClicked="BottomBar_SupportClicked"
                                LogoutClicked="BottomBar_LogoutClicked"/>
         </Grid>
+        </Grid>
+
+        <!-- Change Password overlay: teal tint, glass dialog -->
+        <Grid x:Name="ChangePasswordOverlay" Visibility="Collapsed" Background="#801AB4CC" IsHitTestVisible="True">
+            <Border HorizontalAlignment="Center" VerticalAlignment="Center" MinWidth="420" MaxWidth="480"
+                    Background="#E0101010" BorderBrush="{DynamicResource Brush.Secondary}"
+                    BorderThickness="1" CornerRadius="12" Padding="32,28">
+                <ContentControl x:Name="ChangePasswordOverlayContent"/>
+            </Border>
         </Grid>
         </Grid>
     </Border>

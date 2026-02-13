@@ -28,7 +28,7 @@
         </Grid.RowDefinitions>
         
         <!-- Background Image -->
-        <Image Source="pack://application:,,,/mainbg.png" 
+        <Image x:Name="MainBgImage"
                Stretch="UniformToFill" 
                HorizontalAlignment="Stretch"
                VerticalAlignment="Stretch"

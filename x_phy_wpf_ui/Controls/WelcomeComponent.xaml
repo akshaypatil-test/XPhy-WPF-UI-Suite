@@ -23,7 +23,7 @@
             <!-- Main Heading -->
             <TextBlock Text="WELCOME TO X-PHY DEEPFAKE DETECTOR" 
                        FontSize="28"
-                       Foreground="{StaticResource TextPrimary}"
+                       Foreground="{DynamicResource Brush.TextPrimary}"
                        HorizontalAlignment="Center"
                        TextAlignment="Center"
                        Margin="0,0,0,20" TextWrapping="WrapWithOverflow" Height="80"/>
@@ -32,7 +32,7 @@
             <TextBlock Text="Trust What You See Again" 
                        FontSize="22" 
                        FontWeight="Light"
-                       Foreground="{StaticResource PrimaryPink}"
+                       Foreground="{DynamicResource Brush.Primary}"
                        HorizontalAlignment="Center"
                        TextAlignment="Center" Height="35"/>
         </StackPanel>

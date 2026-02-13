@@ -21,6 +21,8 @@ namespace x_phy_wpf_ui.Services
         {
             try
             {
+                System.Diagnostics.Debug.WriteLine($"ThemeManager.ApplyTheme: Applying theme = {theme}");
+                
                 var app = Application.Current;
                 if (app == null) return;
 
@@ -28,6 +30,8 @@ namespace x_phy_wpf_ui.Services
                 var themeUri = theme == Theme.Dark 
                     ? "Resources/Themes/Dark.xaml" 
                     : "Resources/Themes/Light.xaml";
+                
+                System.Diagnostics.Debug.WriteLine($"ThemeManager.ApplyTheme: Loading theme file: {themeUri}");
                 
                 var themeDict = new ResourceDictionary
                 {
@@ -50,6 +54,8 @@ namespace x_phy_wpf_ui.Services
                 }
 
                 CurrentTheme = theme;
+                System.Diagnostics.Debug.WriteLine($"ThemeManager.ApplyTheme: Theme applied successfully. CurrentTheme is now: {CurrentTheme}");
+                
                 SaveThemePreference(theme);
             }
             catch (Exception ex)
@@ -87,17 +93,23 @@ namespace x_phy_wpf_ui.Services
             {
                 // Try to load from a simple text file in AppData
                 var themeFile = GetThemePreferenceFilePath();
+                System.Diagnostics.Debug.WriteLine($"ThemeManager.LoadSavedTheme: Looking for theme file at: {themeFile}");
+                
                 if (System.IO.File.Exists(themeFile))
                 {
                     var savedTheme = System.IO.File.ReadAllText(themeFile).Trim();
+                    System.Diagnostics.Debug.WriteLine($"ThemeManager.LoadSavedTheme: Found saved theme: {savedTheme}");
+                    
                     if (Enum.TryParse<Theme>(savedTheme, out var theme))
                     {
+                        System.Diagnostics.Debug.WriteLine($"ThemeManager.LoadSavedTheme: Applying saved theme: {theme}");
                         ApplyTheme(theme);
                         return;
                     }
                 }
                 
                 // Default to Dark theme
+                System.Diagnostics.Debug.WriteLine("ThemeManager.LoadSavedTheme: No saved theme found, defaulting to Dark");
                 ApplyTheme(Theme.Dark);
             }
             catch (Exception ex)

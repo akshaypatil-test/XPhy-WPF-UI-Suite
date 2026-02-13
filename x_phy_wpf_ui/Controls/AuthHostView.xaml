@@ -26,18 +26,18 @@
                     SnapsToDevicePixels="True"
                     Margin="1,0,1,1">
                 <Grid>
-                    <Image Source="pack://application:,,,/mainbg.png" 
+                    <Image x:Name="MainBgImage"
                            Stretch="UniformToFill"
                            HorizontalAlignment="Stretch"
                            VerticalAlignment="Stretch"
                            RenderOptions.BitmapScalingMode="HighQuality"/>
-                    <!-- Black tint overlay on the left half -->
+                    <!-- Tint overlay on the left half (black for dark, white for light) -->
                     <Grid>
                         <Grid.ColumnDefinitions>
                             <ColumnDefinition Width="*"/>
                             <ColumnDefinition Width="*"/>
                         </Grid.ColumnDefinitions>
-                        <Border Grid.Column="0" Background="#CC000000"/>
+                        <Border x:Name="LeftPanelOverlay" Grid.Column="0" Background="#CC000000"/>
                     </Grid>
                 </Grid>
             </Border>

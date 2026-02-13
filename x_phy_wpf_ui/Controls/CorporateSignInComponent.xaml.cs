@@ -57,9 +57,9 @@ namespace x_phy_wpf_ui.Controls
             UpdatePasswordPlaceholder();
             UpdateLicenseKeyPlaceholder();
             UpdateSignInButtonState();
-            if (UsernameFieldBorder != null) UsernameFieldBorder.BorderBrush = (System.Windows.Media.Brush)FindResource("InputBorder");
-            if (PasswordFieldBorder != null) PasswordFieldBorder.BorderBrush = (System.Windows.Media.Brush)FindResource("InputBorder");
-            if (LicenseKeyFieldBorder != null) LicenseKeyFieldBorder.BorderBrush = (System.Windows.Media.Brush)FindResource("InputBorder");
+            if (UsernameFieldBorder != null) UsernameFieldBorder.BorderBrush = (System.Windows.Media.Brush)FindResource("Brush.Border");
+            if (PasswordFieldBorder != null) PasswordFieldBorder.BorderBrush = (System.Windows.Media.Brush)FindResource("Brush.Border");
+            if (LicenseKeyFieldBorder != null) LicenseKeyFieldBorder.BorderBrush = (System.Windows.Media.Brush)FindResource("Brush.Border");
         }
 
         public void SetError(string message)
@@ -100,7 +100,7 @@ namespace x_phy_wpf_ui.Controls
         private void UsernameTextBox_GotFocus(object sender, RoutedEventArgs e)
         {
             if (UsernameFieldBorder != null)
-                UsernameFieldBorder.BorderBrush = (System.Windows.Media.Brush)FindResource("InputBorderFocused");
+                UsernameFieldBorder.BorderBrush = (System.Windows.Media.Brush)FindResource("Brush.Primary");
         }
 
         private void UsernameTextBox_LostFocus(object sender, RoutedEventArgs e)
@@ -117,13 +117,13 @@ namespace x_phy_wpf_ui.Controls
         private void LicenseKeyTextBox_GotFocus(object sender, RoutedEventArgs e)
         {
             if (LicenseKeyFieldBorder != null)
-                LicenseKeyFieldBorder.BorderBrush = (System.Windows.Media.Brush)FindResource("InputBorderFocused");
+                LicenseKeyFieldBorder.BorderBrush = (System.Windows.Media.Brush)FindResource("Brush.Primary");
         }
 
         private void LicenseKeyTextBox_LostFocus(object sender, RoutedEventArgs e)
         {
             if (LicenseKeyFieldBorder != null)
-                LicenseKeyFieldBorder.BorderBrush = (System.Windows.Media.Brush)FindResource("InputBorder");
+                LicenseKeyFieldBorder.BorderBrush = (System.Windows.Media.Brush)FindResource("Brush.Border");
         }
 
         private void PasswordBox_PasswordChanged(object sender, RoutedEventArgs e)
@@ -167,13 +167,13 @@ namespace x_phy_wpf_ui.Controls
         private void PasswordBox_GotFocus(object sender, RoutedEventArgs e)
         {
             if (PasswordFieldBorder != null)
-                PasswordFieldBorder.BorderBrush = (System.Windows.Media.Brush)FindResource("InputBorderFocused");
+                PasswordFieldBorder.BorderBrush = (System.Windows.Media.Brush)FindResource("Brush.Primary");
         }
 
         private void PasswordRevealTextBox_GotFocus(object sender, RoutedEventArgs e)
         {
             if (PasswordFieldBorder != null)
-                PasswordFieldBorder.BorderBrush = (System.Windows.Media.Brush)FindResource("InputBorderFocused");
+                PasswordFieldBorder.BorderBrush = (System.Windows.Media.Brush)FindResource("Brush.Primary");
         }
 
         private void PasswordBox_LostFocus(object sender, RoutedEventArgs e)
@@ -229,18 +229,18 @@ namespace x_phy_wpf_ui.Controls
         {
             if (UsernameFieldBorder == null) return;
             if (hasError)
-                UsernameFieldBorder.BorderBrush = new System.Windows.Media.SolidColorBrush(System.Windows.Media.Color.FromRgb(255, 107, 107));
+                UsernameFieldBorder.BorderBrush = (System.Windows.Media.Brush)FindResource("Brush.Danger");
             else
-                UsernameFieldBorder.BorderBrush = (System.Windows.Media.Brush)FindResource("InputBorder");
+                UsernameFieldBorder.BorderBrush = (System.Windows.Media.Brush)FindResource("Brush.Border");
         }
 
         private void SetPasswordBorderError(bool hasError)
         {
             if (PasswordFieldBorder == null) return;
             if (hasError)
-                PasswordFieldBorder.BorderBrush = new System.Windows.Media.SolidColorBrush(System.Windows.Media.Color.FromRgb(255, 107, 107));
+                PasswordFieldBorder.BorderBrush = (System.Windows.Media.Brush)FindResource("Brush.Danger");
             else
-                PasswordFieldBorder.BorderBrush = (System.Windows.Media.Brush)FindResource("InputBorder");
+                PasswordFieldBorder.BorderBrush = (System.Windows.Media.Brush)FindResource("Brush.Border");
         }
 
         private void UpdateSignInButtonState()

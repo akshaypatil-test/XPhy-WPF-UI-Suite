@@ -3,6 +3,9 @@ using System.Windows;
 using System.Windows.Controls;
 using System.Windows.Media;
 using System.Windows.Media.Animation;
+using System.Windows.Media.Imaging;
+using x_phy_wpf_ui.Services;
+using static x_phy_wpf_ui.Services.ThemeManager;
 
 namespace x_phy_wpf_ui.Controls
 {
@@ -34,6 +37,7 @@ namespace x_phy_wpf_ui.Controls
 
         private void LoaderComponent_Loaded(object sender, RoutedEventArgs e)
         {
+            UpdateLogo();
             UpdateRollingArcGeometry();
             StartRollingAnimation();
         }
@@ -41,6 +45,22 @@ namespace x_phy_wpf_ui.Controls
         private void LoaderComponent_Unloaded(object sender, RoutedEventArgs e)
         {
             StopRollingAnimation();
+        }
+
+        private void UpdateLogo()
+        {
+            if (LogoImage == null) return;
+
+            try
+            {
+                var isLight = ThemeManager.CurrentTheme == Theme.Light;
+                var logoPath = isLight ? "/x-phy-inverted-logo.png" : "/x-phy.png";
+                LogoImage.Source = new BitmapImage(new Uri(logoPath, UriKind.Relative));
+            }
+            catch (Exception ex)
+            {
+                System.Diagnostics.Debug.WriteLine($"LoaderComponent: Error updating logo - {ex.Message}");
+            }
         }
 
         private static void OnArcOffsetAngleChanged(DependencyObject d, DependencyPropertyChangedEventArgs e)

@@ -1758,6 +1758,7 @@ videoLiveFakeProportionThreshold = 0.7
                 TopNavBar.SelectedPage = "Results";
 
             DetectionResultsScreen.Visibility = Visibility.Visible;
+            DetectionResultsScreen.ShowResultsList();
 
             string resultsDir = null;
             try

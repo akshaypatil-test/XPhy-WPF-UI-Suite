@@ -192,5 +192,12 @@ namespace x_phy_wpf_ui.Controls
             ResultsListView.Visibility = Visibility.Collapsed;
             SessionDetailView.Visibility = Visibility.Visible;
         }
+
+        /// <summary>Shows the results list and hides session detail. Call when navigating to Results so the list is shown instead of a previously opened record.</summary>
+        public void ShowResultsList()
+        {
+            ResultsListView.Visibility = Visibility.Visible;
+            SessionDetailView.Visibility = Visibility.Collapsed;
+        }
     }
 }

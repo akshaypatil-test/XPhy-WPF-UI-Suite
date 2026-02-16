@@ -41,16 +41,16 @@ namespace x_phy_wpf_ui.Controls
 
         private void ActivationDatePicker_Loaded(object sender, RoutedEventArgs e)
         {
-            // Style the DatePicker's inner text box so the selected date is visible (dark theme).
+            // Style the DatePicker's inner text box so the selected date is visible in both themes.
             // Run after template is applied (one layout pass later).
             Dispatcher.BeginInvoke(new Action(() =>
             {
                 var tb = FindVisualChild<TextBox>(ActivationDatePicker);
                 if (tb != null)
                 {
-                    tb.Background = new SolidColorBrush(Color.FromRgb(0x1A, 0x1A, 0x1A));
-                    tb.Foreground = new SolidColorBrush(Colors.White);
-                    tb.CaretBrush = new SolidColorBrush(Colors.White);
+                    tb.Background = (Brush)Application.Current.FindResource("Brush.InputBackground");
+                    tb.Foreground = (Brush)Application.Current.FindResource("Brush.TextPrimary");
+                    tb.CaretBrush = (Brush)Application.Current.FindResource("Brush.White");
                     tb.BorderThickness = new Thickness(0);
                 }
             }), System.Windows.Threading.DispatcherPriority.Loaded);

@@ -159,7 +159,7 @@
                            TextAlignment="Center" Margin="0,0,0,32"/>
 
                 <TextBlock x:Name="ErrorMessageText" Text=""
-                           FontSize="12" Foreground="{DynamicResource Brush.Danger}"
+                           FontSize="12" Foreground="{DynamicResource Brush.Error}"
                            TextAlignment="Center" TextWrapping="Wrap" Margin="0,0,0,16" Visibility="Collapsed"/>
 
                 <!-- Username -->
@@ -189,7 +189,7 @@
                                    Margin="16,8,16,8" VerticalAlignment="Center" IsHitTestVisible="False"/>
                     </Grid>
                 </Border>
-                <TextBlock x:Name="EmailErrorText" Text="" FontSize="11" Foreground="{DynamicResource Brush.Danger}"
+                <TextBlock x:Name="EmailErrorText" Text="" FontSize="11" Foreground="{DynamicResource Brush.Error}"
                            Margin="4,0,0,8" Visibility="Collapsed" TextWrapping="Wrap"/>
 
                 <!-- Password -->
@@ -244,7 +244,7 @@
                         </Button>
                     </Grid>
                 </Border>
-                <TextBlock x:Name="PasswordErrorText" Text="" FontSize="11" Foreground="{DynamicResource Brush.Danger}"
+                <TextBlock x:Name="PasswordErrorText" Text="" FontSize="11" Foreground="{DynamicResource Brush.Error}"
                            Margin="4,0,0,8" Visibility="Collapsed" TextWrapping="Wrap"/>
 
                 <!-- License Key -->

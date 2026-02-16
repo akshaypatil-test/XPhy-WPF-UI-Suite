@@ -6,16 +6,6 @@
              mc:Ignorable="d" 
              d:DesignHeight="700" d:DesignWidth="1000">
     <UserControl.Resources>
-        <SolidColorBrush x:Key="PrimaryPink" Color="#E2156B"/>
-        <SolidColorBrush x:Key="PrimaryPinkHover" Color="#F0458A"/>
-        <SolidColorBrush x:Key="TextPrimary" Color="#FFFFFF"/>
-        <SolidColorBrush x:Key="TextSecondary" Color="#B0B0B0"/>
-        <SolidColorBrush x:Key="InputBackground" Color="#1A1A1A" Opacity="0.2"/>
-        <SolidColorBrush x:Key="InputBorder" Color="#2A2A2A"/>
-        <SolidColorBrush x:Key="InputBorderFocused" Color="#E2156B"/>
-        <SolidColorBrush x:Key="ErrorText" Color="#FF6B6B"/>
-        <SolidColorBrush x:Key="CardBackground" Color="#151515"/>
-        <SolidColorBrush x:Key="SectionLabel" Color="#888888"/>
         <!-- Invisible scrollbar: scroll works (e.g. mouse wheel) but scrollbar is not shown -->
         <Style TargetType="ScrollBar">
             <Setter Property="Width" Value="0"/>
@@ -33,8 +23,8 @@
         </Style>
         <Style x:Key="ModernTextBoxInnerStyleFullWidth" TargetType="TextBox">
             <Setter Property="Background" Value="Transparent"/>
-            <Setter Property="Foreground" Value="{StaticResource TextPrimary}"/>
-            <Setter Property="CaretBrush" Value="White"/>
+            <Setter Property="Foreground" Value="{DynamicResource Brush.TextPrimary}"/>
+            <Setter Property="CaretBrush" Value="{DynamicResource Brush.White}"/>
             <Setter Property="BorderThickness" Value="0"/>
             <Setter Property="Padding" Value="12,8"/>
             <Setter Property="FontSize" Value="14"/>
@@ -48,8 +38,8 @@
         </Style>
         <Style x:Key="ModernPasswordBoxInnerStyle" TargetType="PasswordBox">
             <Setter Property="Background" Value="Transparent"/>
-            <Setter Property="Foreground" Value="{StaticResource TextPrimary}"/>
-            <Setter Property="CaretBrush" Value="White"/>
+            <Setter Property="Foreground" Value="{DynamicResource Brush.TextPrimary}"/>
+            <Setter Property="CaretBrush" Value="{DynamicResource Brush.White}"/>
             <Setter Property="BorderThickness" Value="0"/>
             <Setter Property="Padding" Value="12,8,40,8"/>
             <Setter Property="FontSize" Value="14"/>
@@ -63,8 +53,8 @@
         </Style>
         <Style x:Key="ModernTextBoxInnerStyle" TargetType="TextBox">
             <Setter Property="Background" Value="Transparent"/>
-            <Setter Property="Foreground" Value="{StaticResource TextPrimary}"/>
-            <Setter Property="CaretBrush" Value="White"/>
+            <Setter Property="Foreground" Value="{DynamicResource Brush.TextPrimary}"/>
+            <Setter Property="CaretBrush" Value="{DynamicResource Brush.White}"/>
             <Setter Property="BorderThickness" Value="0"/>
             <Setter Property="Padding" Value="12,8,40,8"/>
             <Setter Property="FontSize" Value="14"/>
@@ -77,8 +67,8 @@
             </Setter>
         </Style>
         <Style x:Key="LaunchButtonStyle" TargetType="Button">
-            <Setter Property="Background" Value="{StaticResource PrimaryPink}"/>
-            <Setter Property="Foreground" Value="White"/>
+            <Setter Property="Background" Value="{DynamicResource Brush.Primary}"/>
+            <Setter Property="Foreground" Value="{DynamicResource Brush.White}"/>
             <Setter Property="FontSize" Value="16"/>
             <Setter Property="FontWeight" Value="SemiBold"/>
             <Setter Property="Padding" Value="24,10"/>
@@ -95,17 +85,18 @@
             </Setter>
             <Style.Triggers>
                 <Trigger Property="IsMouseOver" Value="True">
-                    <Setter Property="Background" Value="{StaticResource PrimaryPinkHover}"/>
+                    <Setter Property="Background" Value="{DynamicResource Brush.PrimaryHover}"/>
+                </Trigger>
+                <Trigger Property="IsEnabled" Value="False">
+                    <Setter Property="Background" Value="{DynamicResource Brush.Disabled}"/>
+                    <Setter Property="Foreground" Value="{DynamicResource Brush.TextSecondary}"/>
                 </Trigger>
             </Style.Triggers>
         </Style>
-        <SolidColorBrush x:Key="BackButtonBorder" Color="#1AB4CC"/>
-        <SolidColorBrush x:Key="DarkTealBackground" Color="#0D2830"/>
-        <SolidColorBrush x:Key="DarkTealBackgroundHover" Color="#152E33"/>
         <Style x:Key="BackButtonStyle" TargetType="Button">
-            <Setter Property="Background" Value="{StaticResource DarkTealBackground}"/>
-            <Setter Property="Foreground" Value="{StaticResource TextPrimary}"/>
-            <Setter Property="BorderBrush" Value="{StaticResource BackButtonBorder}"/>
+            <Setter Property="Background" Value="{DynamicResource Brush.SecondaryHover}"/>
+            <Setter Property="Foreground" Value="{DynamicResource Brush.White}"/>
+            <Setter Property="BorderBrush" Value="{DynamicResource Brush.Secondary}"/>
             <Setter Property="BorderThickness" Value="1"/>
             <Setter Property="FontSize" Value="16"/>
             <Setter Property="FontWeight" Value="SemiBold"/>
@@ -122,7 +113,7 @@
             </Setter>
             <Style.Triggers>
                 <Trigger Property="IsMouseOver" Value="True">
-                    <Setter Property="Background" Value="{StaticResource DarkTealBackgroundHover}"/>
+                    <Setter Property="Background" Value="{DynamicResource Brush.SurfaceHover}"/>
                 </Trigger>
             </Style.Triggers>
         </Style>
@@ -138,15 +129,15 @@
 
         <!-- Title block -->
         <StackPanel Grid.Row="0" HorizontalAlignment="Center" Margin="0,0,0,20">
-            <TextBlock Text="Register Corporate User" FontSize="24" FontWeight="Bold" Foreground="{StaticResource TextPrimary}" TextAlignment="Center"/>
-            <TextBlock Text="Create a new corporate account for your organization" FontSize="14" Foreground="{StaticResource TextSecondary}" TextAlignment="Center" Margin="0,6,0,0"/>
+            <TextBlock Text="Register Corporate User" FontSize="24" FontWeight="Bold" Foreground="{DynamicResource Brush.TextPrimary}" TextAlignment="Center"/>
+            <TextBlock Text="Create a new corporate account for your organization" FontSize="14" Foreground="{DynamicResource Brush.TextSecondary}" TextAlignment="Center" Margin="0,6,0,0"/>
         </StackPanel>
 
-        <TextBlock x:Name="ErrorMessageText" Grid.Row="1" Text="" FontSize="12" Foreground="{StaticResource ErrorText}" TextAlignment="Center" TextWrapping="Wrap" Margin="0,0,0,12" Visibility="Collapsed"/>
+        <TextBlock x:Name="ErrorMessageText" Grid.Row="1" Text="" FontSize="12" Foreground="{DynamicResource Brush.Error}" TextAlignment="Center" TextWrapping="Wrap" Margin="0,0,0,12" Visibility="Collapsed"/>
 
         <!-- Form card with invisible scroll when content overflows -->
         <ScrollViewer Grid.Row="2" VerticalScrollBarVisibility="Auto" HorizontalScrollBarVisibility="Disabled" Padding="0,0,0,8">
-        <Border Background="{StaticResource CardBackground}" BorderBrush="{StaticResource InputBorder}" BorderThickness="1" CornerRadius="12" Padding="28,24,28,24" HorizontalAlignment="Center">
+        <Border Background="{DynamicResource Brush.Card}" BorderBrush="{DynamicResource Brush.Border}" BorderThickness="1" CornerRadius="12" Padding="28,24,28,24" HorizontalAlignment="Center">
         <Grid>
             <Grid.ColumnDefinitions>
                 <ColumnDefinition Width="280"/>
@@ -156,36 +147,36 @@
 
             <!-- LEFT COLUMN: Account details -->
             <StackPanel Grid.Column="0" VerticalAlignment="Top">
-                <TextBlock Text="Account details" FontSize="11" FontWeight="SemiBold" Foreground="{StaticResource SectionLabel}" Margin="0,0,0,14" />
-                <TextBlock Text="First Name" FontSize="11" FontWeight="Bold" Foreground="{StaticResource TextSecondary}" Margin="0,0,0,4"/>
-                <Border x:Name="FirstNameFieldBorder" Background="{StaticResource InputBackground}" BorderBrush="{StaticResource InputBorder}" BorderThickness="1" CornerRadius="6" MinHeight="38" Margin="0,0,0,6">
+                <TextBlock Text="Account details" FontSize="11" FontWeight="SemiBold" Foreground="{DynamicResource Brush.TextSecondary}" Margin="0,0,0,14" />
+                <TextBlock Text="First Name" FontSize="11" FontWeight="Bold" Foreground="{DynamicResource Brush.TextSecondary}" Margin="0,0,0,4"/>
+                <Border x:Name="FirstNameFieldBorder" Background="{DynamicResource Brush.InputBackground}" BorderBrush="{DynamicResource Brush.Border}" BorderThickness="1" CornerRadius="6" MinHeight="38" Margin="0,0,0,6">
                     <Grid>
                         <TextBox x:Name="FirstNameTextBox" Style="{StaticResource ModernTextBoxInnerStyleFullWidth}" TextChanged="FirstNameTextBox_TextChanged"/>
-                        <TextBlock x:Name="FirstNamePlaceholder" Text="Enter first name" Foreground="{StaticResource TextSecondary}" FontSize="13" Margin="12,8,12,8" VerticalAlignment="Center" IsHitTestVisible="False"/>
+                        <TextBlock x:Name="FirstNamePlaceholder" Text="Enter first name" Foreground="{DynamicResource Brush.TextSecondary}" FontSize="13" Margin="12,8,12,8" VerticalAlignment="Center" IsHitTestVisible="False"/>
                     </Grid>
                 </Border>
-                <TextBlock x:Name="FirstNameErrorText" Text="" FontSize="10" Foreground="{StaticResource ErrorText}" Margin="2,0,0,2" Visibility="Collapsed" TextWrapping="Wrap"/>
+                <TextBlock x:Name="FirstNameErrorText" Text="" FontSize="10" Foreground="{DynamicResource Brush.Error}" Margin="2,0,0,2" Visibility="Collapsed" TextWrapping="Wrap"/>
 
-                <TextBlock Text="Last Name" FontSize="11" FontWeight="Bold" Foreground="{StaticResource TextSecondary}" Margin="0,0,0,4"/>
-                <Border x:Name="LastNameFieldBorder" Background="{StaticResource InputBackground}" BorderBrush="{StaticResource InputBorder}" BorderThickness="1" CornerRadius="6" MinHeight="38" Margin="0,0,0,6">
+                <TextBlock Text="Last Name" FontSize="11" FontWeight="Bold" Foreground="{DynamicResource Brush.TextSecondary}" Margin="0,0,0,4"/>
+                <Border x:Name="LastNameFieldBorder" Background="{DynamicResource Brush.InputBackground}" BorderBrush="{DynamicResource Brush.Border}" BorderThickness="1" CornerRadius="6" MinHeight="38" Margin="0,0,0,6">
                     <Grid>
                         <TextBox x:Name="LastNameTextBox" Style="{StaticResource ModernTextBoxInnerStyleFullWidth}" TextChanged="LastNameTextBox_TextChanged"/>
-                        <TextBlock x:Name="LastNamePlaceholder" Text="Enter last name" Foreground="{StaticResource TextSecondary}" FontSize="13" Margin="12,8,12,8" VerticalAlignment="Center" IsHitTestVisible="False"/>
+                        <TextBlock x:Name="LastNamePlaceholder" Text="Enter last name" Foreground="{DynamicResource Brush.TextSecondary}" FontSize="13" Margin="12,8,12,8" VerticalAlignment="Center" IsHitTestVisible="False"/>
                     </Grid>
                 </Border>
-                <TextBlock x:Name="LastNameErrorText" Text="" FontSize="10" Foreground="{StaticResource ErrorText}" Margin="2,0,0,2" Visibility="Collapsed" TextWrapping="Wrap"/>
+                <TextBlock x:Name="LastNameErrorText" Text="" FontSize="10" Foreground="{DynamicResource Brush.Error}" Margin="2,0,0,2" Visibility="Collapsed" TextWrapping="Wrap"/>
 
-                <TextBlock Text="Email" FontSize="11" FontWeight="Bold" Foreground="{StaticResource TextSecondary}" Margin="0,0,0,4"/>
-                <Border x:Name="EmailFieldBorder" Background="{StaticResource InputBackground}" BorderBrush="{StaticResource InputBorder}" BorderThickness="1" CornerRadius="6" MinHeight="38" Margin="0,0,0,6">
+                <TextBlock Text="Email" FontSize="11" FontWeight="Bold" Foreground="{DynamicResource Brush.TextSecondary}" Margin="0,0,0,4"/>
+                <Border x:Name="EmailFieldBorder" Background="{DynamicResource Brush.InputBackground}" BorderBrush="{DynamicResource Brush.Border}" BorderThickness="1" CornerRadius="6" MinHeight="38" Margin="0,0,0,6">
                     <Grid>
                         <TextBox x:Name="EmailTextBox" Style="{StaticResource ModernTextBoxInnerStyleFullWidth}" TextChanged="EmailTextBox_TextChanged"/>
-                        <TextBlock x:Name="EmailPlaceholder" Text="Enter email address" Foreground="{StaticResource TextSecondary}" FontSize="13" Margin="12,8,12,8" VerticalAlignment="Center" IsHitTestVisible="False"/>
+                        <TextBlock x:Name="EmailPlaceholder" Text="Enter email address" Foreground="{DynamicResource Brush.TextSecondary}" FontSize="13" Margin="12,8,12,8" VerticalAlignment="Center" IsHitTestVisible="False"/>
                     </Grid>
                 </Border>
-                <TextBlock x:Name="EmailErrorText" Text="" FontSize="10" Foreground="{StaticResource ErrorText}" Margin="2,0,0,2" Visibility="Collapsed" TextWrapping="Wrap"/>
+                <TextBlock x:Name="EmailErrorText" Text="" FontSize="10" Foreground="{DynamicResource Brush.Error}" Margin="2,0,0,2" Visibility="Collapsed" TextWrapping="Wrap"/>
 
-                <TextBlock Text="Password" FontSize="11" FontWeight="Bold" Foreground="{StaticResource TextSecondary}" Margin="0,0,0,4"/>
-                <Border x:Name="PasswordFieldBorder" Background="{StaticResource InputBackground}" BorderBrush="{StaticResource InputBorder}" BorderThickness="1" CornerRadius="6" MinHeight="38" Margin="0,0,0,6">
+                <TextBlock Text="Password" FontSize="11" FontWeight="Bold" Foreground="{DynamicResource Brush.TextSecondary}" Margin="0,0,0,4"/>
+                <Border x:Name="PasswordFieldBorder" Background="{DynamicResource Brush.InputBackground}" BorderBrush="{DynamicResource Brush.Border}" BorderThickness="1" CornerRadius="6" MinHeight="38" Margin="0,0,0,6">
                     <Grid>
                         <Grid.ColumnDefinitions>
                             <ColumnDefinition Width="*"/>
@@ -194,14 +185,14 @@
                         <Grid Grid.Column="0">
                             <PasswordBox x:Name="PasswordBox" Style="{StaticResource ModernPasswordBoxInnerStyle}" PasswordChanged="PasswordBox_PasswordChanged"/>
                             <TextBox x:Name="PasswordRevealTextBox" Style="{StaticResource ModernTextBoxInnerStyle}" Visibility="Collapsed" TextChanged="PasswordRevealTextBox_TextChanged"/>
-                            <TextBlock x:Name="PasswordPlaceholder" Text="Create a password" Foreground="{StaticResource TextSecondary}" FontSize="13" Margin="12,8,40,8" VerticalAlignment="Center" IsHitTestVisible="False"/>
+                            <TextBlock x:Name="PasswordPlaceholder" Text="Create a password" Foreground="{DynamicResource Brush.TextSecondary}" FontSize="13" Margin="12,8,40,8" VerticalAlignment="Center" IsHitTestVisible="False"/>
                         </Grid>
                         <Button x:Name="PasswordEyeButton" Grid.Column="1" Width="36" Height="32" VerticalAlignment="Center" Margin="0,0,6,0" Background="Transparent" BorderThickness="0" Cursor="Hand" Click="PasswordEyeButton_Click">
                             <Button.Template>
                                 <ControlTemplate TargetType="Button">
                                     <Border Background="{TemplateBinding Background}" Padding="4">
                                         <Viewbox Width="16" Height="16">
-                                            <Path Fill="{StaticResource TextSecondary}" Data="M12,4.5 C7,4.5 2.73,7.61 1,12 2.73,16.39 7,19.5 12,19.5 17,19.5 21.27,16.39 23,12 21.27,7.61 17,4.5 12,4.5 Z M12,17 C9.24,17 7,14.76 7,12 7,9.24 9.24,7 12,7 14.76,7 17,9.24 17,12 17,14.76 14.76,17 12,17 Z"/>
+                                            <Path Fill="{DynamicResource Brush.TextSecondary}" Data="M12,4.5 C7,4.5 2.73,7.61 1,12 2.73,16.39 7,19.5 12,19.5 17,19.5 21.27,16.39 23,12 21.27,7.61 17,4.5 12,4.5 Z M12,17 C9.24,17 7,14.76 7,12 7,9.24 9.24,7 12,7 14.76,7 17,9.24 17,12 17,14.76 14.76,17 12,17 Z"/>
                                         </Viewbox>
                                     </Border>
                                 </ControlTemplate>
@@ -209,10 +200,10 @@
                         </Button>
                     </Grid>
                 </Border>
-                <TextBlock x:Name="PasswordErrorText" Text="" FontSize="10" Foreground="{StaticResource ErrorText}" Margin="2,0,0,2" Visibility="Collapsed" TextWrapping="Wrap"/>
+                <TextBlock x:Name="PasswordErrorText" Text="" FontSize="10" Foreground="{DynamicResource Brush.Error}" Margin="2,0,0,2" Visibility="Collapsed" TextWrapping="Wrap"/>
 
-                <TextBlock Text="Confirm Password" FontSize="11" FontWeight="Bold" Foreground="{StaticResource TextSecondary}" Margin="0,0,0,4"/>
-                <Border x:Name="ConfirmPasswordFieldBorder" Background="{StaticResource InputBackground}" BorderBrush="{StaticResource InputBorder}" BorderThickness="1" CornerRadius="6" MinHeight="38" Margin="0,0,0,6">
+                <TextBlock Text="Confirm Password" FontSize="11" FontWeight="Bold" Foreground="{DynamicResource Brush.TextSecondary}" Margin="0,0,0,4"/>
+                <Border x:Name="ConfirmPasswordFieldBorder" Background="{DynamicResource Brush.InputBackground}" BorderBrush="{DynamicResource Brush.Border}" BorderThickness="1" CornerRadius="6" MinHeight="38" Margin="0,0,0,6">
                     <Grid>
                         <Grid.ColumnDefinitions>
                             <ColumnDefinition Width="*"/>
@@ -221,14 +212,14 @@
                         <Grid Grid.Column="0">
                             <PasswordBox x:Name="ConfirmPasswordBox" Style="{StaticResource ModernPasswordBoxInnerStyle}" PasswordChanged="ConfirmPasswordBox_PasswordChanged"/>
                             <TextBox x:Name="ConfirmPasswordRevealTextBox" Style="{StaticResource ModernTextBoxInnerStyle}" Visibility="Collapsed" TextChanged="ConfirmPasswordRevealTextBox_TextChanged"/>
-                            <TextBlock x:Name="ConfirmPasswordPlaceholder" Text="Re-enter password" Foreground="{StaticResource TextSecondary}" FontSize="13" Margin="12,8,40,8" VerticalAlignment="Center" IsHitTestVisible="False"/>
+                            <TextBlock x:Name="ConfirmPasswordPlaceholder" Text="Re-enter password" Foreground="{DynamicResource Brush.TextSecondary}" FontSize="13" Margin="12,8,40,8" VerticalAlignment="Center" IsHitTestVisible="False"/>
                         </Grid>
                         <Button x:Name="ConfirmPasswordEyeButton" Grid.Column="1" Width="36" Height="32" VerticalAlignment="Center" Margin="0,0,6,0" Background="Transparent" BorderThickness="0" Cursor="Hand" Click="ConfirmPasswordEyeButton_Click">
                             <Button.Template>
                                 <ControlTemplate TargetType="Button">
                                     <Border Background="{TemplateBinding Background}" Padding="4">
                                         <Viewbox Width="16" Height="16">
-                                            <Path Fill="{StaticResource TextSecondary}" Data="M12,4.5 C7,4.5 2.73,7.61 1,12 2.73,16.39 7,19.5 12,19.5 17,19.5 21.27,16.39 23,12 21.27,7.61 17,4.5 12,4.5 Z M12,17 C9.24,17 7,14.76 7,12 7,9.24 9.24,7 12,7 14.76,7 17,9.24 17,12 17,14.76 14.76,17 12,17 Z"/>
+                                            <Path Fill="{DynamicResource Brush.TextSecondary}" Data="M12,4.5 C7,4.5 2.73,7.61 1,12 2.73,16.39 7,19.5 12,19.5 17,19.5 21.27,16.39 23,12 21.27,7.61 17,4.5 12,4.5 Z M12,17 C9.24,17 7,14.76 7,12 7,9.24 9.24,7 12,7 14.76,7 17,9.24 17,12 17,14.76 14.76,17 12,17 Z"/>
                                         </Viewbox>
                                     </Border>
                                 </ControlTemplate>
@@ -236,63 +227,63 @@
                         </Button>
                     </Grid>
                 </Border>
-                <TextBlock x:Name="ConfirmPasswordErrorText" Text="" FontSize="10" Foreground="{StaticResource ErrorText}" Margin="2,0,0,2" Visibility="Collapsed" TextWrapping="Wrap"/>
+                <TextBlock x:Name="ConfirmPasswordErrorText" Text="" FontSize="10" Foreground="{DynamicResource Brush.Error}" Margin="2,0,0,2" Visibility="Collapsed" TextWrapping="Wrap"/>
 
-                <TextBlock Text="Max Devices" FontSize="11" FontWeight="Bold" Foreground="{StaticResource TextSecondary}" Margin="0,0,0,4"/>
-                <Border x:Name="MaxDevicesFieldBorder" Background="{StaticResource InputBackground}" BorderBrush="{StaticResource InputBorder}" BorderThickness="1" CornerRadius="6" MinHeight="38" Margin="0,0,0,6">
+                <TextBlock Text="Max Devices" FontSize="11" FontWeight="Bold" Foreground="{DynamicResource Brush.TextSecondary}" Margin="0,0,0,4"/>
+                <Border x:Name="MaxDevicesFieldBorder" Background="{DynamicResource Brush.InputBackground}" BorderBrush="{DynamicResource Brush.Border}" BorderThickness="1" CornerRadius="6" MinHeight="38" Margin="0,0,0,6">
                     <TextBox x:Name="MaxDevicesTextBox" Style="{StaticResource ModernTextBoxInnerStyleFullWidth}" TextChanged="MaxDevicesTextBox_TextChanged"/>
                 </Border>
-                <TextBlock x:Name="MaxDevicesErrorText" Text="" FontSize="10" Foreground="{StaticResource ErrorText}" Margin="2,0,0,2" Visibility="Collapsed" TextWrapping="Wrap"/>
+                <TextBlock x:Name="MaxDevicesErrorText" Text="" FontSize="10" Foreground="{DynamicResource Brush.Error}" Margin="2,0,0,2" Visibility="Collapsed" TextWrapping="Wrap"/>
             </StackPanel>
 
             <!-- RIGHT COLUMN: Organization details -->
             <StackPanel Grid.Column="2" VerticalAlignment="Top">
-                <TextBlock Text="Organization &amp; policy" FontSize="11" FontWeight="SemiBold" Foreground="{StaticResource SectionLabel}" Margin="0,0,0,14" />
-                <TextBlock Text="Policy Number" FontSize="11" FontWeight="Bold" Foreground="{StaticResource TextSecondary}" Margin="0,0,0,4"/>
-                <Border x:Name="PolicyNumberFieldBorder" Background="{StaticResource InputBackground}" BorderBrush="{StaticResource InputBorder}" BorderThickness="1" CornerRadius="6" MinHeight="38" Margin="0,0,0,6">
+                <TextBlock Text="Organization &amp; policy" FontSize="11" FontWeight="SemiBold" Foreground="{DynamicResource Brush.TextSecondary}" Margin="0,0,0,14" />
+                <TextBlock Text="Policy Number" FontSize="11" FontWeight="Bold" Foreground="{DynamicResource Brush.TextSecondary}" Margin="0,0,0,4"/>
+                <Border x:Name="PolicyNumberFieldBorder" Background="{DynamicResource Brush.InputBackground}" BorderBrush="{DynamicResource Brush.Border}" BorderThickness="1" CornerRadius="6" MinHeight="38" Margin="0,0,0,6">
                     <TextBox x:Name="PolicyNumberTextBox" Style="{StaticResource ModernTextBoxInnerStyleFullWidth}" TextChanged="PolicyNumberTextBox_TextChanged"/>
                 </Border>
-                <TextBlock x:Name="PolicyNumberErrorText" Text="" FontSize="10" Foreground="{StaticResource ErrorText}" Margin="2,0,0,2" Visibility="Collapsed" TextWrapping="Wrap"/>
+                <TextBlock x:Name="PolicyNumberErrorText" Text="" FontSize="10" Foreground="{DynamicResource Brush.Error}" Margin="2,0,0,2" Visibility="Collapsed" TextWrapping="Wrap"/>
 
-                <TextBlock Text="Organization Name" FontSize="11" FontWeight="Bold" Foreground="{StaticResource TextSecondary}" Margin="0,0,0,4"/>
-                <Border x:Name="OrganizationNameFieldBorder" Background="{StaticResource InputBackground}" BorderBrush="{StaticResource InputBorder}" BorderThickness="1" CornerRadius="6" MinHeight="38" Margin="0,0,0,6">
+                <TextBlock Text="Organization Name" FontSize="11" FontWeight="Bold" Foreground="{DynamicResource Brush.TextSecondary}" Margin="0,0,0,4"/>
+                <Border x:Name="OrganizationNameFieldBorder" Background="{DynamicResource Brush.InputBackground}" BorderBrush="{DynamicResource Brush.Border}" BorderThickness="1" CornerRadius="6" MinHeight="38" Margin="0,0,0,6">
                     <TextBox x:Name="OrganizationNameTextBox" Style="{StaticResource ModernTextBoxInnerStyleFullWidth}" TextChanged="OrganizationNameTextBox_TextChanged"/>
                 </Border>
 
-                <TextBlock Text="Contact Person Name" FontSize="11" FontWeight="Bold" Foreground="{StaticResource TextSecondary}" Margin="0,0,0,4"/>
-                <Border x:Name="ContactPersonNameFieldBorder" Background="{StaticResource InputBackground}" BorderBrush="{StaticResource InputBorder}" BorderThickness="1" CornerRadius="6" MinHeight="38" Margin="0,0,0,6">
+                <TextBlock Text="Contact Person Name" FontSize="11" FontWeight="Bold" Foreground="{DynamicResource Brush.TextSecondary}" Margin="0,0,0,4"/>
+                <Border x:Name="ContactPersonNameFieldBorder" Background="{DynamicResource Brush.InputBackground}" BorderBrush="{DynamicResource Brush.Border}" BorderThickness="1" CornerRadius="6" MinHeight="38" Margin="0,0,0,6">
                     <TextBox x:Name="ContactPersonNameTextBox" Style="{StaticResource ModernTextBoxInnerStyleFullWidth}" TextChanged="ContactPersonNameTextBox_TextChanged"/>
                 </Border>
 
-                <TextBlock Text="Country Code" FontSize="11" FontWeight="Bold" Foreground="{StaticResource TextSecondary}" Margin="0,0,0,4"/>
-                <Border x:Name="CountryCodeFieldBorder" Background="{StaticResource InputBackground}" BorderBrush="{StaticResource InputBorder}" BorderThickness="1" CornerRadius="6" MinHeight="38" Margin="0,0,0,6">
+                <TextBlock Text="Country Code" FontSize="11" FontWeight="Bold" Foreground="{DynamicResource Brush.TextSecondary}" Margin="0,0,0,4"/>
+                <Border x:Name="CountryCodeFieldBorder" Background="{DynamicResource Brush.InputBackground}" BorderBrush="{DynamicResource Brush.Border}" BorderThickness="1" CornerRadius="6" MinHeight="38" Margin="0,0,0,6">
                     <TextBox x:Name="CountryCodeTextBox" Style="{StaticResource ModernTextBoxInnerStyleFullWidth}" TextChanged="CountryCodeTextBox_TextChanged"/>
                 </Border>
-                <TextBlock x:Name="CountryCodeErrorText" Text="" FontSize="10" Foreground="{StaticResource ErrorText}" Margin="2,0,0,2" Visibility="Collapsed" TextWrapping="Wrap"/>
+                <TextBlock x:Name="CountryCodeErrorText" Text="" FontSize="10" Foreground="{DynamicResource Brush.Error}" Margin="2,0,0,2" Visibility="Collapsed" TextWrapping="Wrap"/>
 
-                <TextBlock Text="Contact Number" FontSize="11" FontWeight="Bold" Foreground="{StaticResource TextSecondary}" Margin="0,0,0,4"/>
-                <Border x:Name="ContactNumberFieldBorder" Background="{StaticResource InputBackground}" BorderBrush="{StaticResource InputBorder}" BorderThickness="1" CornerRadius="6" MinHeight="38" Margin="0,0,0,6">
+                <TextBlock Text="Contact Number" FontSize="11" FontWeight="Bold" Foreground="{DynamicResource Brush.TextSecondary}" Margin="0,0,0,4"/>
+                <Border x:Name="ContactNumberFieldBorder" Background="{DynamicResource Brush.InputBackground}" BorderBrush="{DynamicResource Brush.Border}" BorderThickness="1" CornerRadius="6" MinHeight="38" Margin="0,0,0,6">
                     <TextBox x:Name="ContactNumberTextBox" Style="{StaticResource ModernTextBoxInnerStyleFullWidth}" TextChanged="ContactNumberTextBox_TextChanged"/>
                 </Border>
-                <TextBlock x:Name="ContactNumberErrorText" Text="" FontSize="10" Foreground="{StaticResource ErrorText}" Margin="2,0,0,2" Visibility="Collapsed" TextWrapping="Wrap"/>
+                <TextBlock x:Name="ContactNumberErrorText" Text="" FontSize="10" Foreground="{DynamicResource Brush.Error}" Margin="2,0,0,2" Visibility="Collapsed" TextWrapping="Wrap"/>
 
-                <TextBlock Text="Order Number" FontSize="11" FontWeight="Bold" Foreground="{StaticResource TextSecondary}" Margin="0,0,0,4"/>
-                <Border x:Name="OrderNumberFieldBorder" Background="{StaticResource InputBackground}" BorderBrush="{StaticResource InputBorder}" BorderThickness="1" CornerRadius="6" MinHeight="38" Margin="0,0,0,6">
+                <TextBlock Text="Order Number" FontSize="11" FontWeight="Bold" Foreground="{DynamicResource Brush.TextSecondary}" Margin="0,0,0,4"/>
+                <Border x:Name="OrderNumberFieldBorder" Background="{DynamicResource Brush.InputBackground}" BorderBrush="{DynamicResource Brush.Border}" BorderThickness="1" CornerRadius="6" MinHeight="38" Margin="0,0,0,6">
                     <TextBox x:Name="OrderNumberTextBox" Style="{StaticResource ModernTextBoxInnerStyleFullWidth}" TextChanged="OrderNumberTextBox_TextChanged"/>
                 </Border>
 
-                <TextBlock Text="Activation Date" FontSize="11" FontWeight="Bold" Foreground="{StaticResource TextSecondary}" Margin="0,0,0,4"/>
-                <Border x:Name="ActivationDateFieldBorder" Background="{StaticResource InputBackground}" BorderBrush="{StaticResource InputBorder}" BorderThickness="1" CornerRadius="6" MinHeight="38" Margin="0,0,0,6">
+                <TextBlock Text="Activation Date" FontSize="11" FontWeight="Bold" Foreground="{DynamicResource Brush.TextSecondary}" Margin="0,0,0,4"/>
+                <Border x:Name="ActivationDateFieldBorder" Background="{DynamicResource Brush.InputBackground}" BorderBrush="{DynamicResource Brush.Border}" BorderThickness="1" CornerRadius="6" MinHeight="38" Margin="0,0,0,6">
                     <DatePicker x:Name="ActivationDatePicker"
                                 Background="Transparent"
-                                Foreground="{StaticResource TextPrimary}"
+                                Foreground="{DynamicResource Brush.TextPrimary}"
                                 BorderThickness="0"
                                 Padding="12,8"
                                 FontSize="14"
                                 SelectedDateChanged="ActivationDatePicker_SelectedDateChanged"
                                 VerticalAlignment="Center"/>
                 </Border>
-                <TextBlock x:Name="ActivationDateErrorText" Text="" FontSize="10" Foreground="{StaticResource ErrorText}" Margin="2,0,0,2" Visibility="Collapsed" TextWrapping="Wrap"/>
+                <TextBlock x:Name="ActivationDateErrorText" Text="" FontSize="10" Foreground="{DynamicResource Brush.Error}" Margin="2,0,0,2" Visibility="Collapsed" TextWrapping="Wrap"/>
             </StackPanel>
         </Grid>
         </Border>

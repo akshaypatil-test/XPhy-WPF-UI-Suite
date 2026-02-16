@@ -229,7 +229,7 @@ namespace x_phy_wpf_ui.Controls
         {
             if (UsernameFieldBorder == null) return;
             if (hasError)
-                UsernameFieldBorder.BorderBrush = (System.Windows.Media.Brush)FindResource("Brush.Danger");
+                UsernameFieldBorder.BorderBrush = (System.Windows.Media.Brush)FindResource("Brush.Error");
             else
                 UsernameFieldBorder.BorderBrush = (System.Windows.Media.Brush)FindResource("Brush.Border");
         }
@@ -238,7 +238,7 @@ namespace x_phy_wpf_ui.Controls
         {
             if (PasswordFieldBorder == null) return;
             if (hasError)
-                PasswordFieldBorder.BorderBrush = (System.Windows.Media.Brush)FindResource("Brush.Danger");
+                PasswordFieldBorder.BorderBrush = (System.Windows.Media.Brush)FindResource("Brush.Error");
             else
                 PasswordFieldBorder.BorderBrush = (System.Windows.Media.Brush)FindResource("Brush.Border");
         }

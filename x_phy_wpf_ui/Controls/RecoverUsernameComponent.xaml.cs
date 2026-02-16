@@ -13,18 +13,16 @@ namespace x_phy_wpf_ui.Controls
 
         private readonly AuthService _authService;
         private const int MaxAttempts = 3;
+        private bool _isEmailValid;
 
         public RecoverUsernameComponent()
         {
             InitializeComponent();
             _authService = new AuthService();
+            _isEmailValid = false;
             AttemptsCountRun.Text = $"{MaxAttempts}/{MaxAttempts}";
+            SendUsernameButton.IsEnabled = false;
             Loaded += (s, e) => UpdateEmailPlaceholder();
-            IsVisibleChanged += (s, e) =>
-            {
-                if (e.NewValue is true)
-                    SendUsernameButton.IsEnabled = true;
-            };
         }
 
         /// <summary>Clear all inputs and errors when navigating back to this screen. Resets attempt count display to full (3/3).</summary>
@@ -34,10 +32,13 @@ namespace x_phy_wpf_ui.Controls
             ErrorMessageText.Text = "";
             ErrorMessageText.Visibility = Visibility.Collapsed;
             EmailErrorText.Visibility = Visibility.Collapsed;
+            _isEmailValid = false;
             UpdateEmailPlaceholder();
             UpdateAttemptsDisplay(MaxAttempts);
+            UpdateSendUsernameButtonState();
+            SetEmailFieldError(false);
             if (EmailFieldBorder != null)
-                EmailFieldBorder.BorderBrush = (System.Windows.Media.Brush)FindResource("InputBorder");
+                EmailFieldBorder.BorderBrush = (System.Windows.Media.Brush)FindResource("Brush.Border");
         }
 
         private void UpdateEmailPlaceholder()
@@ -49,6 +50,8 @@ namespace x_phy_wpf_ui.Controls
         private void EmailTextBox_TextChanged(object sender, TextChangedEventArgs e)
         {
             UpdateEmailPlaceholder();
+            ValidateEmail();
+            UpdateSendUsernameButtonState();
         }
 
         private void EmailTextBox_GotFocus(object sender, RoutedEventArgs e)
@@ -59,16 +62,38 @@ namespace x_phy_wpf_ui.Controls
 
         private void EmailTextBox_LostFocus(object sender, RoutedEventArgs e)
         {
-            var email = EmailTextBox?.Text?.Trim();
-            if (!string.IsNullOrWhiteSpace(email) && IsValidEmail(email))
+            ValidateEmail();
+            UpdateSendUsernameButtonState();
+        }
+
+        private void ValidateEmail()
+        {
+            var email = EmailTextBox?.Text?.Trim() ?? "";
+            if (string.IsNullOrWhiteSpace(email))
             {
+                _isEmailValid = false;
+                EmailErrorText.Text = "Email is required";
+                EmailErrorText.Visibility = Visibility.Visible;
+                SetEmailFieldError(true);
+            }
+            else if (!IsValidEmail(email))
+            {
+                _isEmailValid = false;
+                EmailErrorText.Text = "Please enter a valid email address";
+                EmailErrorText.Visibility = Visibility.Visible;
+                SetEmailFieldError(true);
+            }
+            else
+            {
+                _isEmailValid = true;
                 EmailErrorText.Visibility = Visibility.Collapsed;
                 SetEmailFieldError(false);
             }
-            else if (EmailFieldBorder != null && EmailErrorText.Visibility != Visibility.Visible)
-            {
-                EmailFieldBorder.BorderBrush = (System.Windows.Media.Brush)FindResource("Brush.Border");
-            }
+        }
+
+        private void UpdateSendUsernameButtonState()
+        {
+            SendUsernameButton.IsEnabled = _isEmailValid;
         }
 
         private void UpdateAttemptsDisplay(int attemptsRemaining)
@@ -122,7 +147,7 @@ namespace x_phy_wpf_ui.Controls
                         : response.Message;
                     ErrorMessageText.Visibility = Visibility.Visible;
                     SetEmailFieldError(true);
-                    SendUsernameButton.IsEnabled = true;
+                    UpdateSendUsernameButtonState();
                     return;
                 }
 
@@ -141,7 +166,7 @@ namespace x_phy_wpf_ui.Controls
             {
                 ErrorMessageText.Text = ex.Message;
                 ErrorMessageText.Visibility = Visibility.Visible;
-                SendUsernameButton.IsEnabled = true;
+                UpdateSendUsernameButtonState();
             }
         }
 

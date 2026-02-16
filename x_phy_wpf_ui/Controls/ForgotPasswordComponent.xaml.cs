@@ -52,7 +52,7 @@ namespace x_phy_wpf_ui.Controls
         private void EmailTextBox_GotFocus(object sender, RoutedEventArgs e)
         {
             if (EmailFieldBorder != null)
-                EmailFieldBorder.BorderBrush = (System.Windows.Media.Brush)FindResource("InputBorderFocused");
+                EmailFieldBorder.BorderBrush = (System.Windows.Media.Brush)FindResource("Brush.Primary");
         }
 
         private void EmailTextBox_LostFocus(object sender, RoutedEventArgs e)
@@ -65,7 +65,7 @@ namespace x_phy_wpf_ui.Controls
             }
             else if (EmailFieldBorder != null && EmailErrorText.Visibility != Visibility.Visible)
             {
-                EmailFieldBorder.BorderBrush = (System.Windows.Media.Brush)FindResource("InputBorder");
+                EmailFieldBorder.BorderBrush = (System.Windows.Media.Brush)FindResource("Brush.Border");
             }
         }
 
@@ -74,12 +74,12 @@ namespace x_phy_wpf_ui.Controls
             if (EmailFieldBorder == null) return;
             if (hasError)
             {
-                EmailFieldBorder.BorderBrush = new System.Windows.Media.SolidColorBrush(System.Windows.Media.Color.FromRgb(255, 107, 107));
+                EmailFieldBorder.BorderBrush = (System.Windows.Media.Brush)FindResource("Brush.Error");
                 EmailFieldBorder.BorderThickness = new Thickness(1);
             }
             else
             {
-                EmailFieldBorder.BorderBrush = (System.Windows.Media.Brush)FindResource("InputBorder");
+                EmailFieldBorder.BorderBrush = (System.Windows.Media.Brush)FindResource("Brush.Border");
                 EmailFieldBorder.BorderThickness = new Thickness(1);
             }
         }

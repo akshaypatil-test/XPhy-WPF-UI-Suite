@@ -38,6 +38,9 @@ namespace x_phy_wpf_ui.Controls
             set => SetValue(DetectionArcOffsetAngleProperty, value);
         }
 
+        /// <summary>Max detection length in seconds. Reported duration is capped at this value.</summary>
+        public const int MaxDetectionDurationSeconds = 60;
+
         // At most 4 notifications in 60s: windows 0-15s, 15-30s, 30-45s, 45-60s
         private const int NotificationWindowSeconds = 15;
         private const int NotificationWindowCount = 4;
@@ -405,11 +408,12 @@ namespace x_phy_wpf_ui.Controls
 
         public int DetectedFacesCount => _detectedFaces?.Count ?? 0;
 
-        /// <summary>Elapsed seconds since detection started. Call when showing final result to send to CreateResult API.</summary>
+        /// <summary>Elapsed seconds since detection started, capped at MaxDetectionDurationSeconds. Call when showing final result to send to CreateResult API.</summary>
         public double GetDetectionDurationSeconds()
         {
             var elapsed = (DateTime.UtcNow - _detectionStartTime).TotalSeconds;
-            return Math.Max(0, Math.Round(elapsed, 1));
+            var capped = Math.Min(elapsed, MaxDetectionDurationSeconds);
+            return Math.Max(0, Math.Round(capped, 1));
         }
 
         private void StopButton_Click(object sender, RoutedEventArgs e)

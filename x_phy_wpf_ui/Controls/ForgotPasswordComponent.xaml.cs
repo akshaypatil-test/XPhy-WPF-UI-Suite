@@ -128,6 +128,17 @@ namespace x_phy_wpf_ui.Controls
                 var response = await _authService.ForgotPasswordAsync(email);
                 UpdateAttemptsDisplay(response.AttemptsRemaining);
 
+                if (response.AccountFound == false)
+                {
+                    ErrorMessageText.Text = string.IsNullOrWhiteSpace(response.Message)
+                        ? "No account found with this email address. Please check the email or create an account."
+                        : response.Message;
+                    ErrorMessageText.Visibility = Visibility.Visible;
+                    SetEmailFieldError(true);
+                    SendOtpButton.IsEnabled = true;
+                    return;
+                }
+
                 if (response.AttemptsRemaining == 0)
                 {
                     ErrorMessageText.Text = "You have used all recovery attempts for this email. Please try again after 24 hours.";

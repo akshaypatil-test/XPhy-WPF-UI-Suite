@@ -242,6 +242,29 @@ namespace x_phy_wpf_ui.Services
                             .Where(p => (p.ProcessName + ".exe").Equals(processName, StringComparison.OrdinalIgnoreCase))
                             .ToList();
 
+                        // Chrome only: add Google Chat as VideoCalling when window title indicates Chat (PWA), not as "Google Chrome"
+                        if (processName.Equals("chrome.exe", StringComparison.OrdinalIgnoreCase))
+                        {
+                            foreach (var browserProcess in allBrowserProcesses)
+                            {
+                                if (addedProcessIds.Contains(browserProcess.Id)) continue;
+                                if (!processWindows.TryGetValue((uint)browserProcess.Id, out var titles) || titles.Count == 0) continue;
+                                if (!IsGoogleChatWindow(titles)) continue;
+                                var chatDetected = new DetectedProcess
+                                {
+                                    ProcessId = browserProcess.Id,
+                                    ProcessName = processName,
+                                    DisplayName = "Google Chat",
+                                    ProcessType = "VideoCalling",
+                                    HasYouTubeTab = false,
+                                    WindowTitle = titles[0]
+                                };
+                                addedProcessIds.Add(browserProcess.Id);
+                                detectedProcesses.Add(chatDetected);
+                            }
+                        }
+
+                        // Find a process with YouTube (include processes already added as Google Chat so we detect both when same Chrome has Chat + YouTube)
                         DetectedProcess? browserDetected = null;
                         foreach (var browserProcess in allBrowserProcesses)
                         {
@@ -253,46 +276,23 @@ namespace x_phy_wpf_ui.Services
                                     string displayName = GetDisplayName(processName);
                                     browserDetected = new DetectedProcess
                                     {
-                                        ProcessId = browserProcess.Id, // Use the process ID that has the YouTube tab
+                                        ProcessId = browserProcess.Id,
                                         ProcessName = processName,
                                         DisplayName = displayName,
                                         ProcessType = "Browser",
                                         HasYouTubeTab = true,
                                         WindowTitle = GetYouTubeWindowTitle(processWindows[(uint)browserProcess.Id])
                                     };
-                                    break; // Found YouTube, no need to check other processes of this browser
+                                    break;
                                 }
                             }
                         }
 
+                        // Only add browser when it has YouTube; add directly so we get both Google Chat and Google Chrome when same process has both
                         if (browserDetected != null)
                         {
-                            detected = browserDetected;
-                        }
-                        else
-                        {
-                            // Show browser even without YouTube (e.g. Edge/Chrome with any page) so user can select it
-                            foreach (var browserProcess in allBrowserProcesses)
-                            {
-                                if (processWindows.ContainsKey((uint)browserProcess.Id))
-                                {
-                                    var titles = processWindows[(uint)browserProcess.Id];
-                                    if (titles.Count > 0)
-                                    {
-                                        string displayName = GetDisplayName(processName);
-                                        detected = new DetectedProcess
-                                        {
-                                            ProcessId = browserProcess.Id,
-                                            ProcessName = processName,
-                                            DisplayName = displayName,
-                                            ProcessType = "Browser",
-                                            HasYouTubeTab = false,
-                                            WindowTitle = titles[0]
-                                        };
-                                        break;
-                                    }
-                                }
-                            }
+                            detectedProcesses.Add(browserDetected);
+                            detected = null; // already added above; don't add again in outer block
                         }
 
                         // Mark this browser type as checked
@@ -399,6 +399,8 @@ namespace x_phy_wpf_ui.Services
         /// <summary>Match app by window title for UWP/host processes (e.g. ApplicationFrameHost) where Task Manager shows no process name.</summary>
         private static (string DisplayName, string ProcessType)? TryMatchAppByWindowTitle(List<string> windowTitles)
         {
+            bool hasYouTube = windowTitles.Any(t =>
+                (t != null && (t.IndexOf("YouTube", StringComparison.OrdinalIgnoreCase) >= 0 || t.IndexOf("youtube.com", StringComparison.OrdinalIgnoreCase) >= 0)));
             foreach (var title in windowTitles)
             {
                 if (string.IsNullOrWhiteSpace(title)) continue;
@@ -406,15 +408,19 @@ namespace x_phy_wpf_ui.Services
 
                 if (t.IndexOf("Media Player", StringComparison.OrdinalIgnoreCase) >= 0)
                     return ("Media Player", "MediaPlayer");
-                if (t.IndexOf("Microsoft Edge", StringComparison.OrdinalIgnoreCase) >= 0)
+                if (t.IndexOf("Microsoft Edge", StringComparison.OrdinalIgnoreCase) >= 0 && hasYouTube)
                     return ("Microsoft Edge", "Browser");
-                if (t.IndexOf("Google Chrome", StringComparison.OrdinalIgnoreCase) >= 0)
+                // Google Chat (PWA/app) must be checked before "Google Chrome" so it's not misidentified
+                if (t.IndexOf("Google Chat", StringComparison.OrdinalIgnoreCase) >= 0 ||
+                    (t.IndexOf("Chat", StringComparison.OrdinalIgnoreCase) >= 0 && t.IndexOf("chat.google.com", StringComparison.OrdinalIgnoreCase) >= 0))
+                    return ("Google Chat", "VideoCalling");
+                if (t.IndexOf("Google Chrome", StringComparison.OrdinalIgnoreCase) >= 0 && hasYouTube)
                     return ("Google Chrome", "Browser");
-                if (t.IndexOf("Mozilla Firefox", StringComparison.OrdinalIgnoreCase) >= 0 || (t.IndexOf("Firefox", StringComparison.OrdinalIgnoreCase) >= 0 && t.Length < 50))
+                if ((t.IndexOf("Mozilla Firefox", StringComparison.OrdinalIgnoreCase) >= 0 || (t.IndexOf("Firefox", StringComparison.OrdinalIgnoreCase) >= 0 && t.Length < 50)) && hasYouTube)
                     return ("Mozilla Firefox", "Browser");
-                if (t.IndexOf("Opera", StringComparison.OrdinalIgnoreCase) >= 0)
+                if (t.IndexOf("Opera", StringComparison.OrdinalIgnoreCase) >= 0 && hasYouTube)
                     return ("Opera", "Browser");
-                if (t.IndexOf("Brave", StringComparison.OrdinalIgnoreCase) >= 0)
+                if (t.IndexOf("Brave", StringComparison.OrdinalIgnoreCase) >= 0 && hasYouTube)
                     return ("Brave", "Browser");
                 if (t.IndexOf("Microsoft Teams", StringComparison.OrdinalIgnoreCase) >= 0 || t.IndexOf("Teams", StringComparison.OrdinalIgnoreCase) >= 0)
                     return ("Microsoft Teams", "VideoCalling");
@@ -490,6 +496,20 @@ namespace x_phy_wpf_ui.Services
             {
                 return string.Empty;
             }
+        }
+
+        /// <summary>True if the window is Google Chat (PWA or app), not generic Chrome.</summary>
+        private static bool IsGoogleChatWindow(List<string> windowTitles)
+        {
+            foreach (var title in windowTitles)
+            {
+                if (string.IsNullOrWhiteSpace(title)) continue;
+                if (title.IndexOf("Google Chat", StringComparison.OrdinalIgnoreCase) >= 0)
+                    return true;
+                if (title.IndexOf("chat.google.com", StringComparison.OrdinalIgnoreCase) >= 0)
+                    return true;
+            }
+            return false;
         }
 
         private bool HasYouTubeTab(List<string> windowTitles)

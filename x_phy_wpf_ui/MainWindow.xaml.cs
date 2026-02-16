@@ -1,6 +1,7 @@
 using System;
 using System.Collections.Generic;
 using System.Collections.ObjectModel;
+using System.Diagnostics;
 using System.IO;
 using System.Linq;
 using System.Text.RegularExpressions;
@@ -74,6 +75,18 @@ namespace x_phy_wpf_ui
         /// <summary>Set to true to show the floating app launcher when minimized. Disabled for now; re-enable later.</summary>
         private const bool FloatingWidgetEnabled = false;
 
+        /// <summary>True when user chose Exit from tray menu; allows actual close instead of minimize-to-tray.</summary>
+        private bool _isExitingFromTray = false;
+
+        /// <summary>When minimized to tray, run process detection periodically; show single-process popup when exactly one app is detected.</summary>
+        private DispatcherTimer _backgroundProcessCheckTimer;
+        private DateTime _lastMediaSourcePopupShownAt = DateTime.MinValue;
+        private const int MediaSourcePopupCooldownSeconds = 30 * 60; // 30 minutes
+        /// <summary>True when we've seen 0 listed processes since last popup; allows showing again when user closes app and reopens it.</summary>
+        private bool _hasSeenZeroProcessesSinceLastPopup = true;
+        /// <summary>Last time we showed the "Multiple Media Source Detected" popup; 30-min cooldown.</summary>
+        private DateTime _lastMultipleSourcesPopupShownAt = DateTime.MinValue;
+
         // Helper method to get color resources
         private SolidColorBrush GetResourceBrush(string resourceKey)
         {
@@ -127,6 +140,9 @@ namespace x_phy_wpf_ui
 
                 // Logout on close only when Remember Me was unchecked at login
                 this.Closing += MainWindow_Closing;
+
+                // Start/stop background single-process detection when minimizing to tray / restoring
+                this.IsVisibleChanged += MainWindow_IsVisibleChanged;
                 
                 // Shell: Set up auth view (Login/Signup). Controller init happens when we show AppView after login.
                 SetupAuthView();
@@ -427,6 +443,9 @@ namespace x_phy_wpf_ui
                     InitializeController();
                 }), DispatcherPriority.Loaded);
             }
+
+            // Show system tray when user is logged in (right-click menu: detection agents, Open Results Folder, Version, Exit)
+            ShowTray();
         }
 
         private void ShowAuthView()
@@ -1038,6 +1057,12 @@ videoLiveFakeProportionThreshold = 0.7
 
         private void MainWindow_StateChanged(object sender, EventArgs e)
         {
+            // Single-process notification: run background check when minimized to taskbar (user logged in)
+            if (WindowState == WindowState.Minimized && notifyIcon != null)
+                StartBackgroundProcessCheck();
+            else if (WindowState != WindowState.Minimized)
+                StopBackgroundProcessCheck();
+
             if (!FloatingWidgetEnabled) return;
             if (WindowState == WindowState.Minimized)
             {
@@ -1462,6 +1487,7 @@ videoLiveFakeProportionThreshold = 0.7
         {
             try
             {
+                HideTray();
                 var tokenStorage = new TokenStorage();
                 tokenStorage.ClearTokens();
                 controller = null;
@@ -1705,19 +1731,119 @@ videoLiveFakeProportionThreshold = 0.7
 
         private void MainWindow_Closing(object? sender, System.ComponentModel.CancelEventArgs e)
         {
+            // If user chose Exit from tray menu, allow close and shutdown (tokens cleared in ExitFromTray)
+            if (_isExitingFromTray)
+                return;
+
+            // Close (X): if Remember Me is false, logout (clear tokens); if true, keep tokens so user stays logged in
             try
             {
                 var tokenStorage = new TokenStorage();
                 var tokens = tokenStorage.GetTokens();
-                if (tokens != null && !tokens.RememberMe)
-                {
+                if (tokens == null || !tokens.RememberMe)
                     tokenStorage.ClearTokens();
-                }
             }
             catch (Exception ex)
             {
                 System.Diagnostics.Debug.WriteLine($"MainWindow_Closing: {ex.Message}");
             }
+        }
+
+        private void MainWindow_IsVisibleChanged(object sender, DependencyPropertyChangedEventArgs e)
+        {
+            if (e.NewValue is bool visible)
+            {
+                if (visible)
+                    StopBackgroundProcessCheck();
+                else if (notifyIcon != null)
+                    StartBackgroundProcessCheck();
+            }
+        }
+
+        private void StartBackgroundProcessCheck()
+        {
+            if (_backgroundProcessCheckTimer != null) return;
+            // When user minimizes again, allow the next single-process detection to show the notification (reset cooldown for this session)
+            _hasSeenZeroProcessesSinceLastPopup = true;
+            _backgroundProcessCheckTimer = new DispatcherTimer(DispatcherPriority.Background)
+            {
+                Interval = TimeSpan.FromSeconds(15)
+            };
+            _backgroundProcessCheckTimer.Tick += BackgroundProcessCheckTimer_Tick;
+            _backgroundProcessCheckTimer.Start();
+        }
+
+        private void StopBackgroundProcessCheck()
+        {
+            _backgroundProcessCheckTimer?.Stop();
+            _backgroundProcessCheckTimer = null;
+        }
+
+        private async void BackgroundProcessCheckTimer_Tick(object? sender, EventArgs e)
+        {
+            // Run when window is hidden (closed to tray) or minimized to taskbar
+            if (notifyIcon == null) return;
+            if (IsVisible && WindowState != WindowState.Minimized) return;
+            List<DetectedProcess> list = null;
+            await Task.Run(() =>
+            {
+                try
+                {
+                    var svc = new ProcessDetectionService();
+                    list = svc.DetectRelevantProcesses();
+                }
+                catch (Exception ex)
+                {
+                    System.Diagnostics.Debug.WriteLine($"Background process check: {ex.Message}");
+                }
+            }).ConfigureAwait(false);
+            if (list == null) return;
+            var single = list.Count == 1 ? list[0] : null;
+            await Dispatcher.InvokeAsync(() =>
+            {
+                if (notifyIcon == null) return;
+                if (IsVisible && WindowState != WindowState.Minimized) return;
+                // When 0 listed processes are running, user closed the app – allow showing popup again when they open one
+                if (list.Count == 0)
+                {
+                    _hasSeenZeroProcessesSinceLastPopup = true;
+                    return;
+                }
+                // Multiple sources: show "Open App To Choose One" notification with 30-min cooldown
+                if (list.Count > 1)
+                {
+                    double elapsed = (DateTime.UtcNow - _lastMultipleSourcesPopupShownAt).TotalSeconds;
+                    if (elapsed >= MediaSourcePopupCooldownSeconds)
+                    {
+                        _lastMultipleSourcesPopupShownAt = DateTime.UtcNow;
+                        var multiPopup = new MultipleSourcesDetectedPopup();
+                        multiPopup.OpenApplicationRequested += (s, _) =>
+                        {
+                            Show();
+                            WindowState = WindowState.Normal;
+                            Activate();
+                        };
+                        multiPopup.ShowAtBottomRight();
+                    }
+                    return;
+                }
+                if (list.Count != 1 || single == null) return;
+                // Show only if: we saw 0 since last popup (close-and-reopen), or 30-min cooldown has passed
+                bool cooldownPassed = (DateTime.UtcNow - _lastMediaSourcePopupShownAt).TotalSeconds >= MediaSourcePopupCooldownSeconds;
+                if (!_hasSeenZeroProcessesSinceLastPopup && !cooldownPassed) return;
+                _lastMediaSourcePopupShownAt = DateTime.UtcNow;
+                _hasSeenZeroProcessesSinceLastPopup = false;
+                var popup = new MediaSourceDetectedPopup();
+                popup.StartDetectionChosen += (s, ev) =>
+                {
+                    StartDetectionFromPopup(ev.Source, ev.IsLiveCallMode, ev.IsAudioMode);
+                    ShowDetectionContent();
+                    DetectionSelectionContainer.Visibility = Visibility.Collapsed;
+                    DetectionResultsPanel.Visibility = Visibility.Visible;
+                    try { ProcessDetectionService.BringProcessWindowToForeground(single.ProcessId); } catch { }
+                };
+                popup.ShowForProcess(single);
+            });
         }
 
         private void BottomBar_SubscribeClicked(object sender, EventArgs e)
@@ -2288,6 +2414,7 @@ videoLiveFakeProportionThreshold = 0.7
 
         // Notification helper
         private Forms.NotifyIcon notifyIcon;
+        private Forms.ContextMenuStrip _trayContextMenu;
         
         private void InitializeLicenseManager()
         {
@@ -2487,12 +2614,141 @@ videoLiveFakeProportionThreshold = 0.7
             ShowDetectionContent();
         }
 
+        /// <summary>Show system tray icon when user is logged in. Right-click shows menu (via ContextMenuStrip); left click does nothing.</summary>
+        private void ShowTray()
+        {
+            if (notifyIcon != null) return;
+            notifyIcon = new Forms.NotifyIcon();
+            try
+            {
+                string exePath = Process.GetCurrentProcess().MainModule?.FileName;
+                if (!string.IsNullOrEmpty(exePath) && File.Exists(exePath))
+                {
+                    using (var ico = System.Drawing.Icon.ExtractAssociatedIcon(exePath))
+                    {
+                        if (ico != null)
+                            notifyIcon.Icon = (System.Drawing.Icon)ico.Clone();
+                    }
+                }
+            }
+            catch { }
+            if (notifyIcon.Icon == null)
+                notifyIcon.Icon = System.Drawing.SystemIcons.Application;
+            notifyIcon.Text = "X-PHY Deepfake Detector";
+            notifyIcon.Visible = true;
+            notifyIcon.BalloonTipClicked += (s, e) => { notifyIcon.Visible = true; };
+
+            // Assign context menu so right-click shows it (reliable on all Windows)
+            _trayContextMenu = CreateTrayContextMenu();
+            notifyIcon.ContextMenuStrip = _trayContextMenu;
+        }
+
+        /// <summary>Hide and dispose tray icon when user logs out.</summary>
+        private void HideTray()
+        {
+            if (notifyIcon == null) return;
+            StopBackgroundProcessCheck();
+            try
+            {
+                notifyIcon.ContextMenuStrip = null;
+                notifyIcon.Visible = false;
+                notifyIcon.Dispose();
+            }
+            catch { }
+            notifyIcon = null;
+            try
+            {
+                _trayContextMenu?.Dispose();
+            }
+            catch { }
+            _trayContextMenu = null;
+        }
+
+        /// <summary>Create the right-click context menu with detection options, Open Results Folder, Version, and Exit. Styled to match notification UI.</summary>
+        private Forms.ContextMenuStrip CreateTrayContextMenu()
+        {
+            var menu = new Forms.ContextMenuStrip();
+            // Match notification UI: white background, dark text, rounded feel via padding and colors
+            menu.BackColor = System.Drawing.Color.White;
+            menu.ForeColor = System.Drawing.Color.FromArgb(0x1A, 0x1A, 0x1A);
+            menu.Font = new System.Drawing.Font("Segoe UI", 11f);
+            menu.Padding = new Forms.Padding(6, 8, 6, 8);
+            menu.Renderer = new TrayMenuNotificationStyleRenderer();
+
+            menu.Items.Add("Web Surfing Video Detection Agent", null, (_, __) => TrayStartDetection(DetectionSource.YouTubeWebStreamVideo, false, false));
+            menu.Items.Add("Video Call Video Detection Agent", null, (_, __) => TrayStartDetection(DetectionSource.ZoomConferenceVideo, true, false));
+            menu.Items.Add("Web Surfing Voice Detection Agent", null, (_, __) => TrayStartDetection(DetectionSource.YouTubeWebStreamAudio, false, true));
+            menu.Items.Add("Video Call Voice Detection Agent", null, (_, __) => TrayStartDetection(DetectionSource.ZoomConferenceAudio, true, true));
+            menu.Items.Add(new Forms.ToolStripSeparator());
+            menu.Items.Add("Open Results Folder", null, (_, __) => OpenResultsFolderFromTray());
+            menu.Items.Add(new Forms.ToolStripSeparator());
+            var versionItem = menu.Items.Add($"Version: {GetAppVersion()}", null);
+            if (versionItem != null) versionItem.Enabled = false; // display only
+            menu.Items.Add("Exit", null, (_, __) => ExitFromTray());
+            return menu;
+        }
+
+        private static string GetAppVersion()
+        {
+            try
+            {
+                var ver = System.Reflection.Assembly.GetExecutingAssembly().GetName().Version;
+                if (ver != null) return $"{ver.Major}.{ver.Minor}.{ver.Build}";
+            }
+            catch { }
+            return "1.0.10";
+        }
+
+        /// <summary>Start detection from tray menu; invokes native controller on UI thread.</summary>
+        private void TrayStartDetection(DetectionSource source, bool isLiveCallMode, bool isAudioMode)
+        {
+            Dispatcher.Invoke(() =>
+            {
+                StartDetectionFromPopup(source, isLiveCallMode, isAudioMode);
+            });
+        }
+
+        private void OpenResultsFolderFromTray()
+        {
+            try
+            {
+                string path = null;
+                if (controller != null)
+                    path = controller.GetResultsDir();
+                if (string.IsNullOrEmpty(path) || !Directory.Exists(path))
+                    path = DetectionResultsLoader.GetDefaultResultsDir();
+                if (!string.IsNullOrEmpty(path) && Directory.Exists(path))
+                    Process.Start("explorer.exe", path);
+                else
+                    MessageBox.Show("Results folder not found.", "X-PHY", MessageBoxButton.OK, MessageBoxImage.Information);
+            }
+            catch (Exception ex)
+            {
+                MessageBox.Show($"Failed to open results folder: {ex.Message}", "Error", MessageBoxButton.OK, MessageBoxImage.Error);
+            }
+        }
+
+        /// <summary>Exit from tray: logout (clear tokens) and close the application.</summary>
+        private void ExitFromTray()
+        {
+            StopBackgroundProcessCheck();
+            try
+            {
+                var tokenStorage = new TokenStorage();
+                tokenStorage.ClearTokens();
+            }
+            catch { }
+            HideTray();
+            controller = null;
+            _isExitingFromTray = true;
+            Dispatcher.Invoke(Close);
+        }
+
         private void InitializeNotifications()
         {
-            notifyIcon = new Forms.NotifyIcon();
-            notifyIcon.Icon = System.Drawing.SystemIcons.Information;
-            notifyIcon.Visible = true;
-            notifyIcon.BalloonTipClicked += (s, e) => { notifyIcon.Visible = false; };
+            // Tray is initialized in InitializeTray(). Balloon/toast use DetectionNotificationWindow.
+            if (notifyIcon != null)
+                notifyIcon.BalloonTipClicked += (s, e) => { /* keep visible */ };
         }
         
         private void ShowNotification(string title, string message, Forms.ToolTipIcon icon)
@@ -2659,5 +2915,30 @@ videoLiveFakeProportionThreshold = 0.7
             // Shell: Single window - shutdown when Shell closes
             Application.Current.Shutdown();
         }
+    }
+
+    /// <summary>Color table for tray context menu to match notification UI (white, light blue hover, dark text).</summary>
+    internal class TrayMenuColorTable : Forms.ProfessionalColorTable
+    {
+        private static readonly System.Drawing.Color _notificationHeader = System.Drawing.Color.FromArgb(0xE8, 0xF4, 0xFC);
+        private static readonly System.Drawing.Color _menuBorder = System.Drawing.Color.FromArgb(0xD0, 0xD0, 0xD0);
+        private static readonly System.Drawing.Color _pressed = System.Drawing.Color.FromArgb(0xD0, 0xE8, 0xF4);
+        private static readonly System.Drawing.Color _imageMarginEnd = System.Drawing.Color.FromArgb(0xEE, 0xEE, 0xEE);
+
+        public override System.Drawing.Color MenuBorder => _menuBorder;
+        public override System.Drawing.Color MenuItemSelected => _notificationHeader;
+        public override System.Drawing.Color MenuItemSelectedGradientBegin => _notificationHeader;
+        public override System.Drawing.Color MenuItemSelectedGradientEnd => _notificationHeader;
+        public override System.Drawing.Color MenuItemPressedGradientBegin => _pressed;
+        public override System.Drawing.Color MenuItemPressedGradientEnd => _pressed;
+        public override System.Drawing.Color ToolStripDropDownBackground => System.Drawing.Color.White;
+        public override System.Drawing.Color ImageMarginGradientBegin => System.Drawing.Color.White;
+        public override System.Drawing.Color ImageMarginGradientEnd => _imageMarginEnd;
+    }
+
+    /// <summary>Renderer for tray context menu using notification-style colors.</summary>
+    internal class TrayMenuNotificationStyleRenderer : Forms.ToolStripProfessionalRenderer
+    {
+        public TrayMenuNotificationStyleRenderer() : base(new TrayMenuColorTable()) { }
     }
 }

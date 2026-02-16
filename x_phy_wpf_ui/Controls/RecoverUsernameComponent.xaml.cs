@@ -18,7 +18,7 @@ namespace x_phy_wpf_ui.Controls
         {
             InitializeComponent();
             _authService = new AuthService();
-            AttemptsText.Text = $"Attempts Left: {MaxAttempts}/{MaxAttempts}";
+            AttemptsCountRun.Text = $"{MaxAttempts}/{MaxAttempts}";
             Loaded += (s, e) => UpdateEmailPlaceholder();
             IsVisibleChanged += (s, e) =>
             {
@@ -27,7 +27,7 @@ namespace x_phy_wpf_ui.Controls
             };
         }
 
-        /// <summary>Clear all inputs and errors when navigating back to this screen.</summary>
+        /// <summary>Clear all inputs and errors when navigating back to this screen. Resets attempt count display to full (3/3).</summary>
         public void ClearInputs()
         {
             EmailTextBox.Text = "";
@@ -35,6 +35,7 @@ namespace x_phy_wpf_ui.Controls
             ErrorMessageText.Visibility = Visibility.Collapsed;
             EmailErrorText.Visibility = Visibility.Collapsed;
             UpdateEmailPlaceholder();
+            UpdateAttemptsDisplay(MaxAttempts);
             if (EmailFieldBorder != null)
                 EmailFieldBorder.BorderBrush = (System.Windows.Media.Brush)FindResource("InputBorder");
         }
@@ -72,7 +73,7 @@ namespace x_phy_wpf_ui.Controls
 
         private void UpdateAttemptsDisplay(int attemptsRemaining)
         {
-            AttemptsText.Text = $"Attempts Left: {attemptsRemaining}/{MaxAttempts}";
+            AttemptsCountRun.Text = $"{attemptsRemaining}/{MaxAttempts}";
         }
 
         private bool IsValidEmail(string email)

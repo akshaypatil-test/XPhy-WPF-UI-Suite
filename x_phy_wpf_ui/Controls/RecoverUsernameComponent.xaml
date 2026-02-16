@@ -151,8 +151,10 @@
                     <Button Grid.Column="2" Content="Back" Style="{StaticResource BackButtonStyle}" Click="Back_Click"/>
                 </Grid>
 
-                <TextBlock x:Name="AttemptsText" Text="Attempts Left: 3/3" FontSize="12" Foreground="{DynamicResource Brush.TextSecondary}"
-                           TextAlignment="Center" Margin="0,16,0,0"/>
+                <TextBlock FontSize="12" TextAlignment="Center" Margin="0,16,0,0">
+                    <Run Text="Attempts Left: " Foreground="{DynamicResource Brush.TextPrimary}"/>
+                    <Run x:Name="AttemptsCountRun" Text="3/3" Foreground="{DynamicResource Brush.Primary}"/>
+                </TextBlock>
             </StackPanel>
         </ScrollViewer>
     </Grid>

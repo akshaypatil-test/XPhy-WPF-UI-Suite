@@ -23,11 +23,21 @@ namespace x_phy_wpf_ui.Controls
             InitializeComponent();
             _planService = new LicensePlanService();
             Loaded += PlansComponent_Loaded;
+            IsVisibleChanged += PlansComponent_IsVisibleChanged;
         }
 
         private async void PlansComponent_Loaded(object sender, RoutedEventArgs e)
         {
             await LoadPlans();
+        }
+
+        /// <summary>Reload plans when component becomes visible so we use current license (disable Stripe / highlight current plan).</summary>
+        private async void PlansComponent_IsVisibleChanged(object sender, DependencyPropertyChangedEventArgs e)
+        {
+            if (IsVisible && _plans != null && _plans.Count > 0)
+            {
+                await LoadPlans();
+            }
         }
 
         private async Task LoadPlans()
@@ -47,8 +57,19 @@ namespace x_phy_wpf_ui.Controls
                     return;
                 }
 
+                // Current user license: disable Stripe and highlight current plan when user has an active paid plan (not Trial)
+                var tokens = new TokenStorage().GetTokens();
+                var licenseInfo = tokens?.LicenseInfo;
+                var userInfo = tokens?.UserInfo;
+                // Use same status resolution as MainWindow (LicenseInfo.Status else UserInfo.LicenseStatus else Trial)
+                string status = licenseInfo?.Status ?? (!string.IsNullOrEmpty(userInfo?.LicenseStatus) ? userInfo.LicenseStatus : "Trial");
+                bool hasActivePaidPlan = string.Equals(status, "Active", StringComparison.OrdinalIgnoreCase)
+                    && !string.Equals(licenseInfo?.PlanName?.Trim(), "Trial", StringComparison.OrdinalIgnoreCase);
+                int? currentPlanId = licenseInfo?.PlanId;
+                string currentPlanName = licenseInfo?.PlanName?.Trim() ?? "";
+
                 // Convert to view models
-                var planViewModels = _plans.Select(p => new PlanViewModel(p)).ToList();
+                var planViewModels = _plans.Select(p => new PlanViewModel(p, currentPlanId, currentPlanName, hasActivePaidPlan)).ToList();
 
                 PlansItemsControl.ItemsSource = planViewModels;
                 PlansScrollViewer.Visibility = Visibility.Visible;
@@ -69,6 +90,11 @@ namespace x_phy_wpf_ui.Controls
                 if (planViewModel != null)
                 {
                     border.Background = planViewModel.CardGradient;
+                    if (planViewModel.IsCurrentPlan)
+                    {
+                        border.BorderBrush = (SolidColorBrush)FindResource("PrimaryColor");
+                        border.BorderThickness = new Thickness(2);
+                    }
                 }
             }
         }
@@ -108,12 +134,20 @@ namespace x_phy_wpf_ui.Controls
             public List<string> Features { get; }
             public Brush CardGradient { get; }
             public int CardIndex { get; }
+            /// <summary>True when user has an active paid plan and this plan is the one they are on.</summary>
+            public bool IsCurrentPlan { get; }
+            /// <summary>False when user has an active paid plan (Stripe button disabled).</summary>
+            public bool IsStripeButtonEnabled { get; }
 
             private static int _cardIndexCounter = 0;
 
-            public PlanViewModel(LicensePlanDto plan)
+            public PlanViewModel(LicensePlanDto plan, int? currentPlanId, string currentPlanName, bool hasActivePaidPlan)
             {
                 Plan = plan;
+                bool matchesById = currentPlanId.HasValue && plan.EffectivePlanId == currentPlanId.Value;
+                bool matchesByName = !string.IsNullOrEmpty(currentPlanName) && PlanNamesMatch(plan.Name, currentPlanName);
+                IsCurrentPlan = hasActivePaidPlan && (matchesById || matchesByName);
+                IsStripeButtonEnabled = !hasActivePaidPlan;
                 CardIndex = _cardIndexCounter++;
                 
                 // Use the actual plan name from API
@@ -203,6 +237,14 @@ namespace x_phy_wpf_ui.Controls
                 brush.GradientStops.Add(new GradientStop(
                     (Color)ColorConverter.ConvertFromString(color2), 1));
                 return brush;
+            }
+
+            private static bool PlanNamesMatch(string planName, string currentPlanName)
+            {
+                if (string.IsNullOrWhiteSpace(planName) || string.IsNullOrWhiteSpace(currentPlanName)) return false;
+                var a = planName.Trim().ToLowerInvariant().Replace(" ", "").Replace("-", "");
+                var b = currentPlanName.Trim().ToLowerInvariant().Replace(" ", "").Replace("-", "");
+                return a == b || a.Contains(b) || b.Contains(a);
             }
         }
     }

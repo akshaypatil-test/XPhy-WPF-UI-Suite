@@ -44,6 +44,7 @@ namespace x_phy_wpf_ui.Services
         private delegate bool EnumWindowsProc(IntPtr hWnd, IntPtr lParam);
 
         // Video calling applications (from Media Applications list)
+        // Note: msedge.exe is NOT listed here so Edge is only detected as a browser (YouTube, etc.). Teams Chat uses msedgewebview2.exe.
         private static readonly HashSet<string> VideoCallingProcesses = new HashSet<string>(StringComparer.OrdinalIgnoreCase)
         {
             "Zoom.exe",
@@ -51,8 +52,7 @@ namespace x_phy_wpf_ui.Services
             "ms-teams.exe",
             "Teams.exe",
             "Meet.exe", // Google Meet standalone
-            "msedgewebview2.exe", // Teams Chat
-            "msedge.exe", // Teams Chat / Google Meet (Web)
+            "msedgewebview2.exe", // Teams Chat (embedded Edge)
             "webex.exe", // Cisco Webex
             "Skype.exe",
             "SkypeApp.exe",
@@ -176,24 +176,18 @@ namespace x_phy_wpf_ui.Services
                     // Check for video calling applications
                     if (VideoCallingProcesses.Contains(processName))
                     {
-                        // Additional check for Teams Chat - msedgewebview2.exe or msedge.exe might be Teams Chat
-                        if (processName.Equals("msedgewebview2.exe", StringComparison.OrdinalIgnoreCase) ||
-                            processName.Equals("msedge.exe", StringComparison.OrdinalIgnoreCase))
+                        // msedgewebview2.exe is used by Teams Chat; only add when window title indicates Teams
+                        if (processName.Equals("msedgewebview2.exe", StringComparison.OrdinalIgnoreCase))
                         {
-                            // Check if window titles contain Teams-related text
-                            var windowTitles = processWindows[(uint)process.Id];
-                            
-                            bool isTeamsChat = windowTitles.Any(title => 
+                            if (!processWindows.TryGetValue((uint)process.Id, out var edgeTitles) || edgeTitles.Count == 0)
+                                continue;
+                            bool isTeamsChat = edgeTitles.Any(title =>
                                 title.IndexOf("Teams", StringComparison.OrdinalIgnoreCase) >= 0 ||
                                 title.IndexOf("Microsoft Teams", StringComparison.OrdinalIgnoreCase) >= 0);
-                            
                             if (!isTeamsChat)
-                            {
-                                // Skip this instance if it's not Teams
                                 continue;
-                            }
                         }
-                        
+
                         string displayName = GetDisplayName(processName);
                         detected = new DetectedProcess
                         {
@@ -444,13 +438,6 @@ namespace x_phy_wpf_ui.Services
 
         private string GetDisplayName(string processName)
         {
-            // For msedge.exe, check if it's Teams Chat by checking window titles
-            // This is called after we've already verified it's Teams Chat
-            if (processName.Equals("msedge.exe", StringComparison.OrdinalIgnoreCase))
-            {
-                return "Microsoft Teams Chat";
-            }
-            
             return processName.ToLower() switch
             {
                 "zoom.exe" or "cpthost.exe" => "Zoom",

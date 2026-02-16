@@ -57,9 +57,13 @@ namespace x_phy_wpf_ui.Controls
             UpdatePasswordPlaceholder();
             UpdateLicenseKeyPlaceholder();
             UpdateSignInButtonState();
-            if (UsernameFieldBorder != null) UsernameFieldBorder.BorderBrush = (System.Windows.Media.Brush)FindResource("Brush.Border");
-            if (PasswordFieldBorder != null) PasswordFieldBorder.BorderBrush = (System.Windows.Media.Brush)FindResource("Brush.Border");
-            if (LicenseKeyFieldBorder != null) LicenseKeyFieldBorder.BorderBrush = (System.Windows.Media.Brush)FindResource("Brush.Border");
+            try
+            {
+                if (UsernameFieldBorder != null) UsernameFieldBorder.BorderBrush = (System.Windows.Media.Brush)FindResource("Brush.Border");
+                if (PasswordFieldBorder != null) PasswordFieldBorder.BorderBrush = (System.Windows.Media.Brush)FindResource("Brush.Border");
+                if (LicenseKeyFieldBorder != null) LicenseKeyFieldBorder.BorderBrush = (System.Windows.Media.Brush)FindResource("Brush.Border");
+            }
+            catch (Exception ex) { System.Diagnostics.Debug.WriteLine($"ClearInputs borders: {ex.Message}"); }
         }
 
         public void SetError(string message)
@@ -99,8 +103,12 @@ namespace x_phy_wpf_ui.Controls
 
         private void UsernameTextBox_GotFocus(object sender, RoutedEventArgs e)
         {
-            if (UsernameFieldBorder != null)
-                UsernameFieldBorder.BorderBrush = (System.Windows.Media.Brush)FindResource("Brush.Primary");
+            try
+            {
+                if (UsernameFieldBorder != null)
+                    UsernameFieldBorder.BorderBrush = (System.Windows.Media.Brush)FindResource("Brush.Primary");
+            }
+            catch (Exception ex) { System.Diagnostics.Debug.WriteLine($"UsernameTextBox_GotFocus: {ex.Message}"); }
         }
 
         private void UsernameTextBox_LostFocus(object sender, RoutedEventArgs e)
@@ -116,14 +124,22 @@ namespace x_phy_wpf_ui.Controls
 
         private void LicenseKeyTextBox_GotFocus(object sender, RoutedEventArgs e)
         {
-            if (LicenseKeyFieldBorder != null)
-                LicenseKeyFieldBorder.BorderBrush = (System.Windows.Media.Brush)FindResource("Brush.Primary");
+            try
+            {
+                if (LicenseKeyFieldBorder != null)
+                    LicenseKeyFieldBorder.BorderBrush = (System.Windows.Media.Brush)FindResource("Brush.Primary");
+            }
+            catch (Exception ex) { System.Diagnostics.Debug.WriteLine($"LicenseKeyTextBox_GotFocus: {ex.Message}"); }
         }
 
         private void LicenseKeyTextBox_LostFocus(object sender, RoutedEventArgs e)
         {
-            if (LicenseKeyFieldBorder != null)
-                LicenseKeyFieldBorder.BorderBrush = (System.Windows.Media.Brush)FindResource("Brush.Border");
+            try
+            {
+                if (LicenseKeyFieldBorder != null)
+                    LicenseKeyFieldBorder.BorderBrush = (System.Windows.Media.Brush)FindResource("Brush.Border");
+            }
+            catch (Exception ex) { System.Diagnostics.Debug.WriteLine($"LicenseKeyTextBox_LostFocus: {ex.Message}"); }
         }
 
         private void PasswordBox_PasswordChanged(object sender, RoutedEventArgs e)
@@ -166,14 +182,22 @@ namespace x_phy_wpf_ui.Controls
 
         private void PasswordBox_GotFocus(object sender, RoutedEventArgs e)
         {
-            if (PasswordFieldBorder != null)
-                PasswordFieldBorder.BorderBrush = (System.Windows.Media.Brush)FindResource("Brush.Primary");
+            try
+            {
+                if (PasswordFieldBorder != null)
+                    PasswordFieldBorder.BorderBrush = (System.Windows.Media.Brush)FindResource("Brush.Primary");
+            }
+            catch (Exception ex) { System.Diagnostics.Debug.WriteLine($"PasswordBox_GotFocus: {ex.Message}"); }
         }
 
         private void PasswordRevealTextBox_GotFocus(object sender, RoutedEventArgs e)
         {
-            if (PasswordFieldBorder != null)
-                PasswordFieldBorder.BorderBrush = (System.Windows.Media.Brush)FindResource("Brush.Primary");
+            try
+            {
+                if (PasswordFieldBorder != null)
+                    PasswordFieldBorder.BorderBrush = (System.Windows.Media.Brush)FindResource("Brush.Primary");
+            }
+            catch (Exception ex) { System.Diagnostics.Debug.WriteLine($"PasswordRevealTextBox_GotFocus: {ex.Message}"); }
         }
 
         private void PasswordBox_LostFocus(object sender, RoutedEventArgs e)
@@ -228,19 +252,27 @@ namespace x_phy_wpf_ui.Controls
         private void SetUsernameBorderError(bool hasError)
         {
             if (UsernameFieldBorder == null) return;
-            if (hasError)
-                UsernameFieldBorder.BorderBrush = (System.Windows.Media.Brush)FindResource("Brush.Error");
-            else
-                UsernameFieldBorder.BorderBrush = (System.Windows.Media.Brush)FindResource("Brush.Border");
+            try
+            {
+                if (hasError)
+                    UsernameFieldBorder.BorderBrush = (System.Windows.Media.Brush)FindResource("Brush.Error");
+                else
+                    UsernameFieldBorder.BorderBrush = (System.Windows.Media.Brush)FindResource("Brush.Border");
+            }
+            catch (Exception ex) { System.Diagnostics.Debug.WriteLine($"SetUsernameBorderError: {ex.Message}"); }
         }
 
         private void SetPasswordBorderError(bool hasError)
         {
             if (PasswordFieldBorder == null) return;
-            if (hasError)
-                PasswordFieldBorder.BorderBrush = (System.Windows.Media.Brush)FindResource("Brush.Error");
-            else
-                PasswordFieldBorder.BorderBrush = (System.Windows.Media.Brush)FindResource("Brush.Border");
+            try
+            {
+                if (hasError)
+                    PasswordFieldBorder.BorderBrush = (System.Windows.Media.Brush)FindResource("Brush.Error");
+                else
+                    PasswordFieldBorder.BorderBrush = (System.Windows.Media.Brush)FindResource("Brush.Border");
+            }
+            catch (Exception ex) { System.Diagnostics.Debug.WriteLine($"SetPasswordBorderError: {ex.Message}"); }
         }
 
         private void UpdateSignInButtonState()

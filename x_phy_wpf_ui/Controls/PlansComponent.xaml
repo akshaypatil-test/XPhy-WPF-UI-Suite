@@ -61,7 +61,8 @@
                     <ControlTemplate TargetType="Button">
                         <Border Background="{TemplateBinding Background}" 
                                 CornerRadius="8"
-                                Padding="{TemplateBinding Padding}">
+                                Padding="{TemplateBinding Padding}"
+                                Opacity="{TemplateBinding Opacity}">
                             <ContentPresenter HorizontalAlignment="Center" VerticalAlignment="Center"/>
                         </Border>
                     </ControlTemplate>
@@ -70,6 +71,12 @@
             <Style.Triggers>
                 <Trigger Property="IsMouseOver" Value="True">
                     <Setter Property="Background" Value="#F0F0F0"/>
+                </Trigger>
+                <Trigger Property="IsEnabled" Value="False">
+                    <Setter Property="Background" Value="#555555"/>
+                    <Setter Property="Foreground" Value="#999999"/>
+                    <Setter Property="Opacity" Value="0.6"/>
+                    <Setter Property="Cursor" Value="Arrow"/>
                 </Trigger>
             </Style.Triggers>
         </Style>
@@ -191,10 +198,26 @@
                                     <RowDefinition Height="Auto"/>
                                     <RowDefinition Height="Auto"/>
                                     <RowDefinition Height="Auto"/>
+                                    <RowDefinition Height="Auto"/>
                                 </Grid.RowDefinitions>
                                 
+                                <!-- Current Plan badge (visible only when this plan is the user's active paid plan) -->
+                                <Border x:Name="CurrentPlanBadge" Grid.Row="0" Background="{StaticResource PrimaryColor}" CornerRadius="4" Padding="8,4" HorizontalAlignment="Center" Margin="0,0,0,8">
+                                    <Border.Style>
+                                        <Style TargetType="Border">
+                                            <Setter Property="Visibility" Value="Collapsed"/>
+                                            <Style.Triggers>
+                                                <DataTrigger Binding="{Binding IsCurrentPlan}" Value="True">
+                                                    <Setter Property="Visibility" Value="Visible"/>
+                                                </DataTrigger>
+                                            </Style.Triggers>
+                                        </Style>
+                                    </Border.Style>
+                                    <TextBlock Text="Current Plan" Foreground="White" FontSize="11" FontWeight="SemiBold"/>
+                                </Border>
+                                
                                 <!-- Plan Name -->
-                                <TextBlock Grid.Row="0"
+                                <TextBlock Grid.Row="1"
                                           Text="{Binding DisplayName}"
                                           FontSize="18"
                                           FontWeight="SemiBold"
@@ -205,7 +228,7 @@
                                           Margin="0,0,0,0"/>
                                 
                                 <!-- Price -->
-                                <StackPanel Grid.Row="1"
+                                <StackPanel Grid.Row="2"
                                           Orientation="Horizontal"
                                           HorizontalAlignment="Center"
                                           VerticalAlignment="Top"
@@ -223,7 +246,7 @@
                                 </StackPanel>
                                 
                                 <!-- Features List -->
-                                <StackPanel Grid.Row="2" Margin="0,12,0,12">
+                                <StackPanel Grid.Row="3" Margin="0,12,0,12">
                                     <ItemsControl ItemsSource="{Binding Features}">
                                         <ItemsControl.ItemTemplate>
                                             <DataTemplate>
@@ -244,7 +267,7 @@
                                 </StackPanel>
                                 
                                 <!-- Payment Method Label -->
-                                <TextBlock Grid.Row="3"
+                                <TextBlock Grid.Row="4"
                                           Text="Payment Method"
                                           FontSize="12"
                                           FontWeight="SemiBold"
@@ -252,9 +275,10 @@
                                           Margin="0,0,0,12"/>
                                 
                                 <!-- Payment Buttons - Stacked Vertically -->
-                                <StackPanel Grid.Row="4">
+                                <StackPanel Grid.Row="5">
                                     <Button Content="stripe"
                                             Style="{StaticResource StripeButtonStyle}"
+                                            IsEnabled="{Binding IsStripeButtonEnabled}"
                                             Click="StripeButton_Click"
                                             Tag="{Binding}"/>
                                     <Button Content="PayPal"

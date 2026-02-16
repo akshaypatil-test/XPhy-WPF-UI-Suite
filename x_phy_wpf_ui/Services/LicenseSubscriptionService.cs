@@ -2,52 +2,36 @@
 using System;
 using System.Collections.Generic;
 using System.Net;
-using System.Net.Http;
 using System.Threading.Tasks;
 using Newtonsoft.Json;
 using x_phy_wpf_ui.Models;
 
 namespace x_phy_wpf_ui.Services
 {
+    /// <summary>Gets user licenses. Uses AuthenticatedApiClient so 401 triggers refresh and retry.</summary>
     public class LicenseSubscriptionService
     {
-        private readonly HttpClient _httpClient;
-        private readonly string _baseUrl;
-        private readonly TokenStorage _tokenStorage;
+        private readonly AuthenticatedApiClient _apiClient;
 
         public LicenseSubscriptionService()
         {
-            //_baseUrl = "http://localhost:5163";
-            _baseUrl = "https://xphy-web-c5e3v.ondigitalocean.app";
-            _httpClient = new HttpClient
-            {
-                BaseAddress = new Uri(_baseUrl),
-                Timeout = TimeSpan.FromSeconds(15)
-            };
-            _httpClient.DefaultRequestHeaders.Add("Accept", "application/json");
-            _tokenStorage = new TokenStorage();
-            ServicePointManager.ServerCertificateValidationCallback += (_, __, ___, ____) => true;
+            _apiClient = new AuthenticatedApiClient();
+            try { ServicePointManager.ServerCertificateValidationCallback += (_, __, ___, ____) => true; } catch { }
         }
 
         public async Task<List<UserLicenseItem>?> GetMyLicensesAsync()
         {
-            var tokens = _tokenStorage.GetTokens();
-            if (tokens == null || string.IsNullOrEmpty(tokens.AccessToken))
-                return null;
-
-            _httpClient.DefaultRequestHeaders.Remove("Authorization");
-            _httpClient.DefaultRequestHeaders.Add("Authorization", $"Bearer {tokens.AccessToken}");
-
             try
             {
-                var response = await _httpClient.GetAsync("/api/User/licenses");
+                var response = await _apiClient.GetAsync("/api/User/licenses").ConfigureAwait(false);
                 if (response.IsSuccessStatusCode)
                 {
-                    var json = await response.Content.ReadAsStringAsync();
+                    var json = await response.Content.ReadAsStringAsync().ConfigureAwait(false);
                     var obj = JsonConvert.DeserializeObject<UserLicensesResponse>(json);
                     return obj?.Licenses ?? new List<UserLicenseItem>();
                 }
             }
+            catch (SessionExpiredException) { throw; }
             catch (Exception ex)
             {
                 System.Diagnostics.Debug.WriteLine($"LicenseSubscriptionService GetMyLicenses: {ex.Message}");

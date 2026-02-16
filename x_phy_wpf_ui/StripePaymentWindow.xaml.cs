@@ -21,8 +21,6 @@ namespace x_phy_wpf_ui
         private readonly LicensePurchaseService _purchaseService;
         private string _clientSecret;
         private string _paymentIntentId;
-        private bool _isNavigatingToSuccess = false; // Flag to prevent OnClosed from showing PlansWindow
-
         public StripePaymentWindow(LicensePlan plan)
         {
             InitializeComponent();
@@ -298,10 +296,10 @@ namespace x_phy_wpf_ui
                     {
                         var tokenStorage = new TokenStorage();
                         tokenStorage.UpdateUserAndLicense(confirmResponse.User, confirmResponse.License);
+                        if (!string.IsNullOrWhiteSpace(confirmResponse.License.Key))
+                            MainWindow.WriteLicenseKeyToExeConfig(confirmResponse.License.Key);
                     }
 
-                    // Set flag to prevent OnClosed from showing PlansWindow
-                    _isNavigatingToSuccess = true;
                     
                     var successWindow = new PaymentSuccessWindow(
                         _plan.Name,
@@ -749,53 +747,11 @@ namespace x_phy_wpf_ui
         
         private void Close_Click(object sender, RoutedEventArgs e)
         {
-            // Show PlansWindow when closing StripePaymentWindow (unless navigating to success)
-            if (!_isNavigatingToSuccess)
-            {
-                PlansWindow plansWindow = null;
-                foreach (Window window in Application.Current.Windows)
-                {
-                    if (window is PlansWindow pw)
-                    {
-                        plansWindow = pw;
-                        break;
-                    }
-                }
-                
-                if (plansWindow != null)
-                {
-                    plansWindow.Show();
-                    plansWindow.Activate();
-                }
-            }
             this.Close();
         }
         
         protected override void OnClosed(EventArgs e)
         {
-            if (!_isNavigatingToSuccess)
-            {
-                bool hasSuccessWindow = false;
-                foreach (Window window in Application.Current.Windows)
-                {
-                    if (window is PaymentSuccessWindow)
-                    {
-                        hasSuccessWindow = true;
-                        break;
-                    }
-                }
-                if (!hasSuccessWindow)
-                {
-                    foreach (Window window in Application.Current.Windows)
-                    {
-                        if (window is PlansWindow plansWindow && !plansWindow.IsVisible)
-                        {
-                            plansWindow.Show();
-                            break;
-                        }
-                    }
-                }
-            }
             base.OnClosed(e);
         }
 

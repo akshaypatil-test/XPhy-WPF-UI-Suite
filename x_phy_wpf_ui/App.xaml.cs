@@ -62,9 +62,30 @@ namespace x_phy_wpf_ui
             catch { /* non-fatal */ }
 
             base.OnStartup(e);
-            
+
+            // If SessionExpiredException is thrown (e.g. expired tokens, API 401), clear tokens and show sign-in instead of crashing.
+            // Use Application.Current.Dispatcher so we catch exceptions from async continuations that resume on the UI thread.
+            Application.Current.Dispatcher.UnhandledException += Dispatcher_UnhandledException;
+
             // Load user's saved theme preference (Dark/Light mode)
             ThemeManager.LoadSavedTheme();
+        }
+
+        private void Dispatcher_UnhandledException(object sender, System.Windows.Threading.DispatcherUnhandledExceptionEventArgs e)
+        {
+            // Flatten so we catch SessionExpiredException even when wrapped in AggregateException (e.g. from async)
+            var ex = e.Exception is AggregateException agg ? agg.InnerException : e.Exception;
+            if (ex is SessionExpiredException)
+            {
+                try
+                {
+                    new TokenStorage().ClearTokens();
+                    if (Application.Current?.MainWindow is MainWindow main)
+                        main.ShowAuthViewIfNeeded();
+                }
+                catch (Exception handlerEx) { System.Diagnostics.Debug.WriteLine($"SessionExpired handler: {handlerEx.Message}"); }
+                e.Handled = true;
+            }
         }
 
         private static void BringExistingInstanceToFront()

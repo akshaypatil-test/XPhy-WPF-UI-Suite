@@ -53,7 +53,8 @@ namespace x_phy_wpf_ui.Controls
                 Status = l.IsActive ? "Active" : "Expired",
                 StatusBrush = l.IsActive ? new SolidColorBrush(Color.FromRgb(0x22, 0xC5, 0x5E)) : new SolidColorBrush(Color.FromRgb(0xEF, 0x44, 0x44)),
                 RenewalAmountVisibility = string.IsNullOrEmpty(l.RenewalAmount) ? Visibility.Collapsed : Visibility.Visible,
-                UpgradeButtonVisibility = l.IsActive ? Visibility.Visible : Visibility.Collapsed
+                UpgradeButtonVisibility = l.IsActive ? Visibility.Visible : Visibility.Collapsed,
+                UpgradeButtonEnabled = l.IsActive && IsTrialPlan(l)
             }).ToList();
 
             PlansList.ItemsSource = items;
@@ -70,6 +71,16 @@ namespace x_phy_wpf_ui.Controls
             UpgradePlanRequested?.Invoke(this, EventArgs.Empty);
         }
 
+        /// <summary>True when this license is a trial (enable Upgrade Plan so user can upgrade to paid).</summary>
+        private static bool IsTrialPlan(UserLicenseItem l)
+        {
+            if (string.Equals(l.Status, "Trial", StringComparison.OrdinalIgnoreCase)) return true;
+            if (!string.IsNullOrEmpty(l.BillingCycle) && l.BillingCycle.Trim().ToLowerInvariant().Contains("trial")) return true;
+            if (!string.IsNullOrEmpty(l.PlanName) && l.PlanName.Trim().ToLowerInvariant().Contains("trial")) return true;
+            if (!string.IsNullOrEmpty(l.PlanType) && l.PlanType.Trim().ToLowerInvariant().Contains("trial")) return true;
+            return false;
+        }
+
         private sealed class LicensePlanCardItem
         {
             public Guid LicenseId { get; set; }
@@ -82,6 +93,8 @@ namespace x_phy_wpf_ui.Controls
             public Brush StatusBrush { get; set; } = Brushes.Transparent;
             public Visibility RenewalAmountVisibility { get; set; }
             public Visibility UpgradeButtonVisibility { get; set; }
+            /// <summary>True only when this license is Active Trial (Upgrade Plan button enabled only then).</summary>
+            public bool UpgradeButtonEnabled { get; set; }
         }
     }
 }

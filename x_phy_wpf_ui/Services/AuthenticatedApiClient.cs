@@ -24,7 +24,7 @@ namespace x_phy_wpf_ui.Services
 
         public AuthenticatedApiClient()
         {
-            //_baseUrl = "http://localhost:5163";
+            /*_baseUrl = "http://localhost:5163";*/
             _baseUrl = "https://xphy-web-c5e3v.ondigitalocean.app";
             _tokenStorage = new TokenStorage();
             _authService = new AuthService();
@@ -44,19 +44,36 @@ namespace x_phy_wpf_ui.Services
         /// <summary>POST with JSON body. On 401, refreshes token and retries once. Throws SessionExpiredException if refresh fails.</summary>
         public async Task<HttpResponseMessage> PostAsync(string path, object? body)
         {
-            return await SendWithAuthAsync(HttpMethod.Post, path, body).ConfigureAwait(false);
+            return await SendWithAuthAsync(HttpMethod.Post, path, body);
         }
 
         /// <summary>GET. On 401, refreshes token and retries once. Throws SessionExpiredException if refresh fails.</summary>
         public async Task<HttpResponseMessage> GetAsync(string path)
         {
-            return await SendWithAuthAsync(HttpMethod.Get, path, null).ConfigureAwait(false);
+            return await SendWithAuthAsync(HttpMethod.Get, path, null);
         }
 
         private async Task<HttpResponseMessage> SendWithAuthAsync(HttpMethod method, string path, object? body)
         {
             var tokens = _tokenStorage.GetTokens();
-            if (tokens == null || string.IsNullOrEmpty(tokens.AccessToken))
+            if (tokens == null)
+            {
+                TriggerSessionExpired();
+                throw new SessionExpiredException();
+            }
+
+            // If access token is missing but we have refresh token, try refresh first (e.g. after restart with stale file)
+            if (string.IsNullOrEmpty(tokens.AccessToken) && !string.IsNullOrWhiteSpace(tokens.RefreshToken))
+            {
+                var refreshResponse = await _authService.RefreshTokenAsync(tokens.RefreshToken);
+                if (refreshResponse != null && !string.IsNullOrEmpty(refreshResponse.AccessToken))
+                {
+                    _tokenStorage.UpdateAccessToken(refreshResponse.AccessToken, refreshResponse.ExpiresIn);
+                    tokens = _tokenStorage.GetTokens();
+                }
+            }
+
+            if (string.IsNullOrEmpty(tokens?.AccessToken))
             {
                 TriggerSessionExpired();
                 throw new SessionExpiredException();
@@ -65,25 +82,25 @@ namespace x_phy_wpf_ui.Services
             var request = CreateRequest(method, path, body);
             request.Headers.TryAddWithoutValidation("Authorization", "Bearer " + tokens.AccessToken);
 
-            var response = await _httpClient.SendAsync(request).ConfigureAwait(false);
+            var response = await _httpClient.SendAsync(request);
 
             if (response.StatusCode != System.Net.HttpStatusCode.Unauthorized)
                 return response;
 
             // 401: try refresh and retry once
-            var refreshResponse = await _authService.RefreshTokenAsync(tokens.RefreshToken).ConfigureAwait(false);
-            if (refreshResponse == null || string.IsNullOrEmpty(refreshResponse.AccessToken))
+            var refreshAfter401 = await _authService.RefreshTokenAsync(tokens.RefreshToken);
+            if (refreshAfter401 == null || string.IsNullOrEmpty(refreshAfter401.AccessToken))
             {
                 _tokenStorage.ClearTokens();
                 SessionExpired?.Invoke(this, EventArgs.Empty);
                 throw new SessionExpiredException();
             }
 
-            _tokenStorage.UpdateAccessToken(refreshResponse.AccessToken, refreshResponse.ExpiresIn);
+            _tokenStorage.UpdateAccessToken(refreshAfter401.AccessToken, refreshAfter401.ExpiresIn);
 
             var retryRequest = CreateRequest(method, path, body);
-            retryRequest.Headers.TryAddWithoutValidation("Authorization", "Bearer " + refreshResponse.AccessToken);
-            return await _httpClient.SendAsync(retryRequest).ConfigureAwait(false);
+            retryRequest.Headers.TryAddWithoutValidation("Authorization", "Bearer " + refreshAfter401.AccessToken);
+            return await _httpClient.SendAsync(retryRequest);
         }
 
         private static HttpRequestMessage CreateRequest(HttpMethod method, string path, object? body)

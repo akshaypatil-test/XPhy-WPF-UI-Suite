@@ -40,9 +40,17 @@
             <Setter Property="Template">
                 <Setter.Value>
                     <ControlTemplate TargetType="Button">
-                        <Border Background="{TemplateBinding Background}" CornerRadius="8" Padding="{TemplateBinding Padding}">
+                        <Border x:Name="Border" Background="{TemplateBinding Background}" CornerRadius="8" Padding="{TemplateBinding Padding}" Opacity="{TemplateBinding Opacity}">
                             <ContentPresenter HorizontalAlignment="Center" VerticalAlignment="Center"/>
                         </Border>
+                        <ControlTemplate.Triggers>
+                            <Trigger Property="IsEnabled" Value="False">
+                                <Setter Property="Background" Value="#555555"/>
+                                <Setter Property="Foreground" Value="#999999"/>
+                                <Setter Property="Opacity" Value="0.6"/>
+                                <Setter Property="Cursor" Value="Arrow"/>
+                            </Trigger>
+                        </ControlTemplate.Triggers>
                     </ControlTemplate>
                 </Setter.Value>
             </Setter>
@@ -78,7 +86,7 @@
                                         <Run Text="{Binding RenewalAmount}"/>
                                     </TextBlock>
                                 </StackPanel>
-                                <Button Content="Upgrade Plan" Style="{StaticResource PinkButton}" Visibility="{Binding UpgradeButtonVisibility}" Click="UpgradePlan_Click" Margin="0,4,0,0"/>
+                                <Button Content="Upgrade Plan" Style="{StaticResource PinkButton}" Visibility="{Binding UpgradeButtonVisibility}" IsEnabled="{Binding UpgradeButtonEnabled}" Click="UpgradePlan_Click" Margin="0,4,0,0"/>
                             </StackPanel>
                         </Border>
                     </DataTemplate>

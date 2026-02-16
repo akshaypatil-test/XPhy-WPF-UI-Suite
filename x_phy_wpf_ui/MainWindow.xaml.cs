@@ -437,6 +437,49 @@ namespace x_phy_wpf_ui
             AuthPanel.Visibility = Visibility.Visible;
             AppPanel.Visibility = Visibility.Collapsed;
         }
+
+        /// <summary>Called from App when SessionExpiredException is caught so we show sign-in instead of crashing.</summary>
+        public void ShowAuthViewIfNeeded()
+        {
+            Dispatcher.Invoke(ShowAuthView);
+        }
+
+        /// <summary>
+        /// On startup with stored tokens: try refresh once. If refresh succeeds, show app view; otherwise clear tokens and show sign-in
+        /// so the user can sign in again without hitting SessionExpiredException.
+        /// </summary>
+        private async void TryRestoreSessionAndShowAppAsync(TokenStorage tokenStorage, TokenStorage.StoredTokens storedTokens)
+        {
+            // No refresh token or no access token (e.g. corrupted file): clear and show sign-in without calling API
+            if (string.IsNullOrWhiteSpace(storedTokens.RefreshToken) || string.IsNullOrWhiteSpace(storedTokens.AccessToken))
+            {
+                tokenStorage.ClearTokens();
+                Dispatcher.Invoke(ShowAuthView);
+                return;
+            }
+            try
+            {
+                var authService = new AuthService();
+                var refreshResponse = await authService.RefreshTokenAsync(storedTokens.RefreshToken).ConfigureAwait(false);
+                if (refreshResponse == null || string.IsNullOrEmpty(refreshResponse.AccessToken))
+                {
+                    tokenStorage.ClearTokens();
+                    Dispatcher.Invoke(ShowAuthView);
+                    return;
+                }
+                tokenStorage.UpdateAccessToken(refreshResponse.AccessToken, refreshResponse.ExpiresIn);
+                Dispatcher.Invoke(() =>
+                {
+                    ShowAppView();
+                });
+            }
+            catch (Exception ex)
+            {
+                System.Diagnostics.Debug.WriteLine($"TryRestoreSessionAndShowApp: {ex.Message}");
+                tokenStorage.ClearTokens();
+                Dispatcher.Invoke(ShowAuthView);
+            }
+        }
         
         private void MainWindow_InitializeComObjects(object sender, RoutedEventArgs e)
         {
@@ -523,12 +566,12 @@ namespace x_phy_wpf_ui
                 }
             }
 
-            // Signed in from LaunchWindow (tokens saved, no validation there): show app view; controller will init in ShowAppView
+            // Have stored tokens: validate session (try refresh) before showing app. If refresh fails, clear tokens and show sign-in.
             var tokenStorageForLaunch = new TokenStorage();
             var tokensForLaunch = tokenStorageForLaunch.GetTokens();
             if (tokensForLaunch?.UserInfo != null)
             {
-                ShowAppView();
+                TryRestoreSessionAndShowAppAsync(tokenStorageForLaunch, tokensForLaunch);
                 return;
             }
 
@@ -1803,6 +1846,14 @@ videoLiveFakeProportionThreshold = 0.7
 
         private void StripePaymentComponent_PaymentSuccess(object sender, PaymentSuccessEventArgs e)
         {
+            // Refresh bottom bar immediately with new plan status (tokens were already updated by StripePaymentComponent)
+            UpdateLicenseDisplay();
+            // Deferred refresh in case token file wasn't flushed yet
+            Dispatcher.BeginInvoke(new Action(UpdateLicenseDisplay), DispatcherPriority.ApplicationIdle);
+            // If Profile is visible, refresh Subscription Summary so new plan is shown
+            if (ProfileComponent != null && ProfileComponent.Visibility == Visibility.Visible)
+                _ = ProfileComponent.LoadProfileAsync();
+
             var successWindow = new PaymentSuccessWindow(
                 e.PlanName,
                 e.DurationDays,
@@ -2275,6 +2326,12 @@ videoLiveFakeProportionThreshold = 0.7
             return 30; // 1 month default
         }
 
+        /// <summary>Call after purchase or when returning to MainWindow so the bottom bar shows current license status.</summary>
+        public void RefreshLicenseDisplay()
+        {
+            UpdateLicenseDisplay();
+        }
+
         private async void UpdateLicenseDisplay()
         {
             try
@@ -2429,33 +2486,6 @@ videoLiveFakeProportionThreshold = 0.7
             ShowDetectionContent();
         }
 
-        private void SubscribeNow_Click(object sender, RoutedEventArgs e)
-        {
-            try
-            {
-                // Hide this window before opening plans window
-                this.Hide();
-                
-                var plansWindow = new PlansWindow();
-                plansWindow.Show();
-                
-                // Handle plans window closed event
-                plansWindow.Closed += (s, args) =>
-                {
-                    // Show this window again when plans window closes
-                    this.Show();
-                    UpdateLicenseDisplay();
-                };
-            }
-            catch (Exception ex)
-            {
-                MessageBox.Show($"Failed to open plans: {ex.Message}", 
-                    "Error", MessageBoxButton.OK, MessageBoxImage.Error);
-                // Show this window again if there was an error
-                this.Show();
-            }
-        }
-        
         private void InitializeNotifications()
         {
             notifyIcon = new Forms.NotifyIcon();

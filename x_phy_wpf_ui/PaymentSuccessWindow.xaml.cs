@@ -17,12 +17,13 @@ namespace x_phy_wpf_ui
 
         private void Close_Click(object sender, RoutedEventArgs e)
         {
-            // Close PlansWindow and StripePaymentWindow if they exist
+            // Close StripePaymentWindow if it exists (e.g. when opened from legacy flow)
             foreach (Window window in Application.Current.Windows)
             {
-                if (window is PlansWindow || window is StripePaymentWindow)
+                if (window is StripePaymentWindow)
                 {
                     window.Close();
+                    break;
                 }
             }
             

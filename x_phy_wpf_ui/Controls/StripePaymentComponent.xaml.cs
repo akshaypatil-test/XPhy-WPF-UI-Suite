@@ -206,6 +206,8 @@ namespace x_phy_wpf_ui.Controls
                     {
                         var tokenStorage = new TokenStorage();
                         tokenStorage.UpdateUserAndLicense(confirmResponse.User, confirmResponse.License);
+                        if (!string.IsNullOrWhiteSpace(confirmResponse.License.Key))
+                            MainWindow.WriteLicenseKeyToExeConfig(confirmResponse.License.Key);
                     }
 
                     PaymentSuccess?.Invoke(this, new PaymentSuccessEventArgs(

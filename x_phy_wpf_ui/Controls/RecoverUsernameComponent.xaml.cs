@@ -53,7 +53,7 @@ namespace x_phy_wpf_ui.Controls
         private void EmailTextBox_GotFocus(object sender, RoutedEventArgs e)
         {
             if (EmailFieldBorder != null)
-                EmailFieldBorder.BorderBrush = (System.Windows.Media.Brush)FindResource("InputBorderFocused");
+                EmailFieldBorder.BorderBrush = (System.Windows.Media.Brush)FindResource("Brush.Primary");
         }
 
         private void EmailTextBox_LostFocus(object sender, RoutedEventArgs e)
@@ -66,7 +66,7 @@ namespace x_phy_wpf_ui.Controls
             }
             else if (EmailFieldBorder != null && EmailErrorText.Visibility != Visibility.Visible)
             {
-                EmailFieldBorder.BorderBrush = (System.Windows.Media.Brush)FindResource("InputBorder");
+                EmailFieldBorder.BorderBrush = (System.Windows.Media.Brush)FindResource("Brush.Border");
             }
         }
 
@@ -114,6 +114,17 @@ namespace x_phy_wpf_ui.Controls
                 var response = await _authService.ForgotUsernameAsync(email);
                 UpdateAttemptsDisplay(response.AttemptsRemaining);
 
+                if (response.AccountFound == false)
+                {
+                    ErrorMessageText.Text = string.IsNullOrWhiteSpace(response.Message)
+                        ? "No account found with this email address. Please check the email or create an account."
+                        : response.Message;
+                    ErrorMessageText.Visibility = Visibility.Visible;
+                    SetEmailFieldError(true);
+                    SendUsernameButton.IsEnabled = true;
+                    return;
+                }
+
                 if (response.AttemptsRemaining == 0)
                 {
                     ErrorMessageText.Text = "You have used all recovery attempts for this email. Please try again after 24 hours.";
@@ -143,12 +154,12 @@ namespace x_phy_wpf_ui.Controls
             if (EmailFieldBorder == null) return;
             if (hasError)
             {
-                EmailFieldBorder.BorderBrush = new System.Windows.Media.SolidColorBrush(System.Windows.Media.Color.FromRgb(255, 107, 107));
+                EmailFieldBorder.BorderBrush = (System.Windows.Media.Brush)FindResource("Brush.Error");
                 EmailFieldBorder.BorderThickness = new Thickness(1);
             }
             else
             {
-                EmailFieldBorder.BorderBrush = (System.Windows.Media.Brush)FindResource("InputBorder");
+                EmailFieldBorder.BorderBrush = (System.Windows.Media.Brush)FindResource("Brush.Border");
                 EmailFieldBorder.BorderThickness = new Thickness(1);
             }
         }

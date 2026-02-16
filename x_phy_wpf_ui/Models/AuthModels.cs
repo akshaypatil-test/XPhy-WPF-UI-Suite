@@ -211,6 +211,9 @@ namespace x_phy_wpf_ui.Models
         public string Message { get; set; } = string.Empty;
         [JsonProperty("attemptsRemaining")]
         public int AttemptsRemaining { get; set; }
+        /// <summary>True when account exists and email was sent; false when no account; null when rate limited (not disclosed).</summary>
+        [JsonProperty("accountFound")]
+        public bool? AccountFound { get; set; }
     }
 
     public class ForgotPasswordRequest

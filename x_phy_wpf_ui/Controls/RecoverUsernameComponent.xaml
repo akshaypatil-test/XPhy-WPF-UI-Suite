@@ -6,23 +6,11 @@
              mc:Ignorable="d"
              d:DesignHeight="700" d:DesignWidth="1000">
     <UserControl.Resources>
-        <SolidColorBrush x:Key="PrimaryPink" Color="#E2156B"/>
-        <SolidColorBrush x:Key="PrimaryPinkHover" Color="#F0458A"/>
-        <SolidColorBrush x:Key="DarkBackground" Color="#0F0F0F"/>
-        <SolidColorBrush x:Key="TextPrimary" Color="#FFFFFF"/>
-        <SolidColorBrush x:Key="TextSecondary" Color="#B0B0B0"/>
-        <SolidColorBrush x:Key="InputBackground" Color="#1A1A1A" Opacity="0.2"/>
-        <SolidColorBrush x:Key="InputBorder" Color="#2A2A2A"/>
-        <SolidColorBrush x:Key="InputBorderFocused" Color="#E2156B"/>
-        <SolidColorBrush x:Key="ErrorText" Color="#FF6B6B"/>
-        <SolidColorBrush x:Key="BackButtonBorder" Color="#1AB4CC"/>
-        <SolidColorBrush x:Key="DarkTealBackground" Color="#0D2830"/>
-        <SolidColorBrush x:Key="DarkTealBackgroundHover" Color="#152E33"/>
         <Style x:Key="ModernTextBoxStyle" TargetType="TextBox">
-            <Setter Property="Background" Value="{StaticResource InputBackground}"/>
-            <Setter Property="Foreground" Value="{StaticResource TextPrimary}"/>
-            <Setter Property="CaretBrush" Value="White"/>
-            <Setter Property="BorderBrush" Value="{StaticResource InputBorder}"/>
+            <Setter Property="Background" Value="{DynamicResource Brush.InputBackground}"/>
+            <Setter Property="Foreground" Value="{DynamicResource Brush.TextPrimary}"/>
+            <Setter Property="CaretBrush" Value="{DynamicResource Brush.White}"/>
+            <Setter Property="BorderBrush" Value="{DynamicResource Brush.Border}"/>
             <Setter Property="BorderThickness" Value="1"/>
             <Setter Property="Padding" Value="16,8"/>
             <Setter Property="FontSize" Value="14"/>
@@ -41,14 +29,14 @@
             </Setter>
             <Style.Triggers>
                 <Trigger Property="IsFocused" Value="True">
-                    <Setter Property="BorderBrush" Value="{StaticResource InputBorderFocused}"/>
+                    <Setter Property="BorderBrush" Value="{DynamicResource Brush.Primary}"/>
                 </Trigger>
             </Style.Triggers>
         </Style>
         <Style x:Key="ModernTextBoxInnerStyleFullWidth" TargetType="TextBox">
             <Setter Property="Background" Value="Transparent"/>
-            <Setter Property="Foreground" Value="{StaticResource TextPrimary}"/>
-            <Setter Property="CaretBrush" Value="White"/>
+            <Setter Property="Foreground" Value="{DynamicResource Brush.TextPrimary}"/>
+            <Setter Property="CaretBrush" Value="{DynamicResource Brush.White}"/>
             <Setter Property="BorderThickness" Value="0"/>
             <Setter Property="Padding" Value="16,8"/>
             <Setter Property="FontSize" Value="14"/>
@@ -61,8 +49,8 @@
             </Setter>
         </Style>
         <Style x:Key="LaunchButtonStyle" TargetType="Button">
-            <Setter Property="Background" Value="{StaticResource PrimaryPink}"/>
-            <Setter Property="Foreground" Value="White"/>
+            <Setter Property="Background" Value="{DynamicResource Brush.Primary}"/>
+            <Setter Property="Foreground" Value="{DynamicResource Brush.White}"/>
             <Setter Property="FontSize" Value="16"/>
             <Setter Property="FontWeight" Value="SemiBold"/>
             <Setter Property="Padding" Value="24,10"/>
@@ -79,18 +67,18 @@
             </Setter>
             <Style.Triggers>
                 <Trigger Property="IsMouseOver" Value="True">
-                    <Setter Property="Background" Value="{StaticResource PrimaryPinkHover}"/>
+                    <Setter Property="Background" Value="{DynamicResource Brush.PrimaryHover}"/>
                 </Trigger>
                 <Trigger Property="IsEnabled" Value="False">
-                    <Setter Property="Background" Value="#555555"/>
-                    <Setter Property="Foreground" Value="#999999"/>
+                    <Setter Property="Background" Value="{DynamicResource Brush.Disabled}"/>
+                    <Setter Property="Foreground" Value="{DynamicResource Brush.TextSecondary}"/>
                 </Trigger>
             </Style.Triggers>
         </Style>
         <Style x:Key="BackButtonStyle" TargetType="Button">
-            <Setter Property="Background" Value="{StaticResource DarkTealBackground}"/>
-            <Setter Property="Foreground" Value="{StaticResource TextPrimary}"/>
-            <Setter Property="BorderBrush" Value="{StaticResource BackButtonBorder}"/>
+            <Setter Property="Background" Value="{DynamicResource Brush.SecondaryHover}"/>
+            <Setter Property="Foreground" Value="{DynamicResource Brush.White}"/>
+            <Setter Property="BorderBrush" Value="{DynamicResource Brush.Secondary}"/>
             <Setter Property="BorderThickness" Value="1"/>
             <Setter Property="FontSize" Value="16"/>
             <Setter Property="FontWeight" Value="SemiBold"/>
@@ -111,7 +99,7 @@
             </Setter>
             <Style.Triggers>
                 <Trigger Property="IsMouseOver" Value="True">
-                    <Setter Property="Background" Value="{StaticResource DarkTealBackgroundHover}"/>
+                    <Setter Property="Background" Value="{DynamicResource Brush.SurfaceHover}"/>
                 </Trigger>
             </Style.Triggers>
         </Style>
@@ -119,18 +107,18 @@
     <Grid Background="Transparent">
         <ScrollViewer VerticalScrollBarVisibility="Auto">
             <StackPanel VerticalAlignment="Center" HorizontalAlignment="Left" Width="400" Margin="50,40,50,50">
-                <TextBlock FontSize="24" FontWeight="Bold" Foreground="{StaticResource TextPrimary}"
+                <TextBlock FontSize="24" FontWeight="Bold" Foreground="{DynamicResource Brush.TextPrimary}"
                            TextAlignment="Center" Margin="0,0,0,8"><Run Language="en-in" Text="Forgot Username"/></TextBlock>
-                <TextBlock Text="Enter your email to receive your username" FontSize="14" Foreground="{StaticResource TextSecondary}"
+                <TextBlock Text="Enter your email to receive your username" FontSize="14" Foreground="{DynamicResource Brush.TextSecondary}"
                            TextAlignment="Center" Margin="0,0,0,32"/>
 
-                <TextBlock x:Name="ErrorMessageText" Text="" FontSize="12" Foreground="{StaticResource ErrorText}"
+                <TextBlock x:Name="ErrorMessageText" Text="" FontSize="12" Foreground="{DynamicResource Brush.Error}"
                            TextAlignment="Center" TextWrapping="Wrap" Margin="0,0,0,16" Visibility="Collapsed"/>
 
-                <TextBlock Text="Email" FontSize="12" FontWeight="Bold" Foreground="{StaticResource TextSecondary}" Margin="0,0,0,8"/>
+                <TextBlock Text="Email" FontSize="12" FontWeight="Bold" Foreground="{DynamicResource Brush.TextSecondary}" Margin="0,0,0,8"/>
                 <Border x:Name="EmailFieldBorder"
-                        Background="{StaticResource InputBackground}"
-                        BorderBrush="{StaticResource InputBorder}"
+                        Background="{DynamicResource Brush.InputBackground}"
+                        BorderBrush="{DynamicResource Brush.Border}"
                         BorderThickness="1"
                         CornerRadius="8"
                         MinHeight="44"
@@ -142,14 +130,14 @@
                                  TextChanged="EmailTextBox_TextChanged"/>
                         <TextBlock x:Name="EmailPlaceholder"
                                    Text="Enter your email address"
-                                   Foreground="{StaticResource TextSecondary}"
+                                   Foreground="{DynamicResource Brush.TextSecondary}"
                                    FontSize="14"
                                    Margin="16,8,16,8"
                                    VerticalAlignment="Center"
                                    IsHitTestVisible="False"/>
                     </Grid>
                 </Border>
-                <TextBlock x:Name="EmailErrorText" Text="" FontSize="11" Foreground="{StaticResource ErrorText}"
+                <TextBlock x:Name="EmailErrorText" Text="" FontSize="11" Foreground="{DynamicResource Brush.Error}"
                            Margin="4,0,0,0" Visibility="Collapsed" TextWrapping="Wrap"/>
 
                 <Grid Margin="0,0,0,16">
@@ -163,7 +151,7 @@
                     <Button Grid.Column="2" Content="Back" Style="{StaticResource BackButtonStyle}" Click="Back_Click"/>
                 </Grid>
 
-                <TextBlock x:Name="AttemptsText" Text="Attempts Left: 3/3" FontSize="12" Foreground="{StaticResource TextSecondary}"
+                <TextBlock x:Name="AttemptsText" Text="Attempts Left: 3/3" FontSize="12" Foreground="{DynamicResource Brush.TextSecondary}"
                            TextAlignment="Center" Margin="0,16,0,0"/>
             </StackPanel>
         </ScrollViewer>

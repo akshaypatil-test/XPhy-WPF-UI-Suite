@@ -1102,7 +1102,7 @@ videoLiveFakeProportionThreshold = 0.7
         }
 
 
-        private async void StartDetectionFromPopup(DetectionSource source, bool isLiveCallMode, bool isAudioMode, bool isRetry = false)
+        private async void StartDetectionFromPopup(DetectionSource source, bool isLiveCallMode, bool isAudioMode, bool isRetry = false, string? mediaSourceDisplayName = null)
         {
             if (!isRetry)
                 _inferenceEnvRetryCount = 0;
@@ -1172,11 +1172,11 @@ videoLiveFakeProportionThreshold = 0.7
                         Forms.ToolTipIcon.Info);
                 });
 
-                // Track detection mode and source name for result (Media Source = app name: Zoom, Google Chrome, etc.)
+                // Track detection mode and source name for result (Media Source = app name: Zoom, Google Chrome, Mozilla Firefox, etc.)
                 isWebSurfingMode = !isLiveCallMode;
                 isAudioDetection = isAudioMode;
                 isStoppingDetection = false;
-                _currentMediaSourceDisplayName = GetMediaSourceDisplayName(source);
+                _currentMediaSourceDisplayName = !string.IsNullOrWhiteSpace(mediaSourceDisplayName) ? mediaSourceDisplayName.Trim() : GetMediaSourceDisplayName(source);
 
                 // Wait for inference env warm-up (from controller init) so first-time Start detection succeeds
                 if (_inferenceWarmUpTask != null)
@@ -2133,8 +2133,8 @@ videoLiveFakeProportionThreshold = 0.7
                 if (attemptResult.TrialAttemptsRemaining.HasValue)
                     BottomBar.Attempts = attemptResult.TrialAttemptsRemaining.Value;
 
-                // Start detection with selected parameters
-                StartDetectionFromPopup(e.SelectedSource.Value, e.IsLiveCallMode, e.IsAudioMode);
+                // Start detection with selected parameters (pass selected app display name so Firefox shows as Firefox, not Chrome)
+                StartDetectionFromPopup(e.SelectedSource.Value, e.IsLiveCallMode, e.IsAudioMode, mediaSourceDisplayName: e.SelectedProcess.DisplayName);
                 
                 // Hide detection selection container and show results panel
                 DetectionSelectionContainer.Visibility = Visibility.Collapsed;

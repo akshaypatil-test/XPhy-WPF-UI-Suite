@@ -127,7 +127,7 @@
                         </Grid>
                     </Border>
 
-                    <!-- Card 2: Email Preferences (toggle switch, disabled) -->
+                    <!-- Card 2: Email Preferences (saves true/false to User.EmailPreferences) -->
                     <Border Style="{StaticResource CardBorder}" Margin="0,0,0,8">
                         <Grid>
                             <Grid.ColumnDefinitions>
@@ -135,7 +135,7 @@
                                 <ColumnDefinition Width="Auto"/>
                             </Grid.ColumnDefinitions>
                             <TextBlock Grid.Column="0" Text="Email Preferences" FontSize="14" FontWeight="SemiBold" Foreground="{DynamicResource Brush.TextPrimary}" VerticalAlignment="Center"/>
-                            <ToggleButton Grid.Column="1" x:Name="EmailPreferencesToggle" IsEnabled="False" IsChecked="False" Width="44" Height="24" VerticalAlignment="Center">
+                            <ToggleButton Grid.Column="1" x:Name="EmailPreferencesToggle" IsEnabled="True" IsChecked="False" Width="44" Height="24" VerticalAlignment="Center" Checked="EmailPreferencesToggle_Changed" Unchecked="EmailPreferencesToggle_Changed">
                                 <ToggleButton.Template>
                                     <ControlTemplate TargetType="ToggleButton">
                                         <Border x:Name="Track" Background="{DynamicResource Brush.Border}" CornerRadius="12" Width="44" Height="24">

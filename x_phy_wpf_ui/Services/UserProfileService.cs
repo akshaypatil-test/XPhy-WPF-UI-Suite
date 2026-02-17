@@ -37,5 +37,21 @@ namespace x_phy_wpf_ui.Services
 
             return null;
         }
+
+        /// <summary>Save email preference (true/false) to User on the server.</summary>
+        public async Task<bool> UpdateEmailPreferencesAsync(bool emailPreferences)
+        {
+            try
+            {
+                var response = await _apiClient.PatchAsync("/api/User/profile/email-preferences", new { EmailPreferences = emailPreferences }).ConfigureAwait(false);
+                return response.IsSuccessStatusCode;
+            }
+            catch (SessionExpiredException) { throw; }
+            catch (Exception ex)
+            {
+                System.Diagnostics.Debug.WriteLine($"UserProfileService UpdateEmailPreferences: {ex.Message}");
+                return false;
+            }
+        }
     }
 }

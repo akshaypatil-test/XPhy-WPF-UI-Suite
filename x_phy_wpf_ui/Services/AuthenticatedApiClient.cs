@@ -53,6 +53,12 @@ namespace x_phy_wpf_ui.Services
             return await SendWithAuthAsync(HttpMethod.Get, path, null);
         }
 
+        /// <summary>PATCH with JSON body. On 401, refreshes token and retries once.</summary>
+        public async Task<HttpResponseMessage> PatchAsync(string path, object? body)
+        {
+            return await SendWithAuthAsync(new HttpMethod("PATCH"), path, body);
+        }
+
         private async Task<HttpResponseMessage> SendWithAuthAsync(HttpMethod method, string path, object? body)
         {
             var tokens = _tokenStorage.GetTokens();
@@ -106,7 +112,7 @@ namespace x_phy_wpf_ui.Services
         private static HttpRequestMessage CreateRequest(HttpMethod method, string path, object? body)
         {
             var request = new HttpRequestMessage(method, path);
-            if (body != null && (method == HttpMethod.Post || method == HttpMethod.Put))
+            if (body != null && (method == HttpMethod.Post || method == HttpMethod.Put || method.Method == "PATCH"))
             {
                 var json = JsonConvert.SerializeObject(body);
                 request.Content = new StringContent(json, Encoding.UTF8, "application/json");

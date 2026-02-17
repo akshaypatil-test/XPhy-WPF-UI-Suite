@@ -14,6 +14,7 @@ namespace x_phy_wpf_ui.Controls
         public event EventHandler? ViewPlansRequested;
 
         private readonly UserProfileService _profileService = new UserProfileService();
+        private bool _isLoadingProfile;
 
         public ProfileComponent()
         {
@@ -28,45 +29,66 @@ namespace x_phy_wpf_ui.Controls
 
         public async System.Threading.Tasks.Task LoadProfileAsync()
         {
-            var profile = await _profileService.GetProfileAsync();
-            if (profile == null)
+            _isLoadingProfile = true;
+            try
             {
-                ProfileFullName.Text = "—";
-                FirstNameBox.Text = "";
-                LastNameBox.Text = "";
-                UsernameBox.Text = "";
-                AccountCreatedText.Text = "—";
-                PlanNameText.Text = "—";
-                SubscriptionStatusTagText.Text = "—";
-                PlanTypeValue.Text = "—";
-                PlanExpiryValue.Text = "—";
-                MemberSinceValue.Text = "—";
-                LastLoginValue.Text = "—";
-                AccountStatusText.Text = "—";
+                var profile = await _profileService.GetProfileAsync();
+                if (profile == null)
+                {
+                    ProfileFullName.Text = "—";
+                    FirstNameBox.Text = "";
+                    LastNameBox.Text = "";
+                    UsernameBox.Text = "";
+                    AccountCreatedText.Text = "—";
+                    PlanNameText.Text = "—";
+                    SubscriptionStatusTagText.Text = "—";
+                    PlanTypeValue.Text = "—";
+                    PlanExpiryValue.Text = "—";
+                    MemberSinceValue.Text = "—";
+                    LastLoginValue.Text = "—";
+                    AccountStatusText.Text = "—";
+                    if (EmailPreferencesToggle != null)
+                        EmailPreferencesToggle.IsChecked = false;
+                    return;
+                }
+
+                ProfileFullName.Text = profile.FullName;
+                FirstNameBox.Text = profile.FirstName;
+                LastNameBox.Text = profile.LastName;
+                UsernameBox.Text = profile.Username;
+                AccountCreatedText.Text = profile.AccountCreatedDisplay;
+                MemberSinceValue.Text = profile.MemberSinceDisplay;
+                LastLoginValue.Text = profile.LastLoginDisplay;
+                AccountStatusText.Text = profile.AccountStatusDisplay;
+
+                PlanNameText.Text = string.IsNullOrEmpty(profile.PlanType) ? "—" : profile.PlanType + " Plan";
+                SubscriptionStatusTagText.Text = profile.SubscriptionStatus ?? "—";
+                PlanTypeValue.Text = profile.PlanType ?? "—";
+                PlanExpiryValue.Text = profile.PlanExpiryDisplay;
+
+                if (EmailPreferencesToggle != null)
+                    EmailPreferencesToggle.IsChecked = profile.EmailPreferences;
+
+                if (!profile.IsActive && AccountStatusTag != null)
+                {
+                    var orangeRed = new System.Windows.Media.SolidColorBrush(System.Windows.Media.Colors.OrangeRed);
+                    AccountStatusTag.BorderBrush = orangeRed;
+                    AccountStatusText.Foreground = orangeRed;
+                    AccountStatusText.Text = "Inactive";
+                }
+            }
+            finally
+            {
+                _isLoadingProfile = false;
+            }
+        }
+
+        private async void EmailPreferencesToggle_Changed(object sender, RoutedEventArgs e)
+        {
+            if (_isLoadingProfile || EmailPreferencesToggle == null)
                 return;
-            }
-
-            ProfileFullName.Text = profile.FullName;
-            FirstNameBox.Text = profile.FirstName;
-            LastNameBox.Text = profile.LastName;
-            UsernameBox.Text = profile.Username;
-            AccountCreatedText.Text = profile.AccountCreatedDisplay;
-            MemberSinceValue.Text = profile.MemberSinceDisplay;
-            LastLoginValue.Text = profile.LastLoginDisplay;
-            AccountStatusText.Text = profile.AccountStatusDisplay;
-
-            PlanNameText.Text = string.IsNullOrEmpty(profile.PlanType) ? "—" : profile.PlanType + " Plan";
-            SubscriptionStatusTagText.Text = profile.SubscriptionStatus ?? "—";
-            PlanTypeValue.Text = profile.PlanType ?? "—";
-            PlanExpiryValue.Text = profile.PlanExpiryDisplay;
-
-            if (!profile.IsActive && AccountStatusTag != null)
-            {
-                var orangeRed = new System.Windows.Media.SolidColorBrush(System.Windows.Media.Colors.OrangeRed);
-                AccountStatusTag.BorderBrush = orangeRed;
-                AccountStatusText.Foreground = orangeRed;
-                AccountStatusText.Text = "Inactive";
-            }
+            var value = EmailPreferencesToggle.IsChecked == true;
+            await _profileService.UpdateEmailPreferencesAsync(value).ConfigureAwait(true);
         }
 
         private void BackButton_Click(object sender, RoutedEventArgs e)

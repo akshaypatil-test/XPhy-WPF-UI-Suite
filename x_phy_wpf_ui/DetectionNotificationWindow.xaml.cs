@@ -166,7 +166,13 @@ namespace x_phy_wpf_ui
 
         private void CriticalThreatButton_Click(object sender, RoutedEventArgs e)
         {
+            bool expanding = WarningSection.Visibility != Visibility.Visible;
             WarningSection.Visibility = WarningSection.Visibility == Visibility.Visible ? Visibility.Collapsed : Visibility.Visible;
+            if (expanding)
+            {
+                _autoCloseTimer?.Stop();
+                _autoCloseTimer = null;
+            }
             Dispatcher.BeginInvoke(new Action(EnsureFitsScreen), DispatcherPriority.Loaded);
         }
 

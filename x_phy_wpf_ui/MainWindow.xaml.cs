@@ -42,6 +42,8 @@ namespace x_phy_wpf_ui
         private bool isAudioDetection = false; // Track if current detection is Audio mode (vs Video mode)
         /// <summary>Display name for current detection source (e.g. "Zoom", "Google Chrome") for CreateResult MediaSource.</summary>
         private string _currentMediaSourceDisplayName = "Local";
+        /// <summary>When set by floating launcher "Stop & View Results", use this path for opening results so they match the saved result.</summary>
+        private string _pathForResultsAfterStop;
         private LicenseManager licenseManager;
         private ResultsApiService _resultsApiService;
         private bool controllerInitializationAttempted = false; // Track if we've already tried to initialize
@@ -72,8 +74,8 @@ namespace x_phy_wpf_ui
         private string _changePasswordCurrent = "";
         private string _changePasswordNew = "";
         private FloatingWidgetWindow _floatingWidget;
-        /// <summary>Set to true to show the floating app launcher when minimized. Disabled for now; re-enable later.</summary>
-        private const bool FloatingWidgetEnabled = false;
+        /// <summary>Show floating widget when detection is running and app is minimized (arc loader: green, red when deepfake).</summary>
+        private const bool FloatingWidgetEnabled = true;
 
         /// <summary>True when user chose Exit from tray menu; allows actual close instead of minimize-to-tray.</summary>
         private bool _isExitingFromTray = false;
@@ -1067,21 +1069,50 @@ videoLiveFakeProportionThreshold = 0.7
                 StopBackgroundProcessCheck();
 
             if (!FloatingWidgetEnabled) return;
-            if (WindowState == WindowState.Minimized)
+            bool isDetectionRunning = controller != null && controller.IsDetectionRunning();
+            if (WindowState == WindowState.Minimized && isDetectionRunning)
             {
                 if (_floatingWidget == null)
                 {
                     _floatingWidget = new FloatingWidgetWindow();
                     _floatingWidget.SetOwnerWindow(this);
+                    _floatingWidget.SetActions(FloatingWidget_CancelDetection, FloatingWidget_StopAndViewResults);
                 }
                 _floatingWidget.PositionAtBottomRight();
-                _floatingWidget.SetDetectionState(controller != null && controller.IsDetectionRunning(), overallClassification == true);
+                _floatingWidget.SetDetectionState(true, overallClassification == true);
                 _floatingWidget.Show();
             }
             else
             {
                 _floatingWidget?.Hide();
             }
+        }
+
+        private void FloatingWidget_CancelDetection()
+        {
+            Dispatcher.Invoke(() =>
+            {
+                openResultsFolderAfterStop = false;
+                StopDetection_Click(null, EventArgs.Empty);
+                _floatingWidget?.Hide();
+            });
+        }
+
+        private void FloatingWidget_StopAndViewResults()
+        {
+            Dispatcher.Invoke(() =>
+            {
+                // Use same logic as Detection Notification "Stop & View Results": same path resolution, same hadDeepfake, same result view
+                string baseDir = null;
+                try { baseDir = controller?.GetResultsDir() ?? ""; } catch { }
+                string artifactPath = DetectionResultsLoader.ResolveFullArtifactPath(baseDir ?? "", isAudioDetection);
+                if (string.IsNullOrEmpty(artifactPath)) artifactPath = baseDir ?? "Local";
+                _resultPushedForStopAndViewResults = true;
+                PushDetectionResultToBackend(artifactPath, _deepfakeDetectedDuringRun);
+                _pathForResultsAfterStop = artifactPath; // so finally block opens this exact result (matches what we saved)
+                openResultsFolderAfterStop = true;
+                StopDetection_Click(null, EventArgs.Empty);
+            });
         }
 
         private void UpdateLogo()
@@ -1444,11 +1475,14 @@ videoLiveFakeProportionThreshold = 0.7
                 bool isRunning = controller != null && controller.IsDetectionRunning();
                 DetectionResultsComponent.SetStopButtonEnabled(isRunning || onDetectionScreen);
             }
-            // Update floating widget ring (rotate when detecting, red when deepfake) — only when enabled
-            if (FloatingWidgetEnabled && _floatingWidget != null && _floatingWidget.IsVisible)
+            // Update floating widget: hide when detection stops; otherwise update ring (green/red)
+            if (FloatingWidgetEnabled && _floatingWidget != null)
             {
                 bool isRunning = controller != null && controller.IsDetectionRunning();
-                _floatingWidget.SetDetectionState(isRunning, overallClassification == true);
+                if (!isRunning)
+                    _floatingWidget.Hide();
+                else if (_floatingWidget.IsVisible)
+                    _floatingWidget.SetDetectionState(true, overallClassification == true);
             }
         }
 
@@ -1811,6 +1845,18 @@ videoLiveFakeProportionThreshold = 0.7
             {
                 if (notifyIcon == null) return;
                 if (IsVisible && WindowState != WindowState.Minimized) return;
+                // Do not show notifications when user is logged out
+                try
+                {
+                    var tokenStorage = new TokenStorage();
+                    if (tokenStorage.GetTokens() == null) return;
+                }
+                catch { return; }
+                // Do not show single/multiple process notifications when detection is already running
+                if (controller != null && controller.IsDetectionRunning()) return;
+                // Do not show when user just chose "Stop & View Results" from floating widget (we're about to restore and open results)
+                if (openResultsFolderAfterStop) return;
+
                 // When 0 listed processes are running, user closed the app – allow showing popup again when they open one
                 if (list.Count == 0)
                 {
@@ -2223,8 +2269,9 @@ videoLiveFakeProportionThreshold = 0.7
                 if (openResultsFolderAfterStop)
                 {
                     _openedResultsAfterStop = true;
-                    string path = null;
-                    try { path = controller?.GetResultsDir(); } catch { }
+                    string path = _pathForResultsAfterStop;
+                    if (string.IsNullOrEmpty(path)) try { path = controller?.GetResultsDir(); } catch { }
+                    _pathForResultsAfterStop = null;
                     var pathCapture = path ?? "";
                     Dispatcher.Invoke(() => OpenResultsAndShowSessionDetailAfterStop(pathCapture));
                 }
@@ -2282,6 +2329,9 @@ videoLiveFakeProportionThreshold = 0.7
             overallClassification = isDeepfake;
             if (isDeepfake) _deepfakeDetectedDuringRun = true;
             DetectionResultsComponent?.UpdateOverallClassification(isDeepfake);
+            // Update floating widget immediately so arc turns red when deepfake is detected (don't wait for status timer)
+            if (FloatingWidgetEnabled && _floatingWidget != null && _floatingWidget.IsVisible)
+                _floatingWidget.SetDetectionState(true, isDeepfake);
         }
 
         private void UpdateAudioClassification(int classification)
@@ -2293,6 +2343,9 @@ videoLiveFakeProportionThreshold = 0.7
                 default: overallClassification = null; break;
             }
             DetectionResultsComponent?.UpdateAudioClassification(classification);
+            // Update floating widget immediately so arc turns red when deepfake is detected
+            if (FloatingWidgetEnabled && _floatingWidget != null && _floatingWidget.IsVisible)
+                _floatingWidget.SetDetectionState(true, overallClassification == true);
         }
 
         private void ShowFinalResult(string resultPath)
@@ -2805,14 +2858,14 @@ videoLiveFakeProportionThreshold = 0.7
                     },
                     stopDetectionAndOpenResults: () =>
                     {
-                        // 1) Call CreateResult now (native may not invoke result callback on stop) using resolved full path so DB has correct ArtifactPath.
+                        // Same as floating launcher: resolve path, push to DB, set path for results view so they match
                         string baseDir = resultPath;
                         if (string.IsNullOrEmpty(baseDir)) try { baseDir = controller?.GetResultsDir() ?? ""; } catch { }
                         string artifactPath = DetectionResultsLoader.ResolveFullArtifactPath(baseDir ?? "", isAudioDetection);
                         if (string.IsNullOrEmpty(artifactPath)) artifactPath = baseDir ?? "Local";
                         _resultPushedForStopAndViewResults = true;
                         PushDetectionResultToBackend(artifactPath, true);
-                        // 2) Stop detection; when done, OpenResultsAndShowSessionDetailAfterStop will show Session Details.
+                        _pathForResultsAfterStop = artifactPath;
                         openResultsFolderAfterStop = true;
                         StopDetection_Click(null, EventArgs.Empty);
                     },

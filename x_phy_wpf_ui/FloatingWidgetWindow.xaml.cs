@@ -8,24 +8,74 @@ namespace x_phy_wpf_ui
 {
     public partial class FloatingWidgetWindow : Window
     {
+        public static readonly DependencyProperty ArcOffsetAngleProperty = DependencyProperty.Register(
+            nameof(ArcOffsetAngle), typeof(double), typeof(FloatingWidgetWindow),
+            new PropertyMetadata(0.0, OnArcOffsetAngleChanged));
+
+        private const double ArcCenterX = 40;
+        private const double ArcCenterY = 40;
+        private const double ArcRadius = 36;
+        private const double ArcSweepDegrees = 100;
+
         private readonly SolidColorBrush _greenBrush;
         private readonly SolidColorBrush _redBrush;
-        private DoubleAnimation _rotateAnimation;
+        private Storyboard _rollStoryboard;
         private bool _isDetectionActive;
         private bool _isDeepfakeDetected;
         private Window _ownerWindow;
+        private Action _onCancelDetection;
+        private Action _onStopAndViewResults;
+
+        public double ArcOffsetAngle
+        {
+            get => (double)GetValue(ArcOffsetAngleProperty);
+            set => SetValue(ArcOffsetAngleProperty, value);
+        }
 
         public FloatingWidgetWindow()
         {
             InitializeComponent();
             _greenBrush = new SolidColorBrush(Color.FromRgb(0x22, 0xC5, 0x5E)); // green
             _redBrush = new SolidColorBrush(Color.FromRgb(0xE2, 0x15, 0x6B));   // red (X-PHY pink)
+            _onCancelDetection = () => { };
+            _onStopAndViewResults = () => { };
+            Loaded += (s, e) => { UpdateRollingArcGeometry(); };
+        }
+
+        private static void OnArcOffsetAngleChanged(DependencyObject d, DependencyPropertyChangedEventArgs e)
+        {
+            if (d is FloatingWidgetWindow w)
+                w.UpdateRollingArcGeometry();
+        }
+
+        private void UpdateRollingArcGeometry()
+        {
+            if (RollingArcPath == null) return;
+            double angle = ArcOffsetAngle * Math.PI / 180.0;
+            double endAngle = (ArcOffsetAngle + ArcSweepDegrees) * Math.PI / 180.0;
+            double startX = ArcCenterX + ArcRadius * Math.Cos(angle);
+            double startY = ArcCenterY + ArcRadius * Math.Sin(angle);
+            double endX = ArcCenterX + ArcRadius * Math.Cos(endAngle);
+            double endY = ArcCenterY + ArcRadius * Math.Sin(endAngle);
+            var pathFigure = new PathFigure(
+                new Point(startX, startY),
+                new PathSegment[] { new ArcSegment(new Point(endX, endY), new Size(ArcRadius, ArcRadius), 0, ArcSweepDegrees > 180, SweepDirection.Clockwise, true) },
+                false);
+            var geometry = new PathGeometry(new[] { pathFigure });
+            RollingArcPath.Data = geometry;
         }
 
         /// <summary>Set the main window so we can restore it on click.</summary>
         public void SetOwnerWindow(Window owner)
         {
             _ownerWindow = owner;
+        }
+
+        /// <summary>Set actions for the Detection Activity popup: Cancel detection and Stop & View results.</summary>
+        public void SetActions(Action onCancelDetection, Action onStopAndViewResults)
+        {
+            _onCancelDetection = onCancelDetection ?? (() => { });
+            _onStopAndViewResults = onStopAndViewResults ?? (() => { });
         }
 
         /// <summary>Show widget at bottom-right of working area.</summary>
@@ -36,35 +86,37 @@ namespace x_phy_wpf_ui
             Top = workArea.Bottom - Height - 16;
         }
 
-        /// <summary>Update detection state: ring rotates when active; green normally, red when deepfake detected.</summary>
+        /// <summary>Update detection state: arc loader runs when active; green normally, red when deepfake detected (same smooth animation as Loader screen).</summary>
         public void SetDetectionState(bool isDetecting, bool isDeepfakeDetected)
         {
-            if (_isDetectionActive == isDetecting && _isDeepfakeDetected == isDeepfakeDetected)
-                return;
+            bool wasActive = _isDetectionActive;
             _isDetectionActive = isDetecting;
             _isDeepfakeDetected = isDeepfakeDetected;
 
-            // Ring color: red when deepfake detected, otherwise green
-            OuterRing.Stroke = _isDeepfakeDetected ? _redBrush : _greenBrush;
+            if (RollingArcPath == null) return;
 
-            var transform = OuterRing.RenderTransform as RotateTransform;
-            if (transform == null) return;
+            // Arc color: red when deepfake detected, otherwise green (always update so it stays in sync with notification)
+            RollingArcPath.Stroke = _isDeepfakeDetected ? _redBrush : _greenBrush;
 
             if (_isDetectionActive)
             {
-                _rotateAnimation = new DoubleAnimation
+                // Only start rolling animation when transitioning to active (avoid restarting every tick)
+                if (!wasActive)
                 {
-                    From = 0,
-                    To = 360,
-                    Duration = TimeSpan.FromSeconds(1.2),
-                    RepeatBehavior = RepeatBehavior.Forever
-                };
-                transform.BeginAnimation(RotateTransform.AngleProperty, _rotateAnimation);
+                    _rollStoryboard = new Storyboard { RepeatBehavior = RepeatBehavior.Forever };
+                    var animation = new DoubleAnimation(0, 360, new Duration(TimeSpan.FromMilliseconds(1200)));
+                    Storyboard.SetTarget(animation, this);
+                    Storyboard.SetTargetProperty(animation, new PropertyPath(ArcOffsetAngleProperty));
+                    _rollStoryboard.Children.Add(animation);
+                    _rollStoryboard.Begin(this, true);
+                }
             }
             else
             {
-                transform.BeginAnimation(RotateTransform.AngleProperty, null);
-                transform.Angle = 0;
+                _rollStoryboard?.Stop(this);
+                _rollStoryboard = null;
+                ArcOffsetAngle = 0;
+                UpdateRollingArcGeometry();
             }
         }
 
@@ -76,21 +128,19 @@ namespace x_phy_wpf_ui
                 DragMove(); // Makes the floater draggable; returns when user releases mouse
             }
             catch { }
-            // If position didn't change (or barely), treat as click and restore main window
+            // If position didn't change (or barely), treat as click and show Detection Activity popup
             const double clickThreshold = 8;
             double delta = Math.Abs(Left - leftBefore) + Math.Abs(Top - topBefore);
             if (delta < clickThreshold)
-                RestoreOwner();
+                ShowDetectionActivityPopup();
         }
 
-        private void RestoreOwner()
+        private void ShowDetectionActivityPopup()
         {
-            if (_ownerWindow != null)
-            {
-                _ownerWindow.WindowState = WindowState.Normal;
-                _ownerWindow.Activate();
-            }
-            Hide();
+            var popup = new DetectionActivityPopup();
+            popup.SetActions(_onCancelDetection, _onStopAndViewResults);
+            popup.SetDeepfakeDetected(_isDeepfakeDetected);
+            popup.ShowNear(Left + Width, Top + Height / 2);
         }
     }
 }

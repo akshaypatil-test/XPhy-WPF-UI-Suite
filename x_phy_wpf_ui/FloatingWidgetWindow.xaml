@@ -12,21 +12,20 @@
         MouseLeftButtonDown="Window_MouseLeftButtonDown">
     <!-- #01FFFFFF = nearly invisible so entire area is draggable (transparent pixels can skip hit-test) -->
     <Grid Width="80" Height="80" Background="#01FFFFFF">
-        <!-- Rotating outer ring: green initially, red when deepfake detected -->
-        <Ellipse x:Name="OuterRing" Width="76" Height="76" 
-                 Stroke="#22C55E"
-                 StrokeThickness="5"
-                 RenderTransformOrigin="0.5,0.5">
-            <Ellipse.RenderTransform>
-                <RotateTransform x:Name="RingRotation" Angle="0"/>
-            </Ellipse.RenderTransform>
-        </Ellipse>
+        <!-- Arc loader (same style as Loader screen): green initially, red when deepfake detected -->
+        <Path x:Name="RollingArcPath" Fill="Transparent" Width="80" Height="80" StrokeThickness="4"
+              StrokeStartLineCap="Round" StrokeEndLineCap="Round"
+              Stretch="None" HorizontalAlignment="Center" VerticalAlignment="Center">
+            <Path.Stroke>
+                <SolidColorBrush Color="#22C55E"/>
+            </Path.Stroke>
+        </Path>
         <!-- Black circle background (like reference) -->
         <Ellipse Width="66" Height="66" Fill="#000000"/>
         <!-- Center: X-PHY lock icon -->
         <Image Source="pack://application:,,,/xphy_lock_icon.png"
-               Width="36" Height="36"
-               Stretch="Uniform"
+               Width="55" Height="55"
+               Stretch="Fill"
                RenderOptions.BitmapScalingMode="HighQuality"/>
     </Grid>
 </Window>

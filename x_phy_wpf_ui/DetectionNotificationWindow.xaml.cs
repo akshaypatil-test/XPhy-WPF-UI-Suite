@@ -17,10 +17,29 @@ namespace x_phy_wpf_ui
         /// <summary>When set, "Stop & View Results" calls this (stop detection, then open results when saved) instead of only opening folder.</summary>
         private Action _stopDetectionAndOpenResults;
 
+        /// <summary>Seconds to auto-close when user collapses the details (after having expanded).</summary>
+        private const int AutoCloseSecondsAfterCollapse = 10;
+
         public DetectionNotificationWindow()
         {
             InitializeComponent();
             VersionText.Text = "Version: " + GetAppVersion();
+        }
+
+        /// <summary>Closes any open detection notification windows so a new one does not overlap.</summary>
+        public static void CloseAllOpen()
+        {
+            try
+            {
+                foreach (Window w in Application.Current.Windows)
+                {
+                    if (w is DetectionNotificationWindow dnw && w.IsLoaded)
+                    {
+                        try { dnw.Close(); } catch { }
+                    }
+                }
+            }
+            catch { }
         }
 
         private static string GetAppVersion()
@@ -233,6 +252,19 @@ namespace x_phy_wpf_ui
             {
                 _autoCloseTimer?.Stop();
                 _autoCloseTimer = null;
+            }
+            else
+            {
+                // User collapsed the details: start auto-close so popup disappears and doesn't overlap with subsequent ones
+                _autoCloseTimer?.Stop();
+                _autoCloseTimer = new DispatcherTimer { Interval = TimeSpan.FromSeconds(AutoCloseSecondsAfterCollapse) };
+                _autoCloseTimer.Tick += (s, ev) =>
+                {
+                    _autoCloseTimer.Stop();
+                    _autoCloseTimer = null;
+                    Close();
+                };
+                _autoCloseTimer.Start();
             }
             Dispatcher.BeginInvoke(new Action(EnsureFitsScreen), DispatcherPriority.Loaded);
         }

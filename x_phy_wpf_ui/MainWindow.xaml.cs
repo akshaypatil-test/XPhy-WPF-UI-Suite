@@ -2867,6 +2867,7 @@ videoLiveFakeProportionThreshold = 0.7
         {
             Dispatcher.BeginInvoke(new Action(() =>
             {
+                DetectionNotificationWindow.CloseAllOpen();
                 var popup = new DetectionNotificationWindow();
                 popup.SetContent(title ?? "", message ?? "");
                 popup.ShowAtBottomRight(autoCloseSeconds: 5);
@@ -2877,6 +2878,7 @@ videoLiveFakeProportionThreshold = 0.7
         {
             Dispatcher.BeginInvoke(new Action(() =>
             {
+                DetectionNotificationWindow.CloseAllOpen();
                 string resultPath = "";
                 try { resultPath = controller?.GetResultsDir() ?? ""; } catch { }
                 int confidence = DetectionResultsComponent?.LastConfidencePercent ?? 0;
@@ -2915,6 +2917,7 @@ videoLiveFakeProportionThreshold = 0.7
         {
             Dispatcher.BeginInvoke(new Action(() =>
             {
+                DetectionNotificationWindow.CloseAllOpen();
                 var popup = new DetectionNotificationWindow();
                 popup.SetDetectionCompletedContent(message, resultPath,
                     openResultsFolder: () =>
@@ -2938,6 +2941,7 @@ videoLiveFakeProportionThreshold = 0.7
         {
             Dispatcher.BeginInvoke(new Action(() =>
             {
+                DetectionNotificationWindow.CloseAllOpen();
                 var popup = new DetectionNotificationWindow();
                 popup.SetDetectionCompletedWithThreatContent(confidencePercent, resultPath,
                     openResultsFolder: () =>

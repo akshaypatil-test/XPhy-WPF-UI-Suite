@@ -185,6 +185,12 @@ namespace x_phy_wpf_ui.Controls
             UpdateSignUpButtonState();
         }
 
+        private void PasswordInfoButton_Click(object sender, RoutedEventArgs e)
+        {
+            if (PasswordRequirementsPopup != null)
+                PasswordRequirementsPopup.IsOpen = !PasswordRequirementsPopup.IsOpen;
+        }
+
         private void ConfirmPasswordBox_PasswordChanged(object sender, RoutedEventArgs e)
         {
             if (ConfirmPasswordRevealTextBox?.Visibility != Visibility.Visible)
@@ -339,17 +345,10 @@ namespace x_phy_wpf_ui.Controls
                 PasswordErrorText.Visibility = Visibility.Visible;
                 SetPasswordBoxErrorState(PasswordBox, true);
             }
-            else if (password.Length < 8)
+            else if (password.Length < 8 || !IsValidPassword(password))
             {
                 _isPasswordValid = false;
-                PasswordErrorText.Text = "Password must be at least 8 characters long";
-                PasswordErrorText.Visibility = Visibility.Visible;
-                SetPasswordBoxErrorState(PasswordBox, true);
-            }
-            else if (!IsValidPassword(password))
-            {
-                _isPasswordValid = false;
-                PasswordErrorText.Text = "Password must contain uppercase, lowercase, number, and special character (@$!%*?&)";
+                PasswordErrorText.Text = "Password does not meet requirements";
                 PasswordErrorText.Visibility = Visibility.Visible;
                 SetPasswordBoxErrorState(PasswordBox, true);
             }
@@ -534,13 +533,13 @@ namespace x_phy_wpf_ui.Controls
 
             if (password.Length < 8)
             {
-                ShowError("Password must be at least 8 characters long.");
+                ShowError("Password does not meet requirements.");
                 return;
             }
 
             if (!IsValidPassword(password))
             {
-                ShowError("Password must contain at least one uppercase letter, one lowercase letter, one number, and one special character.");
+                ShowError("Password does not meet requirements.");
                 return;
             }
 

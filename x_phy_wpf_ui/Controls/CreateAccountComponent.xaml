@@ -11,7 +11,7 @@
 
     <Grid Background="Transparent">
         <!-- Main Content -->
-        <ScrollViewer VerticalScrollBarVisibility="Auto">
+        <ScrollViewer VerticalScrollBarVisibility="Hidden" HorizontalScrollBarVisibility="Disabled">
             <StackPanel VerticalAlignment="Center" 
                         HorizontalAlignment="Left"
                         Width="400"
@@ -52,14 +52,14 @@
                            FontSize="12" 
                            FontWeight="Bold"
                            Foreground="{StaticResource TextSecondary}"
-                           Margin="0,0,0,8"/>
+                           Margin="0,0,0,10"/>
                 <Border x:Name="FirstNameFieldBorder"
                         Background="{StaticResource InputBackground}"
                         BorderBrush="{StaticResource InputBorder}"
                         BorderThickness="1"
                         CornerRadius="8"
                         MinHeight="44"
-                        Margin="0,0,0,4">
+                        Margin="0,0,0,8">
                     <Grid>
                         <TextBox x:Name="FirstNameTextBox"
                                  Style="{StaticResource ModernTextBoxInnerStyleFullWidth}"
@@ -79,7 +79,7 @@
                            Text="" 
                            FontSize="11" 
                            Foreground="{StaticResource ErrorText}"
-                           Margin="4,0,0,8"
+                           Margin="4,0,0,12"
                            Visibility="Collapsed"
                            TextWrapping="Wrap"/>
                 
@@ -88,14 +88,14 @@
                            FontSize="12" 
                            FontWeight="Bold"
                            Foreground="{StaticResource TextSecondary}"
-                           Margin="0,0,0,8"/>
+                           Margin="0,0,0,10"/>
                 <Border x:Name="LastNameFieldBorder"
                         Background="{StaticResource InputBackground}"
                         BorderBrush="{StaticResource InputBorder}"
                         BorderThickness="1"
                         CornerRadius="8"
                         MinHeight="44"
-                        Margin="0,0,0,4">
+                        Margin="0,0,0,8">
                     <Grid>
                         <TextBox x:Name="LastNameTextBox"
                                  Style="{StaticResource ModernTextBoxInnerStyleFullWidth}"
@@ -115,23 +115,23 @@
                            Text="" 
                            FontSize="11" 
                            Foreground="{StaticResource ErrorText}"
-                           Margin="4,0,0,8"
+                           Margin="4,0,0,12"
                            Visibility="Collapsed"
                            TextWrapping="Wrap"/>
                 
-                <!-- Email Field -->
-                <TextBlock Text="Email" 
+                <!-- Email Field (labeled Username per Figma) -->
+                <TextBlock Text="Username" 
                            FontSize="12" 
                            FontWeight="Bold"
                            Foreground="{StaticResource TextSecondary}"
-                           Margin="0,0,0,8"/>
+                           Margin="0,0,0,10"/>
                 <Border x:Name="EmailFieldBorder"
                         Background="{StaticResource InputBackground}"
                         BorderBrush="{StaticResource InputBorder}"
                         BorderThickness="1"
                         CornerRadius="8"
                         MinHeight="44"
-                        Margin="0,0,0,4">
+                        Margin="0,0,0,8">
                     <Grid>
                         <TextBox x:Name="EmailTextBox"
                                  Style="{StaticResource ModernTextBoxInnerStyleFullWidth}"
@@ -151,23 +151,90 @@
                            Text="" 
                            FontSize="11" 
                            Foreground="{StaticResource ErrorText}"
-                           Margin="4,0,0,8"
+                           Margin="4,0,0,12"
                            Visibility="Collapsed"
                            TextWrapping="Wrap"/>
                 
-                <!-- Password Field -->
-                <TextBlock Text="Password" 
-                           FontSize="12" 
-                           FontWeight="Bold"
-                           Foreground="{StaticResource TextSecondary}"
-                           Margin="0,0,0,8"/>
+                <!-- Password Field: label + Info icon for requirements popup -->
+                <Grid Margin="0,0,0,10">
+                    <Grid.ColumnDefinitions>
+                        <ColumnDefinition Width="Auto"/>
+                        <ColumnDefinition Width="Auto"/>
+                    </Grid.ColumnDefinitions>
+                    <TextBlock Grid.Column="0" Text="Password" 
+                               FontSize="12" 
+                               FontWeight="Bold"
+                               Foreground="{StaticResource TextSecondary}"
+                               VerticalAlignment="Center"/>
+                    <Button x:Name="PasswordInfoButton" Grid.Column="1"
+                            Width="18" Height="18" Margin="6,0,0,0"
+                            VerticalAlignment="Center"
+                            Background="Transparent" BorderThickness="0"
+                            Cursor="Hand" Click="PasswordInfoButton_Click"
+                            ToolTip="Password requirements">
+                        <Button.Template>
+                            <ControlTemplate TargetType="Button">
+                                <Border Background="{TemplateBinding Background}" 
+                                        BorderBrush="{StaticResource TextSecondary}"
+                                        BorderThickness="1" CornerRadius="9"
+                                        Padding="0">
+                                    <TextBlock Text="i" FontSize="11" FontWeight="SemiBold"
+                                               Foreground="{StaticResource TextSecondary}"
+                                               HorizontalAlignment="Center"
+                                               VerticalAlignment="Center"/>
+                                </Border>
+                            </ControlTemplate>
+                        </Button.Template>
+                    </Button>
+                    <Popup x:Name="PasswordRequirementsPopup" 
+                           PlacementTarget="{Binding ElementName=PasswordInfoButton}"
+                           Placement="Right" StaysOpen="False"
+                           AllowsTransparency="True" PopupAnimation="Fade">
+                        <Border Background="{StaticResource InputBackground}" 
+                                BorderBrush="{StaticResource InputBorder}"
+                                BorderThickness="1" CornerRadius="8"
+                                Padding="14,12" Margin="8,0,0,0"
+                                MinWidth="220">
+                            <StackPanel>
+                                <TextBlock Text="Password requirements" 
+                                           FontSize="12" FontWeight="SemiBold"
+                                           Foreground="White"
+                                           Margin="0,0,0,10"/>
+                                <StackPanel Orientation="Horizontal" Margin="0,0,0,4">
+                                    <Border Width="16" Height="16" CornerRadius="8" Background="#4ADE80" Margin="0,0,8,0" VerticalAlignment="Center">
+                                        <TextBlock Text="✓" FontSize="10" Foreground="White" HorizontalAlignment="Center" VerticalAlignment="Center"/>
+                                    </Border>
+                                    <TextBlock Text="Minimum 8 characters" FontSize="11" Foreground="#4ADE80"/>
+                                </StackPanel>
+                                <StackPanel Orientation="Horizontal" Margin="0,0,0,4">
+                                    <Border Width="16" Height="16" CornerRadius="8" Background="#4ADE80" Margin="0,0,8,0" VerticalAlignment="Center">
+                                        <TextBlock Text="✓" FontSize="10" Foreground="White" HorizontalAlignment="Center" VerticalAlignment="Center"/>
+                                    </Border>
+                                    <TextBlock Text="One uppercase letter" FontSize="11" Foreground="#4ADE80"/>
+                                </StackPanel>
+                                <StackPanel Orientation="Horizontal" Margin="0,0,0,4">
+                                    <Border Width="16" Height="16" CornerRadius="8" Background="#4ADE80" Margin="0,0,8,0" VerticalAlignment="Center">
+                                        <TextBlock Text="✓" FontSize="10" Foreground="White" HorizontalAlignment="Center" VerticalAlignment="Center"/>
+                                    </Border>
+                                    <TextBlock Text="One number" FontSize="11" Foreground="#4ADE80"/>
+                                </StackPanel>
+                                <StackPanel Orientation="Horizontal">
+                                    <Border Width="16" Height="16" CornerRadius="8" Background="#4ADE80" Margin="0,0,8,0" VerticalAlignment="Center">
+                                        <TextBlock Text="✓" FontSize="10" Foreground="White" HorizontalAlignment="Center" VerticalAlignment="Center"/>
+                                    </Border>
+                                    <TextBlock Text="One special character" FontSize="11" Foreground="#4ADE80"/>
+                                </StackPanel>
+                            </StackPanel>
+                        </Border>
+                    </Popup>
+                </Grid>
                 <Border x:Name="PasswordFieldBorder"
                         Background="{StaticResource InputBackground}"
                         BorderBrush="{StaticResource InputBorder}"
                         BorderThickness="1"
                         CornerRadius="8"
                         MinHeight="44"
-                        Margin="0,0,0,4">
+                        Margin="0,0,0,8">
                     <Grid>
                         <Grid.ColumnDefinitions>
                             <ColumnDefinition Width="*"/>
@@ -216,7 +283,7 @@
                            Text="" 
                            FontSize="11" 
                            Foreground="{StaticResource ErrorText}"
-                           Margin="4,0,0,8"
+                           Margin="4,0,0,12"
                            Visibility="Collapsed"
                            TextWrapping="Wrap"/>
                 
@@ -225,14 +292,14 @@
                            FontSize="12" 
                            FontWeight="Bold"
                            Foreground="{StaticResource TextSecondary}"
-                           Margin="0,0,0,8"/>
+                           Margin="0,0,0,10"/>
                 <Border x:Name="ConfirmPasswordFieldBorder"
                         Background="{StaticResource InputBackground}"
                         BorderBrush="{StaticResource InputBorder}"
                         BorderThickness="1"
                         CornerRadius="8"
                         MinHeight="44"
-                        Margin="0,0,0,4">
+                        Margin="0,0,0,8">
                     <Grid>
                         <Grid.ColumnDefinitions>
                             <ColumnDefinition Width="*"/>
@@ -281,7 +348,7 @@
                            Text="" 
                            FontSize="11" 
                            Foreground="{StaticResource ErrorText}"
-                           Margin="4,0,0,8"
+                           Margin="4,0,0,12"
                            Visibility="Collapsed"
                            TextWrapping="Wrap"/>
                 

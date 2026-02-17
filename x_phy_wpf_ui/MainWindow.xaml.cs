@@ -561,6 +561,9 @@ namespace x_phy_wpf_ui
             // Center window on screen
             this.Left = (screenWidth - this.Width) / 2;
             this.Top = (screenHeight - this.Height) / 2;
+
+            // Show tray icon when application starts
+            ShowTray();
             
             // If opened from LaunchWindow with pre-validated controller and tokens, show app view immediately
             if (controller != null && controllerInitializationAttempted)
@@ -1487,7 +1490,7 @@ videoLiveFakeProportionThreshold = 0.7
         {
             try
             {
-                HideTray();
+                // Keep tray running in background; only Exit from tray closes the app
                 var tokenStorage = new TokenStorage();
                 tokenStorage.ClearTokens();
                 controller = null;
@@ -1735,17 +1738,22 @@ videoLiveFakeProportionThreshold = 0.7
             if (_isExitingFromTray)
                 return;
 
-            // Close (X): if Remember Me is false, logout (clear tokens); if true, keep tokens so user stays logged in
-            try
+            // Close (X): minimize to tray; if Remember Me is false, logout (clear tokens) so next open shows login
+            if (notifyIcon != null)
             {
-                var tokenStorage = new TokenStorage();
-                var tokens = tokenStorage.GetTokens();
-                if (tokens == null || !tokens.RememberMe)
-                    tokenStorage.ClearTokens();
-            }
-            catch (Exception ex)
-            {
-                System.Diagnostics.Debug.WriteLine($"MainWindow_Closing: {ex.Message}");
+                try
+                {
+                    var tokenStorage = new TokenStorage();
+                    var tokens = tokenStorage.GetTokens();
+                    if (tokens == null || !tokens.RememberMe)
+                        tokenStorage.ClearTokens();
+                }
+                catch (Exception ex)
+                {
+                    System.Diagnostics.Debug.WriteLine($"MainWindow_Closing: {ex.Message}");
+                }
+                e.Cancel = true;
+                Hide();
             }
         }
 
@@ -2614,7 +2622,7 @@ videoLiveFakeProportionThreshold = 0.7
             ShowDetectionContent();
         }
 
-        /// <summary>Show system tray icon when user is logged in. Right-click shows menu (via ContextMenuStrip); left click does nothing.</summary>
+        /// <summary>Show system tray icon. Right-click shows menu (Open Application, Open Result Directory, Exit).</summary>
         private void ShowTray()
         {
             if (notifyIcon != null) return;
@@ -2664,28 +2672,43 @@ videoLiveFakeProportionThreshold = 0.7
             _trayContextMenu = null;
         }
 
-        /// <summary>Create the right-click context menu with detection options, Open Results Folder, Version, and Exit. Styled to match notification UI.</summary>
+        /// <summary>Create the right-click context menu: Open Application, Open Result Directory, Exit.</summary>
         private Forms.ContextMenuStrip CreateTrayContextMenu()
         {
             var menu = new Forms.ContextMenuStrip();
-            // Match notification UI: white background, dark text, rounded feel via padding and colors
             menu.BackColor = System.Drawing.Color.White;
             menu.ForeColor = System.Drawing.Color.FromArgb(0x1A, 0x1A, 0x1A);
             menu.Font = new System.Drawing.Font("Segoe UI", 11f);
             menu.Padding = new Forms.Padding(6, 8, 6, 8);
             menu.Renderer = new TrayMenuNotificationStyleRenderer();
 
-            menu.Items.Add("Web Surfing Video Detection Agent", null, (_, __) => TrayStartDetection(DetectionSource.YouTubeWebStreamVideo, false, false));
-            menu.Items.Add("Video Call Video Detection Agent", null, (_, __) => TrayStartDetection(DetectionSource.ZoomConferenceVideo, true, false));
-            menu.Items.Add("Web Surfing Voice Detection Agent", null, (_, __) => TrayStartDetection(DetectionSource.YouTubeWebStreamAudio, false, true));
-            menu.Items.Add("Video Call Voice Detection Agent", null, (_, __) => TrayStartDetection(DetectionSource.ZoomConferenceAudio, true, true));
+            menu.Items.Add("Open Application", null, (_, __) => OpenApplicationFromTray());
+            menu.Items.Add("Open Result Directory", null, (_, __) => OpenResultsFolderFromTray());
             menu.Items.Add(new Forms.ToolStripSeparator());
-            menu.Items.Add("Open Results Folder", null, (_, __) => OpenResultsFolderFromTray());
-            menu.Items.Add(new Forms.ToolStripSeparator());
-            var versionItem = menu.Items.Add($"Version: {GetAppVersion()}", null);
-            if (versionItem != null) versionItem.Enabled = false; // display only
             menu.Items.Add("Exit", null, (_, __) => ExitFromTray());
             return menu;
+        }
+
+        private void OpenApplicationFromTray()
+        {
+            Dispatcher.Invoke(() =>
+            {
+                Show();
+                WindowState = WindowState.Normal;
+                Activate();
+                // If user was logged out (e.g. Remember Me false + closed with X), show auth / Get Started screen
+                try
+                {
+                    var tokenStorage = new TokenStorage();
+                    var tokens = tokenStorage.GetTokens();
+                    if (tokens == null)
+                    {
+                        ShowAuthView();
+                        return;
+                    }
+                }
+                catch { }
+            });
         }
 
         private static string GetAppVersion()

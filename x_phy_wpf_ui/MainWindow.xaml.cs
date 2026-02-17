@@ -462,23 +462,37 @@ namespace x_phy_wpf_ui
             AppPanel.Visibility = Visibility.Collapsed;
         }
 
-        /// <summary>Called from App when SessionExpiredException is caught so we show sign-in instead of crashing.</summary>
+        /// <summary>Show Welcome screen (first run / session expired). Use this instead of Sign In when user is effectively logged out.</summary>
+        private void ShowWelcomeView()
+        {
+            AuthPanel.SetContent(_welcomeComponent);
+            AuthPanel.Visibility = Visibility.Visible;
+            AppPanel.Visibility = Visibility.Collapsed;
+        }
+
+        /// <summary>Called from App when SessionExpiredException is caught so we show Welcome instead of crashing.</summary>
+        public void ShowWelcomeViewIfNeeded()
+        {
+            Dispatcher.Invoke(ShowWelcomeView);
+        }
+
+        /// <summary>Called when session expired from API (legacy name); use ShowWelcomeViewIfNeeded for new callers.</summary>
         public void ShowAuthViewIfNeeded()
         {
-            Dispatcher.Invoke(ShowAuthView);
+            Dispatcher.Invoke(ShowWelcomeView);
         }
 
         /// <summary>
-        /// On startup with stored tokens: try refresh once. If refresh succeeds, show app view; otherwise clear tokens and show sign-in
-        /// so the user can sign in again without hitting SessionExpiredException.
+        /// On startup with stored tokens: try refresh once. If refresh succeeds, show app view; otherwise clear tokens and show Welcome
+        /// so the user gets the first-run flow instead of Sign In (avoids "access token is null" and wrong screen).
         /// </summary>
         private async void TryRestoreSessionAndShowAppAsync(TokenStorage tokenStorage, TokenStorage.StoredTokens storedTokens)
         {
-            // No refresh token or no access token (e.g. corrupted file): clear and show sign-in without calling API
+            // No refresh token or no access token (e.g. corrupted file): clear and show Welcome without calling API
             if (string.IsNullOrWhiteSpace(storedTokens.RefreshToken) || string.IsNullOrWhiteSpace(storedTokens.AccessToken))
             {
                 tokenStorage.ClearTokens();
-                Dispatcher.Invoke(ShowAuthView);
+                Dispatcher.Invoke(ShowWelcomeView);
                 return;
             }
             try
@@ -488,7 +502,7 @@ namespace x_phy_wpf_ui
                 if (refreshResponse == null || string.IsNullOrEmpty(refreshResponse.AccessToken))
                 {
                     tokenStorage.ClearTokens();
-                    Dispatcher.Invoke(ShowAuthView);
+                    Dispatcher.Invoke(ShowWelcomeView);
                     return;
                 }
                 tokenStorage.UpdateAccessToken(refreshResponse.AccessToken, refreshResponse.ExpiresIn);
@@ -501,7 +515,7 @@ namespace x_phy_wpf_ui
             {
                 System.Diagnostics.Debug.WriteLine($"TryRestoreSessionAndShowApp: {ex.Message}");
                 tokenStorage.ClearTokens();
-                Dispatcher.Invoke(ShowAuthView);
+                Dispatcher.Invoke(ShowWelcomeView);
             }
         }
         
@@ -593,14 +607,24 @@ namespace x_phy_wpf_ui
                 }
             }
 
-            // Have stored tokens: validate session (try refresh) before showing app. If refresh fails, clear tokens and show sign-in.
+            // Have stored tokens with a refresh token: validate session (try refresh) before showing app. If refresh fails, clear and show Welcome.
             var tokenStorageForLaunch = new TokenStorage();
             var tokensForLaunch = tokenStorageForLaunch.GetTokens();
-            if (tokensForLaunch?.UserInfo != null)
+            if (tokensForLaunch?.UserInfo != null && !string.IsNullOrWhiteSpace(tokensForLaunch.RefreshToken))
             {
                 TryRestoreSessionAndShowAppAsync(tokenStorageForLaunch, tokensForLaunch);
                 return;
             }
+            // Tokens missing or invalid (e.g. no refresh token, corrupted): clear so we don't trigger "access token is null" elsewhere
+            if (tokensForLaunch != null && string.IsNullOrWhiteSpace(tokensForLaunch.RefreshToken))
+            {
+                try { tokenStorageForLaunch.ClearTokens(); } catch { }
+            }
+
+            // First run after install or invalid tokens: ensure Welcome screen is shown, not Sign In
+            AuthPanel.SetContent(_welcomeComponent);
+            AuthPanel.Visibility = Visibility.Visible;
+            AppPanel.Visibility = Visibility.Collapsed;
 
             // Stats and controller init happen when App view is shown (after login), not on initial load when Auth is shown
             if (AppPanel.Visibility == Visibility.Visible)
@@ -1767,7 +1791,7 @@ videoLiveFakeProportionThreshold = 0.7
                 {
                     controller = null;
                     controllerInitializationAttempted = false;
-                    ShowAuthView();
+                    ShowWelcomeView();
                 }
                 catch (Exception ex)
                 {
@@ -2759,14 +2783,16 @@ videoLiveFakeProportionThreshold = 0.7
                 Show();
                 WindowState = WindowState.Normal;
                 Activate();
-                // If user was logged out (e.g. Remember Me false + closed with X), show auth / Get Started screen
+                // If user closed from Auth view (no tokens), show Launch (Get Started) when opening from tray
                 try
                 {
                     var tokenStorage = new TokenStorage();
                     var tokens = tokenStorage.GetTokens();
                     if (tokens == null)
                     {
-                        ShowAuthView();
+                        AuthPanel.SetContent(_launchComponent);
+                        AuthPanel.Visibility = Visibility.Visible;
+                        AppPanel.Visibility = Visibility.Collapsed;
                         return;
                     }
                 }

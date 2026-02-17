@@ -42,9 +42,6 @@
                 <Setter.Value>
                     <ControlTemplate TargetType="Button">
                         <Border x:Name="border" Background="{TemplateBinding Background}" Padding="{TemplateBinding Padding}" CornerRadius="10">
-                            <Border.Effect>
-                                <DropShadowEffect Color="#1AB4CC" BlurRadius="12" ShadowDepth="0" Opacity="0.7"/>
-                            </Border.Effect>
                             <ContentPresenter HorizontalAlignment="Center" VerticalAlignment="Center"/>
                         </Border>
                         <ControlTemplate.Triggers>
@@ -57,22 +54,28 @@
             </Setter>
         </Style>
     </UserControl.Resources>
-    <Border Background="{StaticResource NavBarBackground}" 
-            CornerRadius="20"
-            BorderBrush="{StaticResource NavBarBorder}"
-            BorderThickness="1"
-            HorizontalAlignment="Center"
-            VerticalAlignment="Center"
-            Width="400"
-            Padding="8,6,8,6">
-        <Border.Effect>
-            <DropShadowEffect Color="#FF1AB4CC" 
-                              BlurRadius="200" 
-                              ShadowDepth="0" 
-                              Opacity="0.6"
-                              Direction="0"/>
-        </Border.Effect>
-        <Grid>
+    <!-- Two layers: glow behind (effect only), content on top (sharp buttons) -->
+    <Grid HorizontalAlignment="Center" VerticalAlignment="Center" Width="400">
+        <!-- Glow layer: no content so effect does not blur buttons -->
+        <Border Background="{StaticResource NavBarBackground}" 
+                CornerRadius="20"
+                Width="400"
+                Padding="8,6,8,6">
+            <Border.Effect>
+                <DropShadowEffect Color="#FF1AB4CC" 
+                                  BlurRadius="200" 
+                                  ShadowDepth="0" 
+                                  Opacity="0.6"
+                                  Direction="0"/>
+            </Border.Effect>
+        </Border>
+        <!-- Content layer: no effect, so nav buttons stay sharp -->
+        <Border Background="{StaticResource NavBarBackground}" 
+                CornerRadius="20"
+                BorderBrush="{StaticResource NavBarBorder}"
+                BorderThickness="1"
+                Padding="8,6,8,6">
+            <Grid>
             <Grid.RowDefinitions>
                 <RowDefinition Height="*"/>
                 <RowDefinition Height="35*"/>
@@ -150,6 +153,7 @@
                     <TextBlock Text="Corporate User" FontSize="10" FontWeight="SemiBold" HorizontalAlignment="Center" TextWrapping="Wrap" TextAlignment="Center"/>
                 </StackPanel>
             </Button>
-        </Grid>
-    </Border>
+            </Grid>
+        </Border>
+    </Grid>
 </UserControl>

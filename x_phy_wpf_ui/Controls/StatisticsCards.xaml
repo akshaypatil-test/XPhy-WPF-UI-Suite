@@ -17,8 +17,6 @@
             <GradientStop Color="#B01050" Offset="0.35"/>
             <GradientStop Color="#1AB4CC" Offset="1"/>
         </LinearGradientBrush>
-        <!-- Subtle glow for glass card effect -->
-        <DropShadowEffect x:Key="CardGlassGlow" BlurRadius="10" ShadowDepth="0" Opacity="0.35" Color="#1AB4CC"/>
         <!-- Glass ellipse: dark reddish-purple radial gradient -->
         <RadialGradientBrush x:Key="KpiEllipseGlassBg" GradientOrigin="0.3,0.3" Center="0.5,0.5" RadiusX="0.6" RadiusY="0.6">
             <GradientStop Color="#5A2D4A" Offset="0"/>
@@ -50,7 +48,6 @@
                 CornerRadius="20"
                 BorderBrush="{StaticResource NavBarBorderGradient}"
                 BorderThickness="1"
-                Effect="{StaticResource CardGlassGlow}"
                 Padding="12,10,12,10">
             <Grid>
                 <Grid.ColumnDefinitions>
@@ -89,7 +86,6 @@
                 CornerRadius="20"
                 BorderBrush="{StaticResource NavBarBorderGradient}"
                 BorderThickness="1"
-                Effect="{StaticResource CardGlassGlow}"
                 Padding="12,10,12,10">
             <Grid>
                 <Grid.ColumnDefinitions>
@@ -128,7 +124,6 @@
                 CornerRadius="20"
                 BorderBrush="{StaticResource NavBarBorderGradient}"
                 BorderThickness="1"
-                Effect="{StaticResource CardGlassGlow}"
                 Padding="12,10,12,10">
             <Grid>
                 <Grid.ColumnDefinitions>
@@ -166,7 +161,6 @@
                 CornerRadius="20"
                 BorderBrush="{StaticResource NavBarBorderGradient}"
                 BorderThickness="1"
-                Effect="{StaticResource CardGlassGlow}"
                 Padding="12,10,12,10">
             <Grid>
                 <Grid.ColumnDefinitions>

@@ -133,6 +133,9 @@ namespace x_phy_wpf_ui
                 
                 // Ensure window fits on screen
                 this.Loaded += MainWindow_Loaded;
+
+                // Refresh license/status when user returns to MainWindow (e.g. after purchase in another window)
+                this.Activated += MainWindow_Activated;
                 
                 // Handle window state changes
                 this.StateChanged += MainWindow_StateChanged;
@@ -617,6 +620,13 @@ namespace x_phy_wpf_ui
                     }
                 }
             }
+        }
+
+        private void MainWindow_Activated(object sender, EventArgs e)
+        {
+            // Refresh license/status when user returns to this window (e.g. after completing purchase in StripePaymentWindow)
+            if (AppPanel.Visibility == Visibility.Visible)
+                UpdateLicenseDisplay();
         }
 
         private void MainWindow_MouseDown(object sender, System.Windows.Input.MouseButtonEventArgs e)

@@ -205,7 +205,11 @@ namespace x_phy_wpf_ui.Controls
                     if (confirmResponse.License != null)
                     {
                         var tokenStorage = new TokenStorage();
-                        tokenStorage.UpdateUserAndLicense(confirmResponse.User, confirmResponse.License);
+                        var current = tokenStorage.GetTokens();
+                        var userInfo = confirmResponse.User ?? current?.UserInfo;
+                        if (userInfo != null && !string.IsNullOrEmpty(confirmResponse.License.Status))
+                            userInfo = new UserInfo { Id = userInfo.Id, Username = userInfo.Username, LicenseStatus = confirmResponse.License.Status, TrialEndsAt = userInfo.TrialEndsAt, UserType = userInfo.UserType };
+                        tokenStorage.UpdateUserAndLicense(userInfo, confirmResponse.License);
                         if (!string.IsNullOrWhiteSpace(confirmResponse.License.Key))
                             MainWindow.WriteLicenseKeyToExeConfig(confirmResponse.License.Key);
                     }

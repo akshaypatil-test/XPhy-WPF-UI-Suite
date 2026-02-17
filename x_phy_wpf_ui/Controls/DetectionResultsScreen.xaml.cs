@@ -6,6 +6,8 @@ using System.Linq;
 using System.Windows;
 using System.Windows.Controls;
 using System.Windows.Data;
+using System.Windows.Input;
+using System.Windows.Threading;
 using x_phy_wpf_ui.Models;
 using x_phy_wpf_ui.Services;
 
@@ -16,6 +18,7 @@ namespace x_phy_wpf_ui.Controls
         private string _resultsDirectory;
         private ObservableCollection<DetectionResultItem> _items;
         private readonly SessionDetailsPanel _sessionDetailsPanel;
+        private DispatcherTimer _exportToastTimer;
 
         public DetectionResultsScreen()
         {
@@ -30,6 +33,15 @@ namespace x_phy_wpf_ui.Controls
             _items = new ObservableCollection<DetectionResultItem>();
             ResultsDataGrid.ItemsSource = _items;
             ResultsDataGrid.LoadingRow += ResultsDataGrid_LoadingRow;
+        }
+
+        private void ResultsListView_PreviewMouseWheel(object sender, MouseWheelEventArgs e)
+        {
+            if (sender is ScrollViewer sv && e.Delta != 0)
+            {
+                sv.ScrollToVerticalOffset(sv.VerticalOffset - e.Delta);
+                e.Handled = true;
+            }
         }
 
         private void ResultsDataGrid_LoadingRow(object sender, DataGridRowEventArgs e)
@@ -143,26 +155,64 @@ namespace x_phy_wpf_ui.Controls
             };
             if (saveDialog.ShowDialog() != true)
                 return;
-            try
+
+            string chosenPath = saveDialog.FileName;
+            var itemsToExport = _items.ToList();
+
+            // Show "Export Started" first and let it render, then run export and show "Export Completed"
+            ShowExportToast("Export Started", "Detection Results Are Being Exported To Excel.", 0);
+            Dispatcher.BeginInvoke(new Action(() =>
             {
-                using (var w = new StreamWriter(saveDialog.FileName))
+                try
                 {
-                    w.WriteLine("Timestamp,Type,Result,Detection Confidence,Result Path");
-                    foreach (var row in _items)
+                    using (var w = new StreamWriter(chosenPath))
                     {
-                        w.WriteLine(
-                            "\"{0:yyyy-MM-dd HH:mm:ss}\",\"{1}\",\"{2}\",\"{3}%\",\"{4}\"",
-                            row.Timestamp, row.Type, row.ResultText, row.ConfidencePercent,
-                            (row.ResultPathOrId ?? "").Replace("\"", "\"\""));
+                        w.WriteLine("Timestamp,Type,Result,Detection Confidence,Result Path");
+                        foreach (var row in itemsToExport)
+                        {
+                            w.WriteLine(
+                                "\"{0:yyyy-MM-dd HH:mm:ss}\",\"{1}\",\"{2}\",\"{3}%\",\"{4}\"",
+                                row.Timestamp, row.Type, row.ResultText, row.ConfidencePercent,
+                                (row.ResultPathOrId ?? "").Replace("\"", "\"\""));
+                        }
                     }
+                    ShowExportToast("Export Completed", "Results Have Been Exported Successfully.", 5);
+                    Process.Start("explorer.exe", "/select,\"" + chosenPath + "\"");
                 }
-                MessageBox.Show("Results exported successfully.", "Export", MessageBoxButton.OK, MessageBoxImage.Information);
-                Process.Start("explorer.exe", "/select,\"" + saveDialog.FileName + "\"");
-            }
-            catch (System.Exception ex)
+                catch (Exception ex)
+                {
+                    ExportToastCard.Visibility = Visibility.Collapsed;
+                    _exportToastTimer?.Stop();
+                    _exportToastTimer = null;
+                    MessageBox.Show("Export failed: " + ex.Message, "Error", MessageBoxButton.OK, MessageBoxImage.Error);
+                }
+            }), System.Windows.Threading.DispatcherPriority.ApplicationIdle);
+        }
+
+        private void ShowExportToast(string title, string message, int autoCloseSeconds)
+        {
+            _exportToastTimer?.Stop();
+            ExportToastTitle.Text = title ?? "";
+            ExportToastMessage.Text = message ?? "";
+            ExportToastCard.Visibility = Visibility.Visible;
+            if (autoCloseSeconds > 0)
             {
-                MessageBox.Show("Export failed: " + ex.Message, "Error", MessageBoxButton.OK, MessageBoxImage.Error);
+                _exportToastTimer = new DispatcherTimer { Interval = TimeSpan.FromSeconds(autoCloseSeconds) };
+                _exportToastTimer.Tick += (s, e) =>
+                {
+                    _exportToastTimer.Stop();
+                    _exportToastTimer = null;
+                    ExportToastCard.Visibility = Visibility.Collapsed;
+                };
+                _exportToastTimer.Start();
             }
+        }
+
+        private void ExportToastClose_Click(object sender, RoutedEventArgs e)
+        {
+            _exportToastTimer?.Stop();
+            _exportToastTimer = null;
+            ExportToastCard.Visibility = Visibility.Collapsed;
         }
 
         private void ViewResult_Click(object sender, RoutedEventArgs e)

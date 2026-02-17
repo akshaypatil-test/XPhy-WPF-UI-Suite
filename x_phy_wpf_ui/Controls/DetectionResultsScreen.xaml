@@ -75,7 +75,7 @@
         </Grid.RowDefinitions>
 
         <!-- List view: DETECTION RESULTS table (scrollable; buttons are in row below) -->
-        <ScrollViewer x:Name="ResultsListView" Grid.Row="0" VerticalScrollBarVisibility="Auto" HorizontalScrollBarVisibility="Disabled">
+        <ScrollViewer x:Name="ResultsListView" Grid.Row="0" VerticalScrollBarVisibility="Hidden" HorizontalScrollBarVisibility="Disabled" PreviewMouseWheel="ResultsListView_PreviewMouseWheel">
             <Grid Margin="0,0,0,0" HorizontalAlignment="Stretch">
                 <Grid.RowDefinitions>
                     <RowDefinition Height="Auto"/>
@@ -305,18 +305,41 @@
             </Grid>
         </ScrollViewer>
 
-        <!-- Buttons: always at bottom right -->
-        <StackPanel Grid.Row="1" Orientation="Horizontal" HorizontalAlignment="Right" Margin="0,16,0,0">
-            <Button x:Name="ResultsDirectoryButton"
-                    Content="Results Directory"
-                    Style="{StaticResource TealButtonStyle}"
-                    Click="ResultsDirectory_Click"
-                    Margin="0,0,12,0"/>
-            <Button x:Name="ExportExcelButton"
-                    Content="Export to Excel"
-                    Style="{StaticResource PinkButtonStyle}"
-                    Click="ExportExcel_Click"/>
-        </StackPanel>
+        <!-- Buttons row with popup overlay (toast shown over the two buttons) -->
+        <Grid x:Name="ResultsButtonsPanel" Grid.Row="1" Margin="0,16,0,0">
+            <!-- Buttons layer -->
+            <StackPanel Orientation="Horizontal" HorizontalAlignment="Right">
+                <Button x:Name="ResultsDirectoryButton"
+                        Content="Results Directory"
+                        Style="{StaticResource TealButtonStyle}"
+                        Click="ResultsDirectory_Click"
+                        Margin="0,0,12,0"/>
+                <Button x:Name="ExportExcelButton"
+                        Content="Export to Excel"
+                        Style="{StaticResource PinkButtonStyle}"
+                        Click="ExportExcel_Click"/>
+            </StackPanel>
+            <!-- In-page export toast: overlays on top of the two buttons (same area, right-aligned) -->
+            <Border x:Name="ExportToastCard" Visibility="Collapsed" CornerRadius="10" Padding="16,12" MinWidth="340"
+                    HorizontalAlignment="Right" VerticalAlignment="Bottom" Margin="0,0,0,0"
+                    Background="{DynamicResource Brush.Surface}" BorderBrush="{DynamicResource Brush.Secondary}" BorderThickness="1"
+                    Panel.ZIndex="1">
+                <Border.Effect>
+                    <DropShadowEffect Color="#1AB4CC" BlurRadius="8" ShadowDepth="0" Opacity="0.2"/>
+                </Border.Effect>
+                <Grid>
+                    <Grid.ColumnDefinitions>
+                        <ColumnDefinition Width="*"/>
+                        <ColumnDefinition Width="Auto"/>
+                    </Grid.ColumnDefinitions>
+                    <StackPanel Grid.Column="0" Orientation="Vertical">
+                        <TextBlock x:Name="ExportToastTitle" Text="Export Started" FontWeight="SemiBold" FontSize="14" Foreground="{DynamicResource Brush.TextPrimary}" Margin="0,0,0,4"/>
+                        <TextBlock x:Name="ExportToastMessage" Text="Detection Results Are Being Exported To Excel." FontSize="12" Foreground="{DynamicResource Brush.TextSecondary}" TextWrapping="Wrap"/>
+                    </StackPanel>
+                    <Button Grid.Column="1" Content="✕" FontSize="12" Foreground="{DynamicResource Brush.TextSecondary}" Background="Transparent" BorderThickness="0" Cursor="Hand" Padding="8,0" VerticalAlignment="Top" Click="ExportToastClose_Click"/>
+                </Grid>
+            </Border>
+        </Grid>
 
         <!-- Detail view: Session Details (replaces list when View Result is clicked). Panel is created in code-behind to avoid XAML type resolution issues. -->
         <ScrollViewer x:Name="SessionDetailView" Grid.Row="0" Visibility="Collapsed" VerticalScrollBarVisibility="Hidden" HorizontalScrollBarVisibility="Disabled">

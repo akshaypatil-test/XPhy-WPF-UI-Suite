@@ -131,6 +131,67 @@ namespace x_phy_wpf_ui
             }
         }
 
+        /// <summary>Shows the window positioned above the given element (e.g. Results Directory / Export buttons). Keeps popup on screen.</summary>
+        public void ShowAbove(FrameworkElement anchor, int autoCloseSeconds = 5)
+        {
+            if (anchor == null)
+            {
+                ShowAtBottomRight(autoCloseSeconds);
+                return;
+            }
+            try
+            {
+                anchor.UpdateLayout();
+                var screenPos = anchor.PointToScreen(new Point(0, 0));
+                ShowAtPosition(screenPos.X, screenPos.Y, anchor.ActualWidth, autoCloseSeconds);
+                return;
+            }
+            catch { }
+            ShowAtBottomRight(autoCloseSeconds);
+        }
+
+        /// <summary>Shows the window at the given screen position (above the point, horizontally centered). Call after SetContent. Clamps to work area.</summary>
+        public void ShowAtPosition(double anchorScreenX, double anchorScreenY, double anchorWidth, int autoCloseSeconds = 5)
+        {
+            const int gap = 8;
+            const int margin = 16;
+            double w = Width;
+            double h = 140; // approximate height before load; refined in Loaded
+            double left = anchorScreenX + (anchorWidth * 0.5) - (w * 0.5);
+            double top = anchorScreenY - h - gap;
+            var workArea = SystemParameters.WorkArea;
+            Left = Math.Max(workArea.Left + margin, Math.Min(workArea.Right - w - margin, left));
+            Top = Math.Max(workArea.Top + margin, Math.Min(top, workArea.Bottom - h - margin));
+
+            void ClampToWorkArea()
+            {
+                if (!IsLoaded || ActualWidth <= 0) return;
+                var wa = SystemParameters.WorkArea;
+                Left = Math.Max(wa.Left + margin, Math.Min(wa.Right - ActualWidth - margin, Left));
+                Top = Math.Max(wa.Top + margin, Math.Min(wa.Bottom - ActualHeight - margin, Top));
+            }
+            Loaded += (s, e) => ClampToWorkArea();
+            SizeChanged += (s, e) => ClampToWorkArea();
+
+            WindowStartupLocation = WindowStartupLocation.Manual;
+            Show();
+            Activate();
+            Dispatcher.BeginInvoke(new Action(ClampToWorkArea), DispatcherPriority.Loaded);
+
+            _autoCloseTimer?.Stop();
+            if (autoCloseSeconds > 0)
+            {
+                _autoCloseTimer = new DispatcherTimer { Interval = TimeSpan.FromSeconds(autoCloseSeconds) };
+                _autoCloseTimer.Tick += (s, e) =>
+                {
+                    _autoCloseTimer.Stop();
+                    _autoCloseTimer = null;
+                    Close();
+                };
+                _autoCloseTimer.Start();
+            }
+        }
+
         private void CloseButton_Click(object sender, RoutedEventArgs e)
         {
             _autoCloseTimer?.Stop();

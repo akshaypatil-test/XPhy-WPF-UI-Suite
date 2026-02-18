@@ -52,5 +52,12 @@ namespace x_phy_wpf_ui.Controls
             timer.Stop();
             NavigateToLaunch?.Invoke(this, EventArgs.Empty);
         }
+
+        /// <summary>Restart the 7-second countdown (e.g. when Welcome is shown again after restore from tray). Ensures standard flow: Welcome → Get Started.</summary>
+        public void RestartTimer()
+        {
+            timer?.Stop();
+            timer?.Start();
+        }
     }
 }

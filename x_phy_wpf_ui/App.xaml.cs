@@ -11,7 +11,10 @@ namespace x_phy_wpf_ui
     public partial class App : Application
     {
         private const string SingleInstanceMutexName = "Global\\XPhyWpfUi_SingleInstance_Mutex";
+        private const string SingleInstanceActivateEventName = "Global\\XPhyWpfUi_SingleInstance_Activate";
         private static Mutex _singleInstanceMutex;
+        private static Thread _activateListenerThread;
+        private static volatile bool _activateListenerShutdown;
 
         [DllImport("user32.dll")]
         private static extern bool SetForegroundWindow(IntPtr hWnd);
@@ -23,7 +26,7 @@ namespace x_phy_wpf_ui
 
         protected override void OnStartup(StartupEventArgs e)
         {
-            // Single instance: only allow one running instance. If another is already running, bring it to front and exit.
+            // Single instance: only allow one running instance. If another is already running, signal it to show and exit.
             bool createdNew = false;
             _singleInstanceMutex = new Mutex(true, SingleInstanceMutexName, out createdNew);
             try
@@ -32,7 +35,7 @@ namespace x_phy_wpf_ui
                 {
                     _singleInstanceMutex?.Dispose();
                     _singleInstanceMutex = null;
-                    BringExistingInstanceToFront();
+                    SignalExistingInstanceToActivate();
                     Shutdown();
                     return;
                 }
@@ -63,12 +66,94 @@ namespace x_phy_wpf_ui
 
             base.OnStartup(e);
 
+            // When user clicks desktop icon while app is in tray, the new process signals us via this event. Listen so we can show the window.
+            StartActivateListener();
+
             // If SessionExpiredException is thrown (e.g. expired tokens, API 401), clear tokens and show sign-in instead of crashing.
-            // Use Application.Current.Dispatcher so we catch exceptions from async continuations that resume on the UI thread.
             Application.Current.Dispatcher.UnhandledException += Dispatcher_UnhandledException;
 
             // Load user's saved theme preference (Dark/Light mode)
             ThemeManager.LoadSavedTheme();
+        }
+
+        protected override void OnExit(ExitEventArgs e)
+        {
+            _activateListenerShutdown = true;
+            try { _activateEvent?.Set(); } catch { }
+            try { _activateEvent?.Dispose(); } catch { }
+            _activateEvent = null;
+            base.OnExit(e);
+        }
+
+        private static EventWaitHandle _activateEvent;
+
+        private static void StartActivateListener()
+        {
+            try
+            {
+                _activateEvent = new EventWaitHandle(false, EventResetMode.AutoReset, SingleInstanceActivateEventName);
+                _activateListenerShutdown = false;
+                _activateListenerThread = new Thread(() =>
+                {
+                    while (!_activateListenerShutdown && _activateEvent != null)
+                    {
+                        try
+                        {
+                            if (_activateEvent.WaitOne(500))
+                            {
+                                if (_activateListenerShutdown) break;
+                                var app = Current;
+                                if (app != null)
+                                    app.Dispatcher.Invoke(() => BringMainWindowToFront());
+                            }
+                        }
+                        catch (ObjectDisposedException) { break; }
+                        catch (Exception ex) { System.Diagnostics.Debug.WriteLine($"Activate listener: {ex.Message}"); }
+                    }
+                })
+                { IsBackground = true };
+                _activateListenerThread.Start();
+            }
+            catch (Exception ex)
+            {
+                System.Diagnostics.Debug.WriteLine($"StartActivateListener: {ex.Message}");
+            }
+        }
+
+        private static void BringMainWindowToFront()
+        {
+            try
+            {
+                var main = Current?.MainWindow as MainWindow;
+                if (main != null)
+                {
+                    main.Show();
+                    main.WindowState = WindowState.Normal;
+                    main.Activate();
+                    // If user closed with (X) and Remember Me was false, tokens were cleared; show Welcome instead of Home
+                    main.EnsureViewMatchesAuthStateAfterRestore();
+                }
+            }
+            catch (Exception ex)
+            {
+                System.Diagnostics.Debug.WriteLine($"BringMainWindowToFront: {ex.Message}");
+            }
+        }
+
+        /// <summary>Signal the already-running instance to show its window. Used when user clicks desktop icon and we are the second process.</summary>
+        private static void SignalExistingInstanceToActivate()
+        {
+            try
+            {
+                using (var ev = EventWaitHandle.OpenExisting(SingleInstanceActivateEventName))
+                    ev.Set();
+            }
+            catch (Exception ex)
+            {
+                System.Diagnostics.Debug.WriteLine($"SignalExistingInstanceToActivate: {ex.Message}");
+                // Fallback: try bringing by window handle (works when window is minimized to taskbar, not when hidden to tray)
+                BringExistingInstanceToFront();
+            }
         }
 
         private void Dispatcher_UnhandledException(object sender, System.Windows.Threading.DispatcherUnhandledExceptionEventArgs e)
@@ -88,6 +173,7 @@ namespace x_phy_wpf_ui
             }
         }
 
+        /// <summary>Fallback when event signal fails: try to restore by main window handle (works if window is minimized, not when hidden to tray).</summary>
         private static void BringExistingInstanceToFront()
         {
             try

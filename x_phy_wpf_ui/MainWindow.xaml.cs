@@ -130,7 +130,7 @@ namespace x_phy_wpf_ui
 
                 // When user clicks "Back to Results" from Session Details, refresh the list so any record saved in the meantime (e.g. after completion) appears
                 if (DetectionResultsScreen != null)
-                    DetectionResultsScreen.BackToResultsListRequested += (s, _) => { _ = RefreshResultsListFromApiAsync(); };
+                    DetectionResultsScreen.BackToResultsListRequested += OnBackToResultsListRequested;
                 
                 // Enable window dragging
                 this.MouseDown += MainWindow_MouseDown;
@@ -473,6 +473,8 @@ namespace x_phy_wpf_ui
             AuthPanel.SetContent(_welcomeComponent);
             AuthPanel.Visibility = Visibility.Visible;
             AppPanel.Visibility = Visibility.Collapsed;
+            // When showing Welcome again (e.g. restore from tray), restart 7s timer so it auto-advances to Get Started
+            _welcomeComponent.RestartTimer();
         }
 
         /// <summary>Called from App when SessionExpiredException is caught so we show Welcome instead of crashing.</summary>
@@ -485,6 +487,23 @@ namespace x_phy_wpf_ui
         public void ShowAuthViewIfNeeded()
         {
             Dispatcher.Invoke(ShowWelcomeView);
+        }
+
+        /// <summary>Called when the window is restored from a second-instance launch (e.g. user clicked desktop icon while app was in tray).
+        /// If the user was logged out on close (Remember Me false), tokens are cleared; show Welcome screen instead of leaving Home visible.</summary>
+        public void EnsureViewMatchesAuthStateAfterRestore()
+        {
+            try
+            {
+                var tokenStorage = new TokenStorage();
+                var tokens = tokenStorage.GetTokens();
+                if (tokens == null || string.IsNullOrWhiteSpace(tokens.RefreshToken))
+                    ShowWelcomeView();
+            }
+            catch (Exception ex)
+            {
+                System.Diagnostics.Debug.WriteLine($"EnsureViewMatchesAuthStateAfterRestore: {ex.Message}");
+            }
         }
 
         /// <summary>
@@ -2620,6 +2639,11 @@ videoLiveFakeProportionThreshold = 0.7
                     MessageBoxImage.Warning);
             }
             catch { }
+        }
+
+        private void OnBackToResultsListRequested(object sender, EventArgs e)
+        {
+            _ = RefreshResultsListFromApiAsync();
         }
 
         /// <summary>Load results list from API (or local fallback) and update the Results table. Call after CreateResult succeeds so the new record appears.</summary>

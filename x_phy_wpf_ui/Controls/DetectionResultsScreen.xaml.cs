@@ -19,6 +19,8 @@ namespace x_phy_wpf_ui.Controls
         private ObservableCollection<DetectionResultItem> _items;
         private readonly SessionDetailsPanel _sessionDetailsPanel;
         private DispatcherTimer _exportToastTimer;
+        /// <summary>True after first load (SetResultsFromApi or RefreshResults) so we don't flash "No results" before data arrives.</summary>
+        private bool _hasLoadedResults;
 
         public DetectionResultsScreen()
         {
@@ -33,6 +35,19 @@ namespace x_phy_wpf_ui.Controls
             _items = new ObservableCollection<DetectionResultItem>();
             ResultsDataGrid.ItemsSource = _items;
             ResultsDataGrid.LoadingRow += ResultsDataGrid_LoadingRow;
+            _items.CollectionChanged += (s, e) => UpdateNoResultsVisibility();
+            // Before first load: show table (empty). Only show "No results" after we've loaded and count is 0.
+            UpdateNoResultsVisibility();
+        }
+
+        private void UpdateNoResultsVisibility()
+        {
+            bool hasItems = _items != null && _items.Count > 0;
+            bool showNoResults = _hasLoadedResults && !hasItems;
+            if (NoResultsPanel != null)
+                NoResultsPanel.Visibility = showNoResults ? Visibility.Visible : Visibility.Collapsed;
+            if (ResultsTablePanel != null)
+                ResultsTablePanel.Visibility = showNoResults ? Visibility.Collapsed : Visibility.Visible;
         }
 
         private void ResultsListView_PreviewMouseWheel(object sender, MouseWheelEventArgs e)
@@ -67,6 +82,8 @@ namespace x_phy_wpf_ui.Controls
             catch (Exception ex)
             {
                 _items.Clear();
+                _hasLoadedResults = true;
+                UpdateNoResultsVisibility();
                 System.Diagnostics.Debug.WriteLine($"DetectionResultsScreen.SetResultsDirectoryAndRefresh: {ex.Message}");
             }
         }
@@ -77,7 +94,12 @@ namespace x_phy_wpf_ui.Controls
         public void SetResultsFromApi(System.Collections.Generic.IEnumerable<ResultDto> results)
         {
             _items.Clear();
-            if (results == null) return;
+            if (results == null)
+            {
+                _hasLoadedResults = true;
+                UpdateNoResultsVisibility();
+                return;
+            }
             foreach (var r in results)
             {
                 bool isAiDetected = (r.Outcome ?? "").Trim().Equals("AI Manipulation Detected", StringComparison.OrdinalIgnoreCase);
@@ -93,6 +115,8 @@ namespace x_phy_wpf_ui.Controls
                     DurationSeconds = r.Duration
                 });
             }
+            _hasLoadedResults = true;
+            UpdateNoResultsVisibility();
         }
 
         public void RefreshResults()
@@ -108,6 +132,8 @@ namespace x_phy_wpf_ui.Controls
             {
                 System.Diagnostics.Debug.WriteLine($"DetectionResultsScreen.RefreshResults: {ex.Message}");
             }
+            _hasLoadedResults = true;
+            UpdateNoResultsVisibility();
         }
 
         private void ResultsDirectory_Click(object sender, RoutedEventArgs e)

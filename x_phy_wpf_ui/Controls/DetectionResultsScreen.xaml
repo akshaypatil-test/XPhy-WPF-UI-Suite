@@ -101,8 +101,17 @@
                     </StackPanel>
                 </Grid>
 
-                <!-- Results Table: cyan top border (1px to match row lines) + glass look; stretches to full width -->
-                <Border Grid.Row="1" CornerRadius="8" Margin="0,0,0,0" BorderBrush="{StaticResource PanelGlowBorder}" BorderThickness="0,1,0,0" HorizontalAlignment="Stretch">
+                <!-- Results area: table when items exist, or "No results to show" when empty -->
+                <Grid Grid.Row="1" MinHeight="200" Margin="0,0,0,0">
+                    <!-- Empty state: centered message -->
+                    <Border x:Name="NoResultsPanel" Visibility="Collapsed"
+                            VerticalAlignment="Center" HorizontalAlignment="Center"
+                            CornerRadius="8" Padding="24,20" Background="{DynamicResource Brush.Surface}"
+                            BorderBrush="{StaticResource PanelBorder}" BorderThickness="1">
+                        <TextBlock Text="No results to show" FontSize="15" Foreground="{StaticResource TextSecondaryBrush}"/>
+                    </Border>
+                    <!-- Results Table: cyan top border + glass look -->
+                    <Border x:Name="ResultsTablePanel" CornerRadius="8" Margin="0,0,0,0" BorderBrush="{StaticResource PanelGlowBorder}" BorderThickness="0,1,0,0" HorizontalAlignment="Stretch">
                     <Border CornerRadius="8" Padding="0" UseLayoutRounding="True">
                         <Border.Background>
                             <LinearGradientBrush StartPoint="0,0" EndPoint="0,1">
@@ -302,6 +311,7 @@
                     </DataGrid>
                     </Border>
                 </Border>
+                </Grid>
             </Grid>
         </ScrollViewer>
 

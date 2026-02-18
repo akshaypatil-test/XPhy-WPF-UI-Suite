@@ -1974,6 +1974,7 @@ videoLiveFakeProportionThreshold = 0.7
             DetectionResultsScreen.Visibility = Visibility.Visible;
             DetectionResultsScreen.ShowResultsList();
 
+            // Load results only when API (or fallback) completes so we don't flash "No results" for 1–2 sec
             string resultsDir = null;
             try
             {
@@ -1985,16 +1986,7 @@ videoLiveFakeProportionThreshold = 0.7
                 System.Diagnostics.Debug.WriteLine($"GetResultsDir: {ex.Message}");
             }
 
-            try
-            {
-                DetectionResultsScreen.SetResultsDirectoryAndRefresh(resultsDir);
-            }
-            catch (Exception ex)
-            {
-                System.Diagnostics.Debug.WriteLine($"SetResultsDirectoryAndRefresh failed (e.g. SQLite not available when installed): {ex.Message}");
-                try { DetectionResultsScreen.SetResultsFromApi(Array.Empty<ResultDto>()); } catch { }
-            }
-
+            var resultsDirCapture = resultsDir;
             Dispatcher.InvokeAsync(async () =>
             {
                 try
@@ -2002,10 +1994,21 @@ videoLiveFakeProportionThreshold = 0.7
                     var response = await _resultsApiService.GetResultsAsync();
                     if (response?.Results != null)
                         DetectionResultsScreen.SetResultsFromApi(response.Results);
+                    else
+                        DetectionResultsScreen.SetResultsFromApi(Array.Empty<ResultDto>());
                 }
                 catch (Exception ex)
                 {
                     System.Diagnostics.Debug.WriteLine($"GetResults API failed: {ex.Message}");
+                    try
+                    {
+                        DetectionResultsScreen.SetResultsDirectoryAndRefresh(resultsDirCapture);
+                    }
+                    catch (Exception ex2)
+                    {
+                        System.Diagnostics.Debug.WriteLine($"SetResultsDirectoryAndRefresh failed: {ex2.Message}");
+                        try { DetectionResultsScreen.SetResultsFromApi(Array.Empty<ResultDto>()); } catch { }
+                    }
                 }
             });
         }

@@ -68,15 +68,16 @@ namespace x_phy_wpf_ui
 
         /// <summary>Set content for Detection Completed: message and View Result action.</summary>
         /// <param name="navigateToResultsPage">If set, "View Result" navigates to the Results page; otherwise uses openResultsFolder.</param>
-        public void SetDetectionCompletedContent(string message, string resultPath, Action openResultsFolder, Action navigateToResultsPage = null)
+        /// <param name="isAudio">When true, prefix with "Audio" so notification matches result view.</param>
+        public void SetDetectionCompletedContent(string message, string resultPath, Action openResultsFolder, Action navigateToResultsPage = null, bool isAudio = false)
         {
             SimpleContentPanel.Visibility = Visibility.Collapsed;
             DeepfakeContentPanel.Visibility = Visibility.Collapsed;
             CompletedWithThreatContentPanel.Visibility = Visibility.Collapsed;
             CompletedContentPanel.Visibility = Visibility.Visible;
 
-            CompletedTitleText.Text = "Detection Completed";
-            CompletedMessageText.Text = message ?? "No AI Manipulation Found";
+            CompletedTitleText.Text = isAudio ? "Audio Detection Completed" : "Detection Completed";
+            CompletedMessageText.Text = message ?? (isAudio ? "Audio: No AI Manipulation Found" : "No AI Manipulation Found");
             _resultPath = resultPath ?? "";
             _openResultsFolder = openResultsFolder;
             _navigateToResultsPage = navigateToResultsPage;
@@ -84,15 +85,16 @@ namespace x_phy_wpf_ui
 
         /// <summary>Set content for Detection Completed when AI manipulated content was detected: title, red alert, confidence, timestamp, evidence, Close + View Result.</summary>
         /// <param name="navigateToResultsPage">If set, "View Result" navigates to the Results page; otherwise uses openResultsFolder.</param>
+        /// <param name="isAudio">When true, prefix with "Audio" so notification matches result view and no evidence images.</param>
         public void SetDetectionCompletedWithThreatContent(int confidencePercent, string resultPath, Action openResultsFolder,
-            ImageSource evidenceImageLeft = null, ImageSource evidenceImageRight = null, Action navigateToResultsPage = null)
+            ImageSource evidenceImageLeft = null, ImageSource evidenceImageRight = null, Action navigateToResultsPage = null, bool isAudio = false)
         {
             SimpleContentPanel.Visibility = Visibility.Collapsed;
             DeepfakeContentPanel.Visibility = Visibility.Collapsed;
             CompletedContentPanel.Visibility = Visibility.Collapsed;
             CompletedWithThreatContentPanel.Visibility = Visibility.Visible;
 
-            CompletedThreatAlertText.Text = "AI Manipulated Content Detected";
+            CompletedThreatAlertText.Text = isAudio ? "Audio: AI Manipulated Content Detected" : "AI Manipulated Content Detected";
             CompletedThreatConfidenceText.Text = $"Confidence {confidencePercent}%";
             CompletedThreatTimestampText.Text = DateTime.Now.ToString("HH:mm MMM d, yyyy");
             _resultPath = resultPath ?? "";
@@ -106,9 +108,10 @@ namespace x_phy_wpf_ui
         /// <summary>Set content for deepfake alert: confidence, result path, evidence images. Stop &amp; View Results stops detection, saves results, then opens folder.</summary>
         /// <param name="openResultsFolder">Opens the results folder (used when no stop-and-save flow).</param>
         /// <param name="stopDetectionAndOpenResults">If set, "Stop & View Results" calls this to stop detection and open results when saved; otherwise uses openResultsFolder.</param>
+        /// <param name="isAudio">When true, prefix with "Audio" so notification matches result view.</param>
         public void SetDeepfakeContent(int confidencePercent, string resultPath, Action openResultsFolder,
             Action stopDetectionAndOpenResults = null,
-            ImageSource evidenceImageLeft = null, ImageSource evidenceImageRight = null)
+            ImageSource evidenceImageLeft = null, ImageSource evidenceImageRight = null, bool isAudio = false)
         {
             SimpleContentPanel.Visibility = Visibility.Collapsed;
             CompletedContentPanel.Visibility = Visibility.Collapsed;
@@ -116,7 +119,7 @@ namespace x_phy_wpf_ui
             DeepfakeContentPanel.Visibility = Visibility.Visible;
             WarningSection.Visibility = Visibility.Collapsed;
 
-            AlertTitleText.Text = "AI Manipulated Content Detected";
+            AlertTitleText.Text = isAudio ? "Audio: AI Manipulated Content Detected" : "AI Manipulated Content Detected";
             ConfidenceText.Text = $"Confidence {confidencePercent}%";
             TimestampText.Text = DateTime.Now.ToString("HH:mm MMM d, yyyy");
 

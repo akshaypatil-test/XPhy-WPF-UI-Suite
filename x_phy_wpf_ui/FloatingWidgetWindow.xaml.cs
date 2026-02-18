@@ -25,6 +25,7 @@ namespace x_phy_wpf_ui
         private Window _ownerWindow;
         private Action _onCancelDetection;
         private Action _onStopAndViewResults;
+        private DetectionActivityPopup _activityPopup;
 
         public double ArcOffsetAngle
         {
@@ -130,7 +131,23 @@ namespace x_phy_wpf_ui
                 _rollStoryboard = null;
                 ArcOffsetAngle = 0;
                 UpdateRollingArcGeometry();
+                // Close Detection Activity popup when detection ends (duration past or stopped) so it doesn't stay on screen
+                CloseDetectionActivityPopup();
             }
+        }
+
+        /// <summary>Close the Detection Activity popup if it is open (e.g. when detection duration is past and user didn't click an option).</summary>
+        public void CloseDetectionActivityPopup()
+        {
+            try
+            {
+                if (_activityPopup != null && _activityPopup.IsLoaded)
+                {
+                    _activityPopup.Close();
+                    _activityPopup = null;
+                }
+            }
+            catch { }
         }
 
         private void Window_MouseLeftButtonDown(object sender, MouseButtonEventArgs e)
@@ -150,10 +167,12 @@ namespace x_phy_wpf_ui
 
         private void ShowDetectionActivityPopup()
         {
-            var popup = new DetectionActivityPopup();
-            popup.SetActions(_onCancelDetection, _onStopAndViewResults);
-            popup.SetDeepfakeDetected(_isDeepfakeDetected);
-            popup.ShowNear(Left + Width, Top + Height / 2);
+            CloseDetectionActivityPopup();
+            _activityPopup = new DetectionActivityPopup();
+            _activityPopup.Closed += (s, e) => { _activityPopup = null; };
+            _activityPopup.SetActions(_onCancelDetection, _onStopAndViewResults);
+            _activityPopup.SetDeepfakeDetected(_isDeepfakeDetected);
+            _activityPopup.ShowNear(Left + Width, Top + Height / 2);
         }
     }
 }

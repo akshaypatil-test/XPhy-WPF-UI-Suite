@@ -22,6 +22,9 @@ namespace x_phy_wpf_ui.Controls
         /// <summary>True after first load (SetResultsFromApi or RefreshResults) so we don't flash "No results" before data arrives.</summary>
         private bool _hasLoadedResults;
 
+        /// <summary>Raised when user clicks "Back to Results" from Session Details. MainWindow can refresh the list so any record saved in the meantime appears.</summary>
+        public event EventHandler BackToResultsListRequested;
+
         public DetectionResultsScreen()
         {
             InitializeComponent();
@@ -31,6 +34,7 @@ namespace x_phy_wpf_ui.Controls
             {
                 ResultsListView.Visibility = Visibility.Visible;
                 SessionDetailView.Visibility = Visibility.Collapsed;
+                BackToResultsListRequested?.Invoke(this, EventArgs.Empty);
             };
             _items = new ObservableCollection<DetectionResultItem>();
             ResultsDataGrid.ItemsSource = _items;

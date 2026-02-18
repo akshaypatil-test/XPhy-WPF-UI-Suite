@@ -24,7 +24,7 @@ namespace x_phy_wpf_ui.Services
 
         public AuthenticatedApiClient()
         {
-            /*_baseUrl = "http://localhost:5163";*/
+            //_baseUrl = "http://localhost:5163";
             _baseUrl = "https://xphy-web-c5e3v.ondigitalocean.app";
             _tokenStorage = new TokenStorage();
             _authService = new AuthService();

@@ -77,5 +77,26 @@ namespace x_phy_wpf_ui.Services
 
             return null;
         }
+
+        /// <summary>GET api/Result/statistics - get aggregated stats for the current user.</summary>
+        public async Task<UserStatisticsResponse?> GetStatisticsAsync()
+        {
+            try
+            {
+                var response = await _apiClient.GetAsync("/api/Result/statistics").ConfigureAwait(false);
+                if (response.IsSuccessStatusCode)
+                {
+                    var responseJson = await response.Content.ReadAsStringAsync().ConfigureAwait(false);
+                    return JsonConvert.DeserializeObject<UserStatisticsResponse>(responseJson);
+                }
+            }
+            catch (SessionExpiredException) { throw; }
+            catch (Exception ex)
+            {
+                System.Diagnostics.Debug.WriteLine($"ResultsApiService GetStatistics failed: {ex.Message}");
+            }
+
+            return null;
+        }
     }
 }

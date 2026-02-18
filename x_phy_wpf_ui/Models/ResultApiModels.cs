@@ -59,4 +59,13 @@ namespace x_phy_wpf_ui.Models
         public decimal? Duration { get; set; }
         public DateTime CreatedAt { get; set; }
     }
+
+    /// <summary>Response from GET api/Result/statistics.</summary>
+    public class UserStatisticsResponse
+    {
+        public int TotalDetections { get; set; }
+        public int TotalDeepfakes { get; set; }
+        public string TotalAnalysisTimeFormatted { get; set; } = "0m";
+        public string LastDetectionTimeAgo { get; set; } = "Never";
+    }
 }

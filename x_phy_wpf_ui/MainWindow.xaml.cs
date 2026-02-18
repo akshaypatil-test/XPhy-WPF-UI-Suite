@@ -127,6 +127,10 @@ namespace x_phy_wpf_ui
                 }
 
                 _resultsApiService = new ResultsApiService();
+
+                // When user clicks "Back to Results" from Session Details, refresh the list so any record saved in the meantime (e.g. after completion) appears
+                if (DetectionResultsScreen != null)
+                    DetectionResultsScreen.BackToResultsListRequested += (s, _) => { _ = RefreshResultsListFromApiAsync(); };
                 
                 // Enable window dragging
                 this.MouseDown += MainWindow_MouseDown;
@@ -432,9 +436,10 @@ namespace x_phy_wpf_ui
             // Initialize stats and license display when showing App view
             StatisticsCardsControl.TotalDetections = "0";
             StatisticsCardsControl.TotalDeepfakes = "0";
-            StatisticsCardsControl.TotalAnalysisTime = "0h";
+            StatisticsCardsControl.TotalAnalysisTime = "0m";
             StatisticsCardsControl.LastDetection = "Never";
             UpdateLicenseDisplay();
+            RefreshStatisticsAsync();
             // Deferred refresh so BottomBar sees tokens after file is flushed (avoids No License / 0 days)
             Dispatcher.BeginInvoke(new Action(UpdateLicenseDisplay), DispatcherPriority.ApplicationIdle);
 
@@ -631,8 +636,9 @@ namespace x_phy_wpf_ui
             {
                 StatisticsCardsControl.TotalDetections = "0";
                 StatisticsCardsControl.TotalDeepfakes = "0";
-                StatisticsCardsControl.TotalAnalysisTime = "0h";
+                StatisticsCardsControl.TotalAnalysisTime = "0m";
                 StatisticsCardsControl.LastDetection = "Never";
+                RefreshStatisticsAsync();
                 UpdateLicenseDisplay();
                 if (controller == null)
                 {
@@ -1152,13 +1158,17 @@ videoLiveFakeProportionThreshold = 0.7
         {
             Dispatcher.Invoke(() =>
             {
-                // Use same logic as Detection Notification "Stop & View Results": same path resolution, same hadDeepfake, same result view
+                // Use same logic as Detection Notification "Stop & View Results": same path resolution, same hadDeepfake, same result view.
+                // Only push once per run: if user already clicked "Stop & View Results" on the notification (or vice versa), skip duplicate save.
                 string baseDir = null;
                 try { baseDir = controller?.GetResultsDir() ?? ""; } catch { }
                 string artifactPath = DetectionResultsLoader.ResolveFullArtifactPath(baseDir ?? "", isAudioDetection);
                 if (string.IsNullOrEmpty(artifactPath)) artifactPath = baseDir ?? "Local";
-                _resultPushedForStopAndViewResults = true;
-                PushDetectionResultToBackend(artifactPath, _deepfakeDetectedDuringRun);
+                if (!_resultPushedForStopAndViewResults)
+                {
+                    _resultPushedForStopAndViewResults = true;
+                    PushDetectionResultToBackend(artifactPath, _deepfakeDetectedDuringRun);
+                }
                 _pathForResultsAfterStop = artifactPath; // so finally block opens this exact result (matches what we saved)
                 openResultsFolderAfterStop = true;
                 StopDetection_Click(null, EventArgs.Empty);
@@ -1251,10 +1261,10 @@ videoLiveFakeProportionThreshold = 0.7
                     ShowNotification("Detection Started",
                         $"{detectionType} detection started for {duration} seconds.",
                         Forms.ToolTipIcon.Info);
-                    // Show floating launcher once detection is running (from app or single-process popup); delay so native has started
+                    // Show floating launcher once detection is running (short delay so native has started; visible before first classification)
                     var showLauncherTimer = new DispatcherTimer(DispatcherPriority.ApplicationIdle)
                     {
-                        Interval = TimeSpan.FromMilliseconds(800)
+                        Interval = TimeSpan.FromMilliseconds(150)
                     };
                     showLauncherTimer.Tick += (s, _) =>
                     {
@@ -1281,7 +1291,11 @@ videoLiveFakeProportionThreshold = 0.7
                     _inferenceWarmUpTask = null;
                 }
 
-                // Start detection based on mode (Video or Audio)
+                // Detection flows (all four converge on the same result/notification/save logic):
+                // - Video Conference (Live Call): result + face + classification callbacks -> ShowFinalResult on isLast -> notification, PushDetectionResultToBackend, RefreshResultsList.
+                // - Video Web Stream: same; Stop & View Results uses _pathForResultsAfterStop so Session Details matches saved record.
+                // - Audio Conference: result + voice classification callbacks -> ShowFinalResult on isLast -> notification (no images), same save/refresh.
+                // - Audio Web Stream: same. Stop opens results from finally using _pathForResultsAfterStop.
                 if (isAudioMode)
                 {
                     // Audio Detection
@@ -1304,7 +1318,7 @@ videoLiveFakeProportionThreshold = 0.7
                                             {
                                                 isStoppingDetection = false;
                                                 if (openResultsFolderAfterStop)
-                                                    OpenResultsAndShowSessionDetailAfterStop(resultPath ?? "");
+                                                    OpenResultsAndShowSessionDetailAfterStop(!string.IsNullOrEmpty(_pathForResultsAfterStop) ? _pathForResultsAfterStop : (resultPath ?? ""));
                                             }
                                         }
                                     }
@@ -1352,7 +1366,7 @@ videoLiveFakeProportionThreshold = 0.7
                                             {
                                                 isStoppingDetection = false;
                                                 if (openResultsFolderAfterStop)
-                                                    OpenResultsAndShowSessionDetailAfterStop(resultPath ?? "");
+                                                    OpenResultsAndShowSessionDetailAfterStop(!string.IsNullOrEmpty(_pathForResultsAfterStop) ? _pathForResultsAfterStop : (resultPath ?? ""));
                                             }
                                         }
                                     }
@@ -1402,7 +1416,7 @@ videoLiveFakeProportionThreshold = 0.7
                                         {
                                             isStoppingDetection = false;
                                             if (openResultsFolderAfterStop)
-                                                OpenResultsAndShowSessionDetailAfterStop(resultPath ?? "");
+                                                OpenResultsAndShowSessionDetailAfterStop(!string.IsNullOrEmpty(_pathForResultsAfterStop) ? _pathForResultsAfterStop : (resultPath ?? ""));
                                         }
                                     }
                                 }
@@ -1448,7 +1462,7 @@ videoLiveFakeProportionThreshold = 0.7
                                         {
                                             isStoppingDetection = false;
                                             if (openResultsFolderAfterStop)
-                                                OpenResultsAndShowSessionDetailAfterStop(resultPath ?? "");
+                                                OpenResultsAndShowSessionDetailAfterStop(!string.IsNullOrEmpty(_pathForResultsAfterStop) ? _pathForResultsAfterStop : (resultPath ?? ""));
                                         }
                                     }
                                 }
@@ -1552,6 +1566,9 @@ videoLiveFakeProportionThreshold = 0.7
 
         private void DetectionResultsComponent_DeepfakeDetected(object sender, EventArgs e)
         {
+            // Keep floater in sync when deepfake is detected (e.g. audio classification 1); notification uses same state
+            if (FloatingWidgetEnabled && _floatingWidget != null && _floatingWidget.IsVisible)
+                _floatingWidget.SetDetectionState(true, true);
             ShowDeepfakeNotification();
         }
 
@@ -2013,43 +2030,8 @@ videoLiveFakeProportionThreshold = 0.7
             DetectionResultsScreen.Visibility = Visibility.Visible;
             DetectionResultsScreen.ShowResultsList();
 
-            // Load results only when API (or fallback) completes so we don't flash "No results" for 1–2 sec
-            string resultsDir = null;
-            try
-            {
-                if (controller != null)
-                    resultsDir = controller.GetResultsDir();
-            }
-            catch (Exception ex)
-            {
-                System.Diagnostics.Debug.WriteLine($"GetResultsDir: {ex.Message}");
-            }
-
-            var resultsDirCapture = resultsDir;
-            Dispatcher.InvokeAsync(async () =>
-            {
-                try
-                {
-                    var response = await _resultsApiService.GetResultsAsync();
-                    if (response?.Results != null)
-                        DetectionResultsScreen.SetResultsFromApi(response.Results);
-                    else
-                        DetectionResultsScreen.SetResultsFromApi(Array.Empty<ResultDto>());
-                }
-                catch (Exception ex)
-                {
-                    System.Diagnostics.Debug.WriteLine($"GetResults API failed: {ex.Message}");
-                    try
-                    {
-                        DetectionResultsScreen.SetResultsDirectoryAndRefresh(resultsDirCapture);
-                    }
-                    catch (Exception ex2)
-                    {
-                        System.Diagnostics.Debug.WriteLine($"SetResultsDirectoryAndRefresh failed: {ex2.Message}");
-                        try { DetectionResultsScreen.SetResultsFromApi(Array.Empty<ResultDto>()); } catch { }
-                    }
-                }
-            });
+            // Load results from API (or local fallback) so table is populated
+            _ = RefreshResultsListFromApiAsync();
         }
 
         private void ShowDetectionContent()
@@ -2412,6 +2394,8 @@ videoLiveFakeProportionThreshold = 0.7
 
         private void UpdateAudioClassification(int classification)
         {
+            if (isAudioDetection)
+                System.Diagnostics.Debug.WriteLine($"Audio classification from native: {classification} (0=Real, 1=Deepfake, 2=Analyzing, 3=Invalid, 4=None)");
             switch (classification)
             {
                 case 0: overallClassification = false; break;
@@ -2419,13 +2403,17 @@ videoLiveFakeProportionThreshold = 0.7
                 default: overallClassification = null; break;
             }
             DetectionResultsComponent?.UpdateAudioClassification(classification);
-            // Update floating widget immediately so arc turns red when deepfake is detected
+            // Update floating widget immediately so arc turns red when audio deepfake is detected (same as video)
             if (FloatingWidgetEnabled && _floatingWidget != null && _floatingWidget.IsVisible)
                 _floatingWidget.SetDetectionState(true, overallClassification == true);
         }
 
         private void ShowFinalResult(string resultPath)
         {
+            // Tell floater detection has ended so it stops the arc and closes the Detection Activity popup if open
+            if (FloatingWidgetEnabled && _floatingWidget != null && _floatingWidget.IsVisible)
+                _floatingWidget.SetDetectionState(false, _deepfakeDetectedDuringRun);
+
             DetectionResultsPanel.Visibility = Visibility.Visible;
             string displayPath = resultPath;
             if (string.IsNullOrEmpty(displayPath))
@@ -2437,16 +2425,18 @@ videoLiveFakeProportionThreshold = 0.7
             DetectionResultsComponent?.ShowFinalResult(displayPath ?? resultPath);
 
             int faceCount = DetectionResultsComponent?.DetectedFacesCount ?? 0;
+            // Single source of truth for notification, result view, and DB (no mismatch)
             bool hadDeepfake = _deepfakeDetectedDuringRun;
             if (hadDeepfake)
             {
-                int confidence = DetectionResultsComponent?.LastConfidencePercent ?? 97;
-                var evidenceImage = DetectionResultsComponent?.LatestEvidenceImage;
-                ShowDetectionCompletedWithThreatNotification(displayPath ?? "", confidence, evidenceImage);
+                int rawConfidence = DetectionResultsComponent?.LastConfidencePercent ?? 0;
+                int confidence = GetDisplayConfidence(rawConfidence, true);
+                var evidenceImage = isAudioDetection ? null : DetectionResultsComponent?.LatestEvidenceImage;
+                ShowDetectionCompletedWithThreatNotification(displayPath ?? "", confidence, evidenceImage, isAudioDetection);
             }
             else
             {
-                ShowDetectionCompletedNotification("No AI Manipulation Found", displayPath ?? "");
+                ShowDetectionCompletedNotification(isAudioDetection ? "Audio: No AI Manipulation Found" : "No AI Manipulation Found", displayPath ?? "", isAudioDetection);
             }
 
             if (isStoppingDetection)
@@ -2458,8 +2448,18 @@ videoLiveFakeProportionThreshold = 0.7
             // Save detection result to backend (CreateResult) only when detection is completed or stopped.
             // Skip if we already saved when user clicked "Stop & View Results" (avoid duplicate).
             if (!_resultPushedForStopAndViewResults)
+            {
+                System.Diagnostics.Debug.WriteLine($"ShowFinalResult: Pushing result to backend (audio={isAudioDetection}, hadDeepfake={hadDeepfake})");
                 PushDetectionResultToBackend(displayPath ?? resultPath ?? "Local", hadDeepfake);
+            }
             _resultPushedForStopAndViewResults = false;
+        }
+
+        /// <summary>Confidence to show in notification, result view, and API. When raw is 0 (e.g. audio) but deepfake was detected, use fallback so all show the same value.</summary>
+        private static int GetDisplayConfidence(int rawPercent, bool hadDeepfake)
+        {
+            if (rawPercent > 0) return Math.Min(100, Math.Max(0, rawPercent));
+            return hadDeepfake ? 97 : 0;
         }
 
         /// <summary>Navigate to Results tab, show Session Details for the given result path, and bring main window to front. Used by "Stop & View Results" and by "View Results" on detection completion.</summary>
@@ -2471,12 +2471,13 @@ videoLiveFakeProportionThreshold = 0.7
             // When path is the base results dir, resolve to full run folder (.../video/DD-MM-YYYY/HH-mm) so Session Details can load images.
             string artifactPath = DetectionResultsLoader.ResolveFullArtifactPath(resultPath ?? resultsDir ?? "", isAudioDetection);
             if (string.IsNullOrEmpty(artifactPath)) artifactPath = resultPath ?? resultsDir ?? "";
+            int rawConfidence = DetectionResultsComponent?.LastConfidencePercent ?? 0;
             var item = new DetectionResultItem
             {
                 Timestamp = DateTime.Now,
                 Type = isAudioDetection ? "Audio" : "Video",
                 IsAiManipulationDetected = _deepfakeDetectedDuringRun,
-                ConfidencePercent = DetectionResultsComponent?.LastConfidencePercent ?? 97,
+                ConfidencePercent = GetDisplayConfidence(rawConfidence, _deepfakeDetectedDuringRun),
                 ResultPathOrId = artifactPath,
                 MediaSourceDisplay = _currentMediaSourceDisplayName ?? "Local",
                 SerialNumber = 0,
@@ -2496,11 +2497,10 @@ videoLiveFakeProportionThreshold = 0.7
             catch { }
         }
 
-        /// <summary>Called when "Stop & View Results" was used: navigate to Results tab and show Session Details for the just-saved result.</summary>
+        /// <summary>Called when "Stop & View Results" was used: navigate to Results tab and show Session Details for the just-saved result. Do not clear _resultPushedForStopAndViewResults here; ShowFinalResult clears it after skipping the duplicate push.</summary>
         private void OpenResultsAndShowSessionDetailAfterStop(string resultPath)
         {
             openResultsFolderAfterStop = false;
-            _resultPushedForStopAndViewResults = false;
             _openedResultsAfterStop = true;
             NavigateToResultsAndShowSessionDetail(resultPath);
         }
@@ -2510,7 +2510,8 @@ videoLiveFakeProportionThreshold = 0.7
         {
             try
             {
-                int confidence = DetectionResultsComponent?.LastConfidencePercent ?? 0;
+                int rawConfidence = DetectionResultsComponent?.LastConfidencePercent ?? 0;
+                int confidence = GetDisplayConfidence(rawConfidence, aiManipulationDetected);
                 double durationSec = DetectionResultsComponent?.GetDetectionDurationSeconds() ?? 60;
                 string machineFingerprint = null;
                 try { machineFingerprint = new DeviceFingerprintService().GetDeviceFingerprint(); } catch { }
@@ -2532,13 +2533,22 @@ videoLiveFakeProportionThreshold = 0.7
                     {
                         var response = await _resultsApiService.CreateResultAsync(request);
                         if (response != null)
+                        {
                             System.Diagnostics.Debug.WriteLine($"CreateResult succeeded: Id={response.Id}");
+                            RefreshStatisticsAsync();
+                            // Refresh results list so the table shows the new record when user goes back from Session Details
+                            await RefreshResultsListFromApiAsync();
+                        }
                         else
+                        {
                             System.Diagnostics.Debug.WriteLine("CreateResult: no response (e.g. not logged in or API error)");
+                            Dispatcher.Invoke(() => ShowResultSaveFailureMessage());
+                        }
                     }
                     catch (Exception ex)
                     {
                         System.Diagnostics.Debug.WriteLine($"CreateResult failed: {ex.Message}");
+                        Dispatcher.Invoke(() => ShowResultSaveFailureMessage());
                     }
                 });
 #pragma warning restore CS4014
@@ -2546,6 +2556,7 @@ videoLiveFakeProportionThreshold = 0.7
             catch (Exception ex)
             {
                 System.Diagnostics.Debug.WriteLine($"PushDetectionResultToBackend: {ex.Message}");
+                try { ShowResultSaveFailureMessage(); } catch { }
             }
         }
 
@@ -2595,6 +2606,76 @@ videoLiveFakeProportionThreshold = 0.7
         public void RefreshLicenseDisplay()
         {
             UpdateLicenseDisplay();
+        }
+
+        /// <summary>Shows a brief message when detection result could not be saved to the server (so user knows why the record is missing from the table).</summary>
+        private void ShowResultSaveFailureMessage()
+        {
+            try
+            {
+                MessageBox.Show(
+                    "The detection result could not be saved to the server. It will not appear in the Results table.\n\nPlease check that you are logged in and your connection is working, then try again.",
+                    "Result Not Saved",
+                    MessageBoxButton.OK,
+                    MessageBoxImage.Warning);
+            }
+            catch { }
+        }
+
+        /// <summary>Load results list from API (or local fallback) and update the Results table. Call after CreateResult succeeds so the new record appears.</summary>
+        private async Task RefreshResultsListFromApiAsync()
+        {
+            string resultsDir = null;
+            try { if (controller != null) resultsDir = controller.GetResultsDir(); } catch { }
+            var resultsDirCapture = resultsDir ?? DetectionResultsLoader.GetDefaultResultsDir();
+            try
+            {
+                var response = await _resultsApiService.GetResultsAsync().ConfigureAwait(false);
+                Dispatcher.Invoke(() =>
+                {
+                    if (response?.Results != null)
+                        DetectionResultsScreen.SetResultsFromApi(response.Results);
+                    else
+                        DetectionResultsScreen.SetResultsFromApi(Array.Empty<ResultDto>());
+                });
+            }
+            catch (Exception ex)
+            {
+                System.Diagnostics.Debug.WriteLine($"RefreshResultsListFromApi: {ex.Message}");
+                try
+                {
+                    await Dispatcher.InvokeAsync(() =>
+                    {
+                        try { DetectionResultsScreen.SetResultsDirectoryAndRefresh(resultsDirCapture); }
+                        catch (Exception ex2) { System.Diagnostics.Debug.WriteLine($"SetResultsDirectoryAndRefresh: {ex2.Message}"); }
+                    });
+                }
+                catch { }
+            }
+        }
+
+        /// <summary>Load statistics from API and update the Statistics Cards (Total Detections, Total Deepfakes, Total Analysis Time, Last Detection).</summary>
+        private async void RefreshStatisticsAsync()
+        {
+            if (StatisticsCardsControl == null) return;
+            try
+            {
+                var stats = await _resultsApiService.GetStatisticsAsync().ConfigureAwait(false);
+                if (stats != null)
+                {
+                    Dispatcher.Invoke(() =>
+                    {
+                        StatisticsCardsControl.TotalDetections = stats.TotalDetections.ToString();
+                        StatisticsCardsControl.TotalDeepfakes = stats.TotalDeepfakes.ToString();
+                        StatisticsCardsControl.TotalAnalysisTime = stats.TotalAnalysisTimeFormatted ?? "0m";
+                        StatisticsCardsControl.LastDetection = stats.LastDetectionTimeAgo ?? "Never";
+                    });
+                }
+            }
+            catch (Exception ex)
+            {
+                System.Diagnostics.Debug.WriteLine($"RefreshStatistics: {ex.Message}");
+            }
         }
 
         private async void UpdateLicenseDisplay()
@@ -2924,9 +3005,9 @@ videoLiveFakeProportionThreshold = 0.7
                 DetectionNotificationWindow.CloseAllOpen();
                 string resultPath = "";
                 try { resultPath = controller?.GetResultsDir() ?? ""; } catch { }
-                int confidence = DetectionResultsComponent?.LastConfidencePercent ?? 0;
-                if (confidence <= 0) confidence = 97;
-                var evidenceImage = DetectionResultsComponent?.LatestEvidenceImage;
+                int rawConfidence = DetectionResultsComponent?.LastConfidencePercent ?? 0;
+                int confidence = GetDisplayConfidence(rawConfidence, true);
+                var evidenceImage = isAudioDetection ? null : DetectionResultsComponent?.LatestEvidenceImage;
 
                 var popup = new DetectionNotificationWindow();
                 popup.SetDeepfakeContent(
@@ -2939,25 +3020,29 @@ videoLiveFakeProportionThreshold = 0.7
                     },
                     stopDetectionAndOpenResults: () =>
                     {
-                        // Same as floating launcher: resolve path, push to DB, set path for results view so they match
+                        // Same as floating launcher: resolve path, push to DB, set path for results view. Only push once per run (avoid duplicate if user also used floater).
                         string baseDir = resultPath;
                         if (string.IsNullOrEmpty(baseDir)) try { baseDir = controller?.GetResultsDir() ?? ""; } catch { }
                         string artifactPath = DetectionResultsLoader.ResolveFullArtifactPath(baseDir ?? "", isAudioDetection);
                         if (string.IsNullOrEmpty(artifactPath)) artifactPath = baseDir ?? "Local";
-                        _resultPushedForStopAndViewResults = true;
-                        PushDetectionResultToBackend(artifactPath, true);
+                        if (!_resultPushedForStopAndViewResults)
+                        {
+                            _resultPushedForStopAndViewResults = true;
+                            PushDetectionResultToBackend(artifactPath, true);
+                        }
                         _pathForResultsAfterStop = artifactPath;
                         openResultsFolderAfterStop = true;
                         StopDetection_Click(null, EventArgs.Empty);
                     },
                     evidenceImageLeft: evidenceImage,
-                    evidenceImageRight: null);
+                    evidenceImageRight: null,
+                    isAudio: isAudioDetection);
                 popup.ShowAtBottomRight(autoCloseSeconds: 4);
                 _floatingWidget?.BringAboveNotifications();
             }));
         }
 
-        private void ShowDetectionCompletedNotification(string message, string resultPath)
+        private void ShowDetectionCompletedNotification(string message, string resultPath, bool isAudio = false)
         {
             Dispatcher.BeginInvoke(new Action(() =>
             {
@@ -2976,13 +3061,14 @@ videoLiveFakeProportionThreshold = 0.7
                                 MessageBoxButton.OK, MessageBoxImage.Error);
                         }
                     },
-                    navigateToResultsPage: () => NavigateToResultsAndShowSessionDetail(resultPath));
+                    navigateToResultsPage: () => NavigateToResultsAndShowSessionDetail(resultPath),
+                    isAudio: isAudio);
                 popup.ShowAtBottomRight(autoCloseSeconds: 0);
                 _floatingWidget?.BringAboveNotifications();
             }));
         }
 
-        private void ShowDetectionCompletedWithThreatNotification(string resultPath, int confidencePercent, System.Windows.Media.Imaging.BitmapSource evidenceImage)
+        private void ShowDetectionCompletedWithThreatNotification(string resultPath, int confidencePercent, System.Windows.Media.Imaging.BitmapSource evidenceImage, bool isAudio = false)
         {
             Dispatcher.BeginInvoke(new Action(() =>
             {
@@ -3003,7 +3089,8 @@ videoLiveFakeProportionThreshold = 0.7
                     },
                     evidenceImageLeft: evidenceImage,
                     evidenceImageRight: null,
-                    navigateToResultsPage: () => NavigateToResultsAndShowSessionDetail(resultPath));
+                    navigateToResultsPage: () => NavigateToResultsAndShowSessionDetail(resultPath),
+                    isAudio: isAudio);
                 popup.ShowAtBottomRight(autoCloseSeconds: 0);
                 _floatingWidget?.BringAboveNotifications();
             }));

@@ -56,15 +56,15 @@
             <Setter Property="BorderBrush" Value="{DynamicResource Brush.Secondary}"/>
             <Setter Property="BorderThickness" Value="1"/>
             <Setter Property="CornerRadius" Value="16"/>
-            <Setter Property="Padding" Value="24"/>
+            <Setter Property="Padding" Value="20,16"/>
         </Style>
         
-        <!-- Field Row Style with Background -->
+        <!-- Field Row Style with Background (compact for System Info card) -->
         <Style x:Key="FieldRowStyle" TargetType="Border">
             <Setter Property="Background" Value="{DynamicResource Brush.Card}"/>
             <Setter Property="CornerRadius" Value="8"/>
-            <Setter Property="Padding" Value="12,10"/>
-            <Setter Property="Margin" Value="0,0,0,8"/>
+            <Setter Property="Padding" Value="12,8"/>
+            <Setter Property="Margin" Value="0,0,0,6"/>
         </Style>
     </UserControl.Resources>
 
@@ -75,7 +75,7 @@
         </Grid.RowDefinitions>
 
         <!-- Header -->
-        <StackPanel Grid.Row="0" Margin="0,0,0,24">
+        <StackPanel Grid.Row="0" Margin="0,0,0,16">
             <TextBlock Text="Settings" 
                        FontSize="28" 
                        FontWeight="Bold" 
@@ -152,8 +152,8 @@
                     </Border>
                 </Grid>
 
-                <!-- Update Controls -->
-                <Border Grid.Row="1" Style="{StaticResource UpdateCardStyle}" VerticalAlignment="Stretch">
+                <!-- Update Controls (background set in code for Settings-only light cyan in light theme) -->
+                <Border x:Name="UpdateControlsCard" Grid.Row="1" Style="{StaticResource UpdateCardStyle}" VerticalAlignment="Stretch">
                     <StackPanel>
                         <Grid Margin="0,0,0,16">
                             <TextBlock Text="Update Controls" 
@@ -196,20 +196,20 @@
                 </Border>
             </Grid>
 
-            <!-- RIGHT COLUMN: System Information & Updates -->
-            <Border Grid.Column="2" Style="{StaticResource InfoCardStyle}" VerticalAlignment="Stretch">
+            <!-- RIGHT COLUMN: System Information & Updates (background set in code for Settings-only light cyan in light theme) -->
+            <Border x:Name="SystemInfoCard" Grid.Column="2" Style="{StaticResource InfoCardStyle}" VerticalAlignment="Stretch">
                 <StackPanel>
                     <TextBlock Text="System Information &amp; Updates" 
                                FontSize="18" 
                                FontWeight="SemiBold" 
                                Foreground="{DynamicResource Brush.TextPrimary}" 
-                               Margin="0,0,0,16"/>
+                               Margin="0,0,0,10"/>
                     
                     <TextBlock Text="Version Information" 
                                FontSize="14" 
                                FontWeight="SemiBold" 
                                Foreground="{DynamicResource Brush.TextPrimary}" 
-                               Margin="0,0,0,12"/>
+                               Margin="0,0,0,8"/>
                     
                     <!-- Application Version -->
                     <Border Style="{StaticResource FieldRowStyle}">
@@ -242,7 +242,7 @@
                     </Border>
                     
                     <!-- Release Date -->
-                    <Border Style="{StaticResource FieldRowStyle}" Margin="0,0,0,16">
+                    <Border Style="{StaticResource FieldRowStyle}" Margin="0,0,0,10">
                         <Grid>
                             <TextBlock Text="Release Date" 
                                        FontSize="13" 
@@ -260,7 +260,7 @@
                                FontSize="14" 
                                FontWeight="SemiBold" 
                                Foreground="{DynamicResource Brush.TextPrimary}" 
-                               Margin="0,0,0,12"/>
+                               Margin="0,0,0,8"/>
                     
                     <!-- Current Status -->
                     <Border Style="{StaticResource FieldRowStyle}">

@@ -2,12 +2,16 @@ using System;
 using System.Windows;
 using System.Windows.Controls;
 using System.Windows.Input;
+using System.Windows.Media;
 using x_phy_wpf_ui.Services;
 
 namespace x_phy_wpf_ui.Controls
 {
     public partial class SettingsComponent : UserControl
     {
+        /// <summary>Settings-page-only background for Update/System Info cards in light theme (very light cyan).</summary>
+        private static readonly Brush SettingsCardsLightBackground = new SolidColorBrush((Color)ColorConverter.ConvertFromString("#F0FBFD"));
+
         public event EventHandler BackClicked;
 
         public SettingsComponent()
@@ -32,12 +36,16 @@ namespace x_phy_wpf_ui.Controls
                 DarkThemeCard.Style = (Style)FindResource("ThemeCardStyle");
                 
                 // Update text colors
-                LightThemeText.Foreground = System.Windows.Media.Brushes.White;
-                DarkThemeText.SetResourceReference(System.Windows.Controls.TextBlock.ForegroundProperty, "Brush.TextPrimary");
+                LightThemeText.Foreground = Brushes.White;
+                DarkThemeText.SetResourceReference(TextBlock.ForegroundProperty, "Brush.TextPrimary");
                 
                 // Update icon colors
-                LightThemeIcon.Fill = System.Windows.Media.Brushes.White;
+                LightThemeIcon.Fill = Brushes.White;
                 DarkThemeIcon.SetResourceReference(System.Windows.Shapes.Path.FillProperty, "Brush.TextPrimary");
+
+                // Settings-only: very light cyan background for Update Controls and System Info cards
+                if (UpdateControlsCard != null) UpdateControlsCard.Background = SettingsCardsLightBackground;
+                if (SystemInfoCard != null) SystemInfoCard.Background = SettingsCardsLightBackground;
             }
             else
             {
@@ -46,12 +54,17 @@ namespace x_phy_wpf_ui.Controls
                 DarkThemeCard.Style = (Style)FindResource("ThemeCardSelectedStyle");
                 
                 // Update text colors
-                LightThemeText.SetResourceReference(System.Windows.Controls.TextBlock.ForegroundProperty, "Brush.TextPrimary");
-                DarkThemeText.Foreground = System.Windows.Media.Brushes.White;
+                LightThemeText.SetResourceReference(TextBlock.ForegroundProperty, "Brush.TextPrimary");
+                DarkThemeText.Foreground = Brushes.White;
                 
                 // Update icon colors
                 LightThemeIcon.SetResourceReference(System.Windows.Shapes.Path.FillProperty, "Brush.TextPrimary");
-                DarkThemeIcon.Fill = System.Windows.Media.Brushes.White;
+                DarkThemeIcon.Fill = Brushes.White;
+
+                // Settings-only: use theme surface (same as rest of app)
+                var surface = (Brush)FindResource("Brush.Surface");
+                if (UpdateControlsCard != null) UpdateControlsCard.Background = surface;
+                if (SystemInfoCard != null) SystemInfoCard.Background = surface;
             }
         }
 

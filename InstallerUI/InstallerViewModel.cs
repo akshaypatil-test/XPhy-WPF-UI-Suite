@@ -141,6 +141,8 @@ namespace InstallerUI
         public bool ShowFinishButton => CurrentStep == InstallerStep.Finish;
         /// <summary>Hide Cancel on Finish screen so only Close is shown.</summary>
         public bool ShowCancelButton => CurrentStep != InstallerStep.Finish;
+        /// <summary>Show Print (blue link) on footer left only on License Agreement step.</summary>
+        public bool ShowPrintLink => CurrentStep == InstallerStep.LicenseAgreement;
         public string NextButtonLabel => CurrentStep == InstallerStep.LicenseAgreement ? "I Accept" : "Next";
         /// <summary>On Finish screen: "Close" when error, "Finish" when success—so user can always exit.</summary>
         public string FinishButtonLabel => CurrentStep == InstallerStep.Finish && !InstallSucceeded ? "Close" : "Finish";
@@ -378,6 +380,7 @@ namespace InstallerUI
             OnPropertyChanged(nameof(ShowNextButton));
             OnPropertyChanged(nameof(ShowFinishButton));
             OnPropertyChanged(nameof(ShowCancelButton));
+            OnPropertyChanged(nameof(ShowPrintLink));
             OnPropertyChanged(nameof(NextButtonLabel));
             OnPropertyChanged(nameof(FinishButtonLabel));
             switch (CurrentStep)

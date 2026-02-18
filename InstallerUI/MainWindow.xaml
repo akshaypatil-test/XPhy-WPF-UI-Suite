@@ -41,9 +41,13 @@
             <ContentControl x:Name="PageContent" VerticalContentAlignment="Top"/>
         </Border>
 
-        <!-- Footer: Back, Next/Finish (primary blue), Cancel (grey) - order matches reference: Next left of Cancel -->
+        <!-- Footer: Print (blue link, left, License step only); Back, Next/Finish, Cancel (right) -->
         <Border Grid.Row="2" Background="{StaticResource FooterBackground}" Padding="24,16" BorderBrush="#E0E0E0" BorderThickness="0,1,0,0">
             <Grid>
+                <TextBlock x:Name="PrintLink" Text="Print" Foreground="#0066CC" FontSize="13" Cursor="Hand"
+                           VerticalAlignment="Center" HorizontalAlignment="Left"
+                           Visibility="{Binding ShowPrintLink, Converter={StaticResource BoolToVis}}"
+                           MouseLeftButtonDown="PrintLink_MouseLeftButtonDown"/>
                 <StackPanel Orientation="Horizontal" HorizontalAlignment="Right">
                     <Button x:Name="BackButton" Content="Back" Style="{StaticResource SecondaryButtonStyle}"
                             Command="{Binding BackCommand}" Margin="0,0,12,0"

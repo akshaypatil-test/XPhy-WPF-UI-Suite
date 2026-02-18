@@ -61,20 +61,22 @@
             
             <!-- Window Controls -->
             <StackPanel Grid.Column="2" Orientation="Horizontal" HorizontalAlignment="Right">
-                <Button Content="🗕" Width="16" Height="16" 
+                <Button Width="32" Height="32" 
                         Background="Transparent"
-                        Foreground="{DynamicResource Brush.TextPrimary}"
                         BorderThickness="0"
                         Click="Minimize_Click"
                         Cursor="Hand"
-                        Margin="0,0,4,0">
+                        Margin="0,0,0,0"
+                        ToolTip="Minimize"
+                        Padding="0">
                     <Button.Style>
                         <Style TargetType="Button">
                             <Setter Property="Template">
                                 <Setter.Value>
                                     <ControlTemplate TargetType="Button">
-                                        <Border Background="{TemplateBinding Background}" Padding="2">
-                                            <ContentPresenter HorizontalAlignment="Center" VerticalAlignment="Center"/>
+                                        <Border x:Name="MinimizeButtonBorder" Background="{TemplateBinding Background}" Padding="2">
+                                            <Border Width="8" Height="1.5" HorizontalAlignment="Center" VerticalAlignment="Center"
+                                                    Background="{DynamicResource Brush.TextPrimary}"/>
                                         </Border>
                                     </ControlTemplate>
                                 </Setter.Value>
@@ -87,12 +89,15 @@
                         </Style>
                     </Button.Style>
                 </Button>
-                <Button Content="✕" Width="16" Height="16" 
+                <Button Content="✕" Width="32" Height="32" 
                         Background="Transparent"
                         Foreground="{DynamicResource Brush.TextPrimary}"
                         BorderThickness="0"
                         Click="Close_Click"
-                        Cursor="Hand">
+                        Cursor="Hand"
+                        ToolTip="Close"
+                        FontSize="12"
+                        Padding="0">
                     <Button.Style>
                         <Style TargetType="Button">
                             <Setter Property="Template">

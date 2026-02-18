@@ -81,10 +81,10 @@
             </Style.Triggers>
         </Style>
         
-        <!-- PayPal Button Style -->
+        <!-- PayPal Button Style (blue like reference; disabled until integration) -->
         <Style x:Key="PayPalButtonStyle" TargetType="Button">
-            <Setter Property="Background" Value="#555555"/>
-            <Setter Property="Foreground" Value="#999999"/>
+            <Setter Property="Background" Value="#0070BA"/>
+            <Setter Property="Foreground" Value="White"/>
             <Setter Property="BorderThickness" Value="0"/>
             <Setter Property="Padding" Value="16,12"/>
             <Setter Property="FontSize" Value="14"/>
@@ -198,7 +198,6 @@
                                     <RowDefinition Height="Auto"/>
                                     <RowDefinition Height="Auto"/>
                                     <RowDefinition Height="Auto"/>
-                                    <RowDefinition Height="Auto"/>
                                 </Grid.RowDefinitions>
                                 
                                 <!-- Current Plan badge (visible only when this plan is the user's active paid plan) -->
@@ -245,17 +244,13 @@
                                               Margin="4,0,0,8"/>
                                 </StackPanel>
                                 
-                                <!-- Features List -->
+                                <!-- Features List (dotted separators like reference) -->
                                 <StackPanel Grid.Row="3" Margin="0,12,0,12">
                                     <ItemsControl ItemsSource="{Binding Features}">
                                         <ItemsControl.ItemTemplate>
                                             <DataTemplate>
-                                                <StackPanel Orientation="Horizontal" Margin="0,6,0,0">
-                                                    <TextBlock Text="•"
-                                                              Foreground="{StaticResource PrimaryColor}"
-                                                              FontSize="16"
-                                                              Margin="0,0,8,0"
-                                                              VerticalAlignment="Center"/>
+                                                <StackPanel Margin="0,0,0,8">
+                                                    <Border Height="1" BorderBrush="{StaticResource SecondaryTextColor}" BorderThickness="0,0,0,1" Margin="0,0,0,6" Opacity="0.7"/>
                                                     <TextBlock Text="{Binding}"
                                                               Foreground="{StaticResource TextColor}"
                                                               FontSize="13"
@@ -266,16 +261,8 @@
                                     </ItemsControl>
                                 </StackPanel>
                                 
-                                <!-- Payment Method Label -->
-                                <TextBlock Grid.Row="4"
-                                          Text="Payment Method"
-                                          FontSize="12"
-                                          FontWeight="SemiBold"
-                                          Foreground="{StaticResource SecondaryTextColor}"
-                                          Margin="0,0,0,12"/>
-                                
-                                <!-- Payment Buttons - Stacked Vertically -->
-                                <StackPanel Grid.Row="5">
+                                <!-- Payment Buttons - Stripe and PayPal (like reference) -->
+                                <StackPanel Grid.Row="4">
                                     <Button Content="stripe"
                                             Style="{StaticResource StripeButtonStyle}"
                                             IsEnabled="{Binding IsStripeButtonEnabled}"

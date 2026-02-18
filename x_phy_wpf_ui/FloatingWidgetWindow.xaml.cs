@@ -86,6 +86,19 @@ namespace x_phy_wpf_ui
             Top = workArea.Bottom - Height - 16;
         }
 
+        /// <summary>Bring the floating launcher above notification windows when a notification appears.</summary>
+        public void BringAboveNotifications()
+        {
+            if (!IsVisible) return;
+            try
+            {
+                Topmost = false;
+                Topmost = true;
+                Activate();
+            }
+            catch { }
+        }
+
         /// <summary>Update detection state: arc loader runs when active; green normally, red when deepfake detected (same smooth animation as Loader screen).</summary>
         public void SetDetectionState(bool isDetecting, bool isDeepfakeDetected)
         {

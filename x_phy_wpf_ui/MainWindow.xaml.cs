@@ -1103,23 +1103,39 @@ videoLiveFakeProportionThreshold = 0.7
                 StopBackgroundProcessCheck();
 
             if (!FloatingWidgetEnabled) return;
-            bool isDetectionRunning = controller != null && controller.IsDetectionRunning();
-            if (WindowState == WindowState.Minimized && isDetectionRunning)
-            {
-                if (_floatingWidget == null)
-                {
-                    _floatingWidget = new FloatingWidgetWindow();
-                    _floatingWidget.SetOwnerWindow(this);
-                    _floatingWidget.SetActions(FloatingWidget_CancelDetection, FloatingWidget_StopAndViewResults);
-                }
-                _floatingWidget.PositionAtBottomRight();
-                _floatingWidget.SetDetectionState(true, overallClassification == true);
-                _floatingWidget.Show();
-            }
+            if (WindowState == WindowState.Minimized)
+                ShowFloatingWidgetIfDetectionRunning();
             else
+                _floatingWidget?.Hide();
+        }
+
+        /// <summary>Show floating launcher when detection is running and app is minimized or hidden (from app start or single-process popup).</summary>
+        private void ShowFloatingWidgetIfDetectionRunning()
+        {
+            if (!FloatingWidgetEnabled) return;
+            bool windowMinimizedOrHidden = WindowState == WindowState.Minimized || !IsVisible;
+            if (!windowMinimizedOrHidden)
             {
                 _floatingWidget?.Hide();
+                return;
             }
+            bool isDetectionRunning = controller != null && controller.IsDetectionRunning();
+            if (!isDetectionRunning)
+            {
+                _floatingWidget?.Hide();
+                return;
+            }
+            if (_floatingWidget == null)
+            {
+                _floatingWidget = new FloatingWidgetWindow();
+                _floatingWidget.SetOwnerWindow(this);
+                _floatingWidget.SetActions(FloatingWidget_CancelDetection, FloatingWidget_StopAndViewResults);
+            }
+            // Only position at bottom-right when (re)showing after being hidden; keep user-dragged position otherwise
+            if (!_floatingWidget.IsVisible)
+                _floatingWidget.PositionAtBottomRight();
+            _floatingWidget.SetDetectionState(true, overallClassification == true);
+            _floatingWidget.Show();
         }
 
         private void FloatingWidget_CancelDetection()
@@ -1235,6 +1251,17 @@ videoLiveFakeProportionThreshold = 0.7
                     ShowNotification("Detection Started",
                         $"{detectionType} detection started for {duration} seconds.",
                         Forms.ToolTipIcon.Info);
+                    // Show floating launcher once detection is running (from app or single-process popup); delay so native has started
+                    var showLauncherTimer = new DispatcherTimer(DispatcherPriority.ApplicationIdle)
+                    {
+                        Interval = TimeSpan.FromMilliseconds(800)
+                    };
+                    showLauncherTimer.Tick += (s, _) =>
+                    {
+                        ((DispatcherTimer)s).Stop();
+                        ShowFloatingWidgetIfDetectionRunning();
+                    };
+                    showLauncherTimer.Start();
                 });
 
                 // Track detection mode and source name for result (Media Source = app name: Zoom, Google Chrome, Mozilla Firefox, etc.)
@@ -1509,13 +1536,16 @@ videoLiveFakeProportionThreshold = 0.7
                 bool isRunning = controller != null && controller.IsDetectionRunning();
                 DetectionResultsComponent.SetStopButtonEnabled(isRunning || onDetectionScreen);
             }
-            // Update floating widget: hide when detection stops; otherwise update ring (green/red)
-            if (FloatingWidgetEnabled && _floatingWidget != null)
+            // Update floating widget: show when minimized/hidden and detection running; hide when detection stops; else update ring (green/red)
+            if (FloatingWidgetEnabled)
             {
                 bool isRunning = controller != null && controller.IsDetectionRunning();
+                bool windowMinimizedOrHidden = WindowState == WindowState.Minimized || !IsVisible;
                 if (!isRunning)
-                    _floatingWidget.Hide();
-                else if (_floatingWidget.IsVisible)
+                    _floatingWidget?.Hide();
+                else if (windowMinimizedOrHidden)
+                    ShowFloatingWidgetIfDetectionRunning();
+                else if (_floatingWidget != null && _floatingWidget.IsVisible)
                     _floatingWidget.SetDetectionState(true, overallClassification == true);
             }
         }
@@ -1830,9 +1860,15 @@ videoLiveFakeProportionThreshold = 0.7
             if (e.NewValue is bool visible)
             {
                 if (visible)
+                {
                     StopBackgroundProcessCheck();
+                    if (FloatingWidgetEnabled) _floatingWidget?.Hide();
+                }
                 else if (notifyIcon != null)
+                {
                     StartBackgroundProcessCheck();
+                    if (FloatingWidgetEnabled) ShowFloatingWidgetIfDetectionRunning();
+                }
             }
         }
 
@@ -1912,6 +1948,7 @@ videoLiveFakeProportionThreshold = 0.7
                             Activate();
                         };
                         multiPopup.ShowAtBottomRight();
+                        _floatingWidget?.BringAboveNotifications();
                     }
                     return;
                 }
@@ -1928,9 +1965,11 @@ videoLiveFakeProportionThreshold = 0.7
                     ShowDetectionContent();
                     DetectionSelectionContainer.Visibility = Visibility.Collapsed;
                     DetectionResultsPanel.Visibility = Visibility.Visible;
+                    WindowState = WindowState.Minimized;
                     try { ProcessDetectionService.BringProcessWindowToForeground(single.ProcessId); } catch { }
                 };
                 popup.ShowForProcess(single);
+                _floatingWidget?.BringAboveNotifications();
             });
         }
 
@@ -2874,6 +2913,7 @@ videoLiveFakeProportionThreshold = 0.7
                 var popup = new DetectionNotificationWindow();
                 popup.SetContent(title ?? "", message ?? "");
                 popup.ShowAtBottomRight(autoCloseSeconds: 5);
+                _floatingWidget?.BringAboveNotifications();
             }));
         }
 
@@ -2913,6 +2953,7 @@ videoLiveFakeProportionThreshold = 0.7
                     evidenceImageLeft: evidenceImage,
                     evidenceImageRight: null);
                 popup.ShowAtBottomRight(autoCloseSeconds: 4);
+                _floatingWidget?.BringAboveNotifications();
             }));
         }
 
@@ -2937,6 +2978,7 @@ videoLiveFakeProportionThreshold = 0.7
                     },
                     navigateToResultsPage: () => NavigateToResultsAndShowSessionDetail(resultPath));
                 popup.ShowAtBottomRight(autoCloseSeconds: 0);
+                _floatingWidget?.BringAboveNotifications();
             }));
         }
 
@@ -2963,6 +3005,7 @@ videoLiveFakeProportionThreshold = 0.7
                     evidenceImageRight: null,
                     navigateToResultsPage: () => NavigateToResultsAndShowSessionDetail(resultPath));
                 popup.ShowAtBottomRight(autoCloseSeconds: 0);
+                _floatingWidget?.BringAboveNotifications();
             }));
         }
 

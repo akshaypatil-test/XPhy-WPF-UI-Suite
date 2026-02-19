@@ -1706,6 +1706,9 @@ videoLiveFakeProportionThreshold = 0.7
             if (LicenseSubscriptionComponent != null)
                 LicenseSubscriptionComponent.Visibility = Visibility.Collapsed;
             SupportComponent.Visibility = Visibility.Visible;
+            // Clear nav highlight when showing support (opened from footer Support)
+            if (TopNavBar != null)
+                TopNavBar.SelectedPage = "";
         }
 
         private void SupportComponent_BackRequested(object sender, EventArgs e)
@@ -2077,6 +2080,9 @@ videoLiveFakeProportionThreshold = 0.7
                 LicenseSubscriptionComponent.Visibility = Visibility.Collapsed;
             PlansComponent.Visibility = Visibility.Visible;
             StripePaymentComponentContainer.Visibility = Visibility.Collapsed;
+            // Clear nav highlight when showing plans (opened from footer Subscribe)
+            if (TopNavBar != null)
+                TopNavBar.SelectedPage = "";
         }
 
         private void ShowDetectionResultsScreen()
@@ -2119,6 +2125,9 @@ videoLiveFakeProportionThreshold = 0.7
                 LicenseSubscriptionComponent.Visibility = Visibility.Collapsed;
             if (DetectionResultsScreen != null)
                 DetectionResultsScreen.Visibility = Visibility.Collapsed;
+            // Restore Home as selected when returning from Plans/Support (Back to Detection)
+            if (TopNavBar != null)
+                TopNavBar.SelectedPage = "Home";
         }
 
         private void PlansComponent_PlanSelected(object sender, PlanSelectedEventArgs e)

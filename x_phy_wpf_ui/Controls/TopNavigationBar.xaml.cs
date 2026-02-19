@@ -67,15 +67,19 @@ namespace x_phy_wpf_ui.Controls
             if (AddCorpUserButton != null)
                 AddCorpUserButton.Style = (Style)FindResource("TopNavButtonStyle");
 
+            // When showing Plans or Support (from footer), no tab is selected
+            if (string.IsNullOrEmpty(selectedPage))
+                return;
+
             // Set selected button style
-            Button selectedButton = selectedPage switch
+            Button? selectedButton = selectedPage switch
             {
                 "Home" => HomeNavButton,
                 "Results" => ResultsNavButton,
                 "Profile" => ProfileNavButton,
                 "Settings" => SettingsNavButton,
                 "CorpUser" => AddCorpUserButton,
-                _ => HomeNavButton
+                _ => null
             };
 
             if (selectedButton != null)

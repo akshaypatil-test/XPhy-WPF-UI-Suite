@@ -53,6 +53,29 @@ namespace x_phy_wpf_ui.Controls
             return true;
         }
 
+        /// <summary>Clears all password fields and error. Call when opening the dialog so previous data does not persist.</summary>
+        public void Clear()
+        {
+            CurrentPasswordBox.Password = "";
+            CurrentReveal.Text = "";
+            CurrentReveal.Visibility = Visibility.Collapsed;
+            CurrentPasswordBox.Visibility = Visibility.Visible;
+
+            NewPasswordBox.Password = "";
+            NewReveal.Text = "";
+            NewReveal.Visibility = Visibility.Collapsed;
+            NewPasswordBox.Visibility = Visibility.Visible;
+
+            ConfirmPasswordBox.Password = "";
+            ConfirmReveal.Text = "";
+            ConfirmReveal.Visibility = Visibility.Collapsed;
+            ConfirmPasswordBox.Visibility = Visibility.Visible;
+
+            ClearAndHideError();
+            UpdatePlaceholders();
+            UpdateButtonState();
+        }
+
         public void ClearAndHideError()
         {
             ErrorText.Visibility = Visibility.Collapsed;

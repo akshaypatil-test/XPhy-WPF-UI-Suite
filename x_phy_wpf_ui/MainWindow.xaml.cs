@@ -1736,7 +1736,7 @@ videoLiveFakeProportionThreshold = 0.7
 
         private void ProfileComponent_ChangePasswordRequested(object sender, EventArgs e)
         {
-            _changePasswordDialog.ClearAndHideError();
+            _changePasswordDialog.Clear();
             ChangePasswordOverlayContent.Content = _changePasswordDialog;
             ChangePasswordOverlay.Visibility = Visibility.Visible;
         }

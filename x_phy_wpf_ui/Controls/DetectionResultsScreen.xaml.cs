@@ -251,7 +251,45 @@ namespace x_phy_wpf_ui.Controls
             if (btn?.DataContext is DetectionResultItem item)
             {
                 var resultsDir = _resultsDirectory ?? DetectionResultsLoader.GetDefaultResultsDir();
+                // For audio results: open the result directory in Explorer instead of showing Session Details
+                if (string.Equals(item.Type, "Audio", StringComparison.OrdinalIgnoreCase))
+                {
+                    OpenAudioResultDirectory(item.ResultPathOrId, resultsDir);
+                    return;
+                }
                 ShowSessionDetail(item, resultsDir);
+            }
+        }
+
+        /// <summary>Opens the folder where the audio result is located in Windows Explorer.</summary>
+        private void OpenAudioResultDirectory(string resultPathOrId, string resultsDirectory)
+        {
+            string dir = null;
+            if (!string.IsNullOrWhiteSpace(resultPathOrId) && resultPathOrId != "Local")
+            {
+                if (Directory.Exists(resultPathOrId))
+                    dir = resultPathOrId;
+                else if (File.Exists(resultPathOrId))
+                    dir = Path.GetDirectoryName(resultPathOrId);
+            }
+            if (string.IsNullOrEmpty(dir))
+                dir = resultsDirectory;
+            if (string.IsNullOrEmpty(dir) || !Directory.Exists(dir))
+            {
+                try { Directory.CreateDirectory(dir); } catch { }
+            }
+            if (!Directory.Exists(dir))
+            {
+                MessageBox.Show("Result directory could not be found or created.", "Audio Result", MessageBoxButton.OK, MessageBoxImage.Warning);
+                return;
+            }
+            try
+            {
+                Process.Start("explorer.exe", "\"" + dir + "\"");
+            }
+            catch (Exception ex)
+            {
+                MessageBox.Show("Failed to open result folder: " + ex.Message, "Error", MessageBoxButton.OK, MessageBoxImage.Error);
             }
         }
 

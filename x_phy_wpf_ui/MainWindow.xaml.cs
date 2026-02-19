@@ -673,9 +673,9 @@ namespace x_phy_wpf_ui
 
         private void MainWindow_Activated(object sender, EventArgs e)
         {
-            // Refresh license/status when user returns to this window (e.g. after completing purchase in StripePaymentWindow)
+            // Fetch fresh license from server when user returns so trial attempts are up to date (e.g. after detection)
             if (AppPanel.Visibility == Visibility.Visible)
-                UpdateLicenseDisplay();
+                RefreshLicenseDisplayAfterDetectionAsync();
         }
 
         private void MainWindow_MouseDown(object sender, System.Windows.Input.MouseButtonEventArgs e)
@@ -1127,6 +1127,10 @@ videoLiveFakeProportionThreshold = 0.7
             else if (WindowState != WindowState.Minimized)
                 StopBackgroundProcessCheck();
 
+            // When user restores window from minimized, refresh license so trial attempts show current value
+            if (WindowState == WindowState.Normal && AppPanel.Visibility == Visibility.Visible)
+                RefreshLicenseDisplayAfterDetectionAsync();
+
             if (!FloatingWidgetEnabled) return;
             if (WindowState == WindowState.Minimized)
                 ShowFloatingWidgetIfDetectionRunning();
@@ -1260,7 +1264,48 @@ videoLiveFakeProportionThreshold = 0.7
                         MessageBoxButton.OK, MessageBoxImage.Information);
                     return;
                 }
-                
+
+                // Consume one trial detection attempt (all entry points: Detection Selection, popup, tray)
+                // Backend: POST /api/License/detection-attempt decrements User.TrialAttemptsRemaining and should return the new value in the response so we can update UI in real time.
+                var licenseService = new LicensePurchaseService();
+                var attemptResult = await licenseService.UseDetectionAttemptAsync();
+                if (!attemptResult.Allowed)
+                {
+                    Dispatcher.Invoke(() =>
+                    {
+                        MessageBox.Show(
+                            attemptResult.Message ?? "You have no detection attempts remaining. Please subscribe to continue.",
+                            "Detection Not Allowed",
+                            MessageBoxButton.OK,
+                            MessageBoxImage.Warning);
+                    });
+                    return;
+                }
+
+                // Update stored license and UI immediately from detection-attempt response (TrialAttemptsRemaining is on User in DB; backend should return it in response)
+                if (attemptResult.TrialAttemptsRemaining.HasValue)
+                {
+                    var tokenStorage = new TokenStorage();
+                    var tokens = tokenStorage.GetTokens();
+                    if (tokens?.LicenseInfo != null)
+                    {
+                        var updatedLicense = new LicenseInfo
+                        {
+                            Key = tokens.LicenseInfo.Key,
+                            Status = tokens.LicenseInfo.Status,
+                            MaxDevices = tokens.LicenseInfo.MaxDevices,
+                            PlanId = tokens.LicenseInfo.PlanId,
+                            PlanName = tokens.LicenseInfo.PlanName,
+                            TrialEndsAt = tokens.LicenseInfo.TrialEndsAt,
+                            PurchaseDate = tokens.LicenseInfo.PurchaseDate,
+                            ExpiryDate = tokens.LicenseInfo.ExpiryDate,
+                            TrialAttemptsRemaining = attemptResult.TrialAttemptsRemaining
+                        };
+                        tokenStorage.UpdateUserAndLicense(tokens.UserInfo, updatedLicense);
+                    }
+                    Dispatcher.Invoke(() => UpdateLicenseDisplay());
+                }
+
                 // Hide selection container so only results panel is visible (fix broken view)
                 DetectionSelectionContainer.Visibility = Visibility.Collapsed;
                 StartDetectionCard.Visibility = Visibility.Collapsed;
@@ -1292,6 +1337,9 @@ videoLiveFakeProportionThreshold = 0.7
                     };
                     showLauncherTimer.Start();
                 });
+
+                // Get fresh license (incl. TrialAttemptsRemaining) from server after detection started so attempts update in real time
+                _ = RefreshLicenseAfterDetectionStartedAsync(licenseService);
 
                 // Track detection mode and source name for result (Media Source = app name: Zoom, Google Chrome, Mozilla Firefox, etc.)
                 isWebSurfingMode = !isLiveCallMode;
@@ -2241,25 +2289,9 @@ videoLiveFakeProportionThreshold = 0.7
                     return;
                 }
 
-                // Consume one trial detection attempt (Trial users: decrements count; paid: always allowed)
-                var licenseService = new LicensePurchaseService();
-                var attemptResult = await licenseService.UseDetectionAttemptAsync();
-                if (!attemptResult.Allowed)
-                {
-                    MessageBox.Show(
-                        attemptResult.Message ?? "You have no detection attempts remaining. Please subscribe to continue.",
-                        "Detection Not Allowed",
-                        MessageBoxButton.OK,
-                        MessageBoxImage.Warning);
-                    return;
-                }
-                // Update bottom bar with current trial attempts (TrialAttemptsRemaining is null for paid licenses)
-                if (attemptResult.TrialAttemptsRemaining.HasValue)
-                    BottomBar.Attempts = attemptResult.TrialAttemptsRemaining.Value;
-
-                // Start detection with selected parameters (pass selected app display name so Firefox shows as Firefox, not Chrome)
+                // Start detection (attempt consumed and get-license refresh run inside StartDetectionFromPopup)
                 StartDetectionFromPopup(e.SelectedSource.Value, e.IsLiveCallMode, e.IsAudioMode, mediaSourceDisplayName: e.SelectedProcess.DisplayName);
-                
+
                 // Hide detection selection container and show results panel
                 DetectionSelectionContainer.Visibility = Visibility.Collapsed;
                 DetectionResultsPanel.Visibility = Visibility.Visible;
@@ -2360,6 +2392,28 @@ videoLiveFakeProportionThreshold = 0.7
             }
         }
 
+        /// <summary>Called after detection has started: fetches fresh license (incl. TrialAttemptsRemaining) and updates token storage + UI so attempts show in real time.</summary>
+        private async Task RefreshLicenseAfterDetectionStartedAsync(LicensePurchaseService licenseService)
+        {
+            try
+            {
+                await Task.Delay(400);
+                var result = await licenseService.ValidateLicenseAsync();
+                if (result != null && result.Valid && result.License != null)
+                {
+                    var tokenStorage = new TokenStorage();
+                    var tokens = tokenStorage.GetTokens();
+                    if (tokens != null)
+                        tokenStorage.UpdateUserAndLicense(tokens.UserInfo, result.License);
+                    Dispatcher.Invoke(() => UpdateLicenseDisplay());
+                }
+            }
+            catch (Exception ex)
+            {
+                System.Diagnostics.Debug.WriteLine($"Refresh license after detection started: {ex.Message}");
+            }
+        }
+
         private async void RefreshLicenseDisplayAfterDetectionAsync()
         {
             try
@@ -2372,7 +2426,7 @@ videoLiveFakeProportionThreshold = 0.7
                     var tokens = tokenStorage.GetTokens();
                     if (tokens != null)
                         tokenStorage.UpdateUserAndLicense(tokens.UserInfo, result.License);
-                    UpdateLicenseDisplay();
+                    Dispatcher.Invoke(() => UpdateLicenseDisplay());
                 }
             }
             catch (Exception ex)

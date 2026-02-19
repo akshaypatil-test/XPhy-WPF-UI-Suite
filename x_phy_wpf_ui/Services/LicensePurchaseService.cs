@@ -91,6 +91,7 @@ namespace x_phy_wpf_ui.Services
 
         /// <summary>
         /// Consume one trial detection attempt. On session expiry, throws SessionExpiredException.
+        /// Backend must return trialAttemptsRemaining (from User.TrialAttemptsRemaining after decrement) in the response so the client can update the UI in real time.
         /// </summary>
         public async Task<UseDetectionAttemptResponse> UseDetectionAttemptAsync()
         {
@@ -129,6 +130,7 @@ namespace x_phy_wpf_ui.Services
 
         /// <summary>
         /// Validate license with device fingerprint. On session expiry, throws SessionExpiredException.
+        /// Backend should return license.trialAttemptsRemaining from User.TrialAttemptsRemaining so when user returns to app the attempts display is correct.
         /// </summary>
         public async Task<ValidateResponse?> ValidateLicenseAsync()
         {

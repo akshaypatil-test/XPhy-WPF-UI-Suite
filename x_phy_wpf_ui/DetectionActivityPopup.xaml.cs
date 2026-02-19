@@ -16,6 +16,11 @@ namespace x_phy_wpf_ui
         public DetectionActivityPopup()
         {
             InitializeComponent();
+            // Close when user clicks outside (e.g. on floating launcher or empty screen)
+            Deactivated += (s, e) =>
+            {
+                try { Close(); } catch { }
+            };
         }
 
         public void SetActions(Action onCancelDetection, Action onStopAndViewResults)

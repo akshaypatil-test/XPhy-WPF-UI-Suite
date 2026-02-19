@@ -167,6 +167,12 @@ namespace x_phy_wpf_ui
 
         private void ShowDetectionActivityPopup()
         {
+            // If popup is already open, close it (toggle off) instead of opening again
+            if (_activityPopup != null && _activityPopup.IsVisible)
+            {
+                CloseDetectionActivityPopup();
+                return;
+            }
             CloseDetectionActivityPopup();
             _activityPopup = new DetectionActivityPopup();
             _activityPopup.Closed += (s, e) => { _activityPopup = null; };

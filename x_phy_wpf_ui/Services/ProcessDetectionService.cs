@@ -5,6 +5,7 @@ using System.Diagnostics;
 using System.Linq;
 using System.Runtime.InteropServices;
 using System.Text;
+using System.Windows.Automation;
 using x_phy_wpf_ui.Models;
 
 namespace x_phy_wpf_ui.Services
@@ -264,27 +265,35 @@ namespace x_phy_wpf_ui.Services
                             }
                         }
 
-                        // Find a process with YouTube (include processes already added as Google Chat so we detect both when same Chrome has Chat + YouTube)
+                        // YouTube is present if it appears in any tab (active or inactive). We use window titles from EnumWindows
+                        // plus UI Automation to read all tab titles from each browser window, so background tabs are detected.
                         DetectedProcess? browserDetected = null;
                         foreach (var browserProcess in allBrowserProcesses)
                         {
-                            if (processWindows.ContainsKey((uint)browserProcess.Id))
+                            var allTitles = new List<string>();
+                            if (processWindows.TryGetValue((uint)browserProcess.Id, out var windowTitles))
+                                allTitles.AddRange(windowTitles);
+                            foreach (IntPtr hWnd in GetAllWindowHandlesForProcess(browserProcess.Id))
                             {
-                                bool hasYouTube = HasYouTubeTab(processWindows[(uint)browserProcess.Id]);
-                                if (hasYouTube)
+                                foreach (var tabTitle in GetTabTitlesFromBrowserWindow(hWnd))
                                 {
-                                    string displayName = GetDisplayName(processName);
-                                    browserDetected = new DetectedProcess
-                                    {
-                                        ProcessId = browserProcess.Id,
-                                        ProcessName = processName,
-                                        DisplayName = displayName,
-                                        ProcessType = "Browser",
-                                        HasYouTubeTab = true,
-                                        WindowTitle = GetYouTubeWindowTitle(processWindows[(uint)browserProcess.Id])
-                                    };
-                                    break;
+                                    if (!string.IsNullOrWhiteSpace(tabTitle) && !allTitles.Contains(tabTitle))
+                                        allTitles.Add(tabTitle);
                                 }
+                            }
+                            if (allTitles.Count > 0 && HasYouTubeTab(allTitles))
+                            {
+                                string displayName = GetDisplayName(processName);
+                                browserDetected = new DetectedProcess
+                                {
+                                    ProcessId = browserProcess.Id,
+                                    ProcessName = processName,
+                                    DisplayName = displayName,
+                                    ProcessType = "Browser",
+                                    HasYouTubeTab = true,
+                                    WindowTitle = GetYouTubeWindowTitle(allTitles)
+                                };
+                                break;
                             }
                         }
 
@@ -370,26 +379,17 @@ namespace x_phy_wpf_ui.Services
                 .Select(g => g.First())
                 .ToList();
 
-            // Group browsers together - only show one browser if multiple browsers are detected
+            // Show all browsers that have YouTube (e.g. both Chrome and Edge when both have YouTube)
             var browsers = uniqueByDisplayName.Where(p => p.ProcessType == "Browser").ToList();
             var nonBrowsers = uniqueByDisplayName.Where(p => p.ProcessType != "Browser").ToList();
-            
-            // If we have browsers, only take the first one
-            var selectedBrowsers = browsers.Any() ? browsers.Take(1).ToList() : new List<DetectedProcess>();
-            
-            // Combine non-browsers with one browser
+            var selectedBrowsers = browsers;
+
+            // Combine non-browsers with all detected browsers (call apps, media players, streaming, browsers with YouTube)
             var combined = nonBrowsers.Concat(selectedBrowsers).ToList();
-            
-            // Sort by priority: VideoCalling > MediaPlayer > Streaming > Browser, then take top 3 only
-            int Priority(DetectedProcess p)
-            {
-                return p.ProcessType == "VideoCalling" ? 4
-                    : p.ProcessType == "MediaPlayer" ? 3
-                    : p.ProcessType == "Streaming" ? 2
-                    : 1; // Browser
-            }
+
+            // Choose only 3 processes: those with highest memory usage (working set)
             var sorted = combined
-                .OrderByDescending(Priority)
+                .OrderByDescending(p => GetProcessWorkingSetBytes(p.ProcessId))
                 .Take(3)
                 .ToList();
 
@@ -512,6 +512,8 @@ namespace x_phy_wpf_ui.Services
             return false;
         }
 
+        /// <summary>True if YouTube appears in any of the given titles. For browsers we pass window titles plus all tab titles
+        /// from UI Automation (active and inactive tabs), so YouTube is detected when present in any tab.</summary>
         private bool HasYouTubeTab(List<string> windowTitles)
         {
             foreach (var title in windowTitles)
@@ -536,6 +538,67 @@ namespace x_phy_wpf_ui.Services
                 }
             }
             return windowTitles.Count > 0 ? windowTitles[0] : string.Empty;
+        }
+
+        /// <summary>Gets the working set (physical memory) of the process in bytes. Returns 0 if process is not found or inaccessible.</summary>
+        private static long GetProcessWorkingSetBytes(int processId)
+        {
+            try
+            {
+                using (var proc = Process.GetProcessById(processId))
+                    return proc.WorkingSet64;
+            }
+            catch
+            {
+                return 0;
+            }
+        }
+
+        /// <summary>
+        /// Gets all top-level window handles for a process (visible or minimized, with a title). Used to read tab titles via UI Automation.
+        /// </summary>
+        private static List<IntPtr> GetAllWindowHandlesForProcess(int processId)
+        {
+            var list = new List<IntPtr>();
+            EnumWindows((hWnd, lParam) =>
+            {
+                GetWindowThreadProcessId(hWnd, out uint pid);
+                if ((int)pid == processId && IsWindow(hWnd) && (IsWindowVisible(hWnd) || IsIconic(hWnd)))
+                {
+                    if (GetWindowTextLength(hWnd) > 0)
+                        list.Add(hWnd);
+                }
+                return true;
+            }, IntPtr.Zero);
+            return list;
+        }
+
+        /// <summary>
+        /// Gets titles of all tabs in a browser window via UI Automation (active and inactive). Returns empty list if UIA fails (e.g. minimized).
+        /// </summary>
+        private static List<string> GetTabTitlesFromBrowserWindow(IntPtr hWnd)
+        {
+            var titles = new List<string>();
+            try
+            {
+                var root = AutomationElement.FromHandle(hWnd);
+                if (root == null) return titles;
+                var cond = new PropertyCondition(AutomationElement.ControlTypeProperty, ControlType.TabItem);
+                var tabItems = root.FindAll(TreeScope.Descendants, cond);
+                if (tabItems == null) return titles;
+                for (int i = 0; i < tabItems.Count; i++)
+                {
+                    try
+                    {
+                        var name = tabItems[i].Current.Name;
+                        if (!string.IsNullOrWhiteSpace(name))
+                            titles.Add(name);
+                    }
+                    catch { /* skip inaccessible tab */ }
+                }
+            }
+            catch { /* UIA can fail for minimized or protected windows */ }
+            return titles;
         }
 
         /// <summary>

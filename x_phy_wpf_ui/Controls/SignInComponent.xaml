@@ -60,7 +60,8 @@
                                  Style="{StaticResource TextBox.Inner}"
                                  GotFocus="UsernameTextBox_GotFocus"
                                  TextChanged="UsernameTextBox_TextChanged"
-                                 LostFocus="UsernameTextBox_LostFocus"/>
+                                 LostFocus="UsernameTextBox_LostFocus"
+                                 KeyDown="SignInForm_KeyDown"/>
                         <TextBlock x:Name="UsernamePlaceholder"
                                    Text="Enter your email address"
                                    Style="{StaticResource TextBlock.Placeholder}"/>
@@ -101,12 +102,14 @@
                                          Style="{StaticResource PasswordBox.Inner}"
                                          GotFocus="PasswordBox_GotFocus"
                                          PasswordChanged="PasswordBox_PasswordChanged"
-                                         LostFocus="PasswordBox_LostFocus"/>
+                                         LostFocus="PasswordBox_LostFocus"
+                                         KeyDown="SignInForm_KeyDown"/>
                             <TextBox x:Name="PasswordRevealTextBox"
                                      Style="{StaticResource TextBox.InnerWithIcon}"
                                      Visibility="Collapsed"
                                      GotFocus="PasswordRevealTextBox_GotFocus"
-                                     TextChanged="PasswordRevealTextBox_TextChanged"/>
+                                     TextChanged="PasswordRevealTextBox_TextChanged"
+                                     KeyDown="SignInForm_KeyDown"/>
                             <TextBlock x:Name="PasswordPlaceholder"
                                        Text="Enter your password"
                                        Foreground="{DynamicResource Brush.TextSecondary}"

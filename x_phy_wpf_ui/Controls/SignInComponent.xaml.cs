@@ -3,6 +3,7 @@ using System.Text.RegularExpressions;
 using System.Threading.Tasks;
 using System.Windows;
 using System.Windows.Controls;
+using System.Windows.Input;
 using System.Windows.Media;
 using x_phy_wpf_ui.Models;
 using x_phy_wpf_ui.Services;
@@ -251,6 +252,15 @@ namespace x_phy_wpf_ui.Controls
         private void UpdateSignInButtonState()
         {
             SignInButton.IsEnabled = _isEmailValid && _isPasswordValid;
+        }
+
+        private void SignInForm_KeyDown(object sender, KeyEventArgs e)
+        {
+            if (e.Key == Key.Enter && SignInButton.IsEnabled)
+            {
+                e.Handled = true;
+                SignIn_Click(sender, new RoutedEventArgs());
+            }
         }
 
         private async void SignIn_Click(object sender, RoutedEventArgs e)

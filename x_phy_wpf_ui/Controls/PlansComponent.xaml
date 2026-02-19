@@ -158,7 +158,7 @@
             <TextBlock Text="Choose Your Plan"
                       FontSize="28"
                       FontWeight="Bold"
-                      Foreground="{StaticResource TextColor}"
+                      Foreground="{DynamicResource Brush.TextPrimary}"
                       HorizontalAlignment="Left"/>
         </Grid>
         

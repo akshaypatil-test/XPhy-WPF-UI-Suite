@@ -1837,6 +1837,7 @@ videoLiveFakeProportionThreshold = 0.7
                     tokens.AccessToken);
                 _verifyChangePasswordOtpDialog.Clear();
                 _verifyChangePasswordOtpDialog.ShowError(""); // clear any previous error
+                MessageBox.Show("A new code has been sent to your email.", "Code resent", MessageBoxButton.OK, MessageBoxImage.Information);
             }
             catch (Exception ex)
             {

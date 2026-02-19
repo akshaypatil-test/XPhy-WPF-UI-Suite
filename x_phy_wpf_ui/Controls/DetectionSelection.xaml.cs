@@ -174,15 +174,16 @@ namespace x_phy_wpf_ui.Controls
                 Foreground = new SolidColorBrush(Color.FromRgb(226, 21, 107)) // Pink color
             };
             
-            // Process name
+            // Process name (inherits Foreground from button: dark when unselected, white when selected)
             var processNameText = new TextBlock
             {
                 Text = process.DisplayName,
                 FontSize = 13,
                 FontWeight = FontWeights.Medium,
-                Foreground = new SolidColorBrush(Colors.White),
                 VerticalAlignment = VerticalAlignment.Center
             };
+            processNameText.SetBinding(TextBlock.ForegroundProperty,
+                new System.Windows.Data.Binding("Foreground") { RelativeSource = new System.Windows.Data.RelativeSource(System.Windows.Data.RelativeSourceMode.FindAncestor, typeof(Button), 1) });
             
             panel.Children.Add(iconText);
             panel.Children.Add(processNameText);
@@ -297,14 +298,16 @@ namespace x_phy_wpf_ui.Controls
                 Foreground = new SolidColorBrush(Color.FromRgb(226, 21, 107)) // Pink color
             };
             
+            // Text inherits Foreground from button: dark when unselected, white when selected
             var textBlock = new TextBlock
             {
                 Text = text,
                 FontSize = 13,
                 FontWeight = FontWeights.Medium,
-                Foreground = new SolidColorBrush(Colors.White),
                 VerticalAlignment = VerticalAlignment.Center
             };
+            textBlock.SetBinding(TextBlock.ForegroundProperty,
+                new System.Windows.Data.Binding("Foreground") { RelativeSource = new System.Windows.Data.RelativeSource(System.Windows.Data.RelativeSourceMode.FindAncestor, typeof(Button), 1) });
             
             panel.Children.Add(iconText);
             panel.Children.Add(textBlock);

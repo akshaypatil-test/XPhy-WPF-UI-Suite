@@ -104,7 +104,7 @@
             </Style.Triggers>
         </Style>
         
-        <!-- Process Button Style (unselected: dark grey like reference) -->
+        <!-- Process Button Style (unselected: theme border, no black in light theme) -->
         <Style x:Key="ProcessButtonStyle" TargetType="Button">
             <Setter Property="Background" Value="{DynamicResource Brush.Surface}"/>
             <Setter Property="Foreground" Value="{DynamicResource Brush.TextPrimary}"/>
@@ -137,7 +137,7 @@
         <!-- Selected Process Button: gradient fill + gradient border (reference) -->
         <Style x:Key="SelectedProcessButtonStyle" TargetType="Button">
             <Setter Property="Background" Value="{StaticResource SelectedGradientBrush}"/>
-            <Setter Property="Foreground" Value="{DynamicResource Brush.TextPrimary}"/>
+            <Setter Property="Foreground" Value="{DynamicResource Brush.White}"/>
             <Setter Property="FontSize" Value="12"/>
             <Setter Property="FontWeight" Value="Medium"/>
             <Setter Property="Padding" Value="10,8"/>
@@ -166,7 +166,7 @@
         <!-- Selected Source Button: gradient fill + gradient border (reference) -->
         <Style x:Key="SelectedSourceButtonStyle" TargetType="Button">
             <Setter Property="Background" Value="{StaticResource SelectedGradientBrush}"/>
-            <Setter Property="Foreground" Value="{DynamicResource Brush.TextPrimary}"/>
+            <Setter Property="Foreground" Value="{DynamicResource Brush.White}"/>
             <Setter Property="FontSize" Value="12"/>
             <Setter Property="FontWeight" Value="Medium"/>
             <Setter Property="Padding" Value="10,8"/>

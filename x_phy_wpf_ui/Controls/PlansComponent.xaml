@@ -249,12 +249,14 @@
                                     <ItemsControl ItemsSource="{Binding Features}">
                                         <ItemsControl.ItemTemplate>
                                             <DataTemplate>
-                                                <StackPanel Margin="0,0,0,8">
+                                                <StackPanel Margin="0,0,0,8" HorizontalAlignment="Center">
                                                     <Border Height="1" BorderBrush="{StaticResource SecondaryTextColor}" BorderThickness="0,0,0,1" Margin="0,0,0,6" Opacity="0.7"/>
                                                     <TextBlock Text="{Binding}"
                                                               Foreground="{StaticResource TextColor}"
                                                               FontSize="13"
-                                                              TextWrapping="Wrap"/>
+                                                              TextWrapping="Wrap"
+                                                              TextAlignment="Center"
+                                                              HorizontalAlignment="Center"/>
                                                 </StackPanel>
                                             </DataTemplate>
                                         </ItemsControl.ItemTemplate>

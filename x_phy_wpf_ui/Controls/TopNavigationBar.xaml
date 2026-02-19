@@ -13,6 +13,8 @@
         <SolidColorBrush x:Key="TextSecondaryBrush" Color="{DynamicResource Color.TextSecondary}"/>
         <SolidColorBrush x:Key="NavBarTextBrush" Color="{DynamicResource Color.TextPrimary}"/>
         <SolidColorBrush x:Key="NavBarHoverBackground" Color="{DynamicResource Color.SurfaceHover}"/>
+        <!-- Same cyan as statistics cards border (gradient end #1AB4CC) -->
+        <SolidColorBrush x:Key="NavBarBorderCyan" Color="#1AB4CC"/>
         <Style x:Key="TopNavButtonStyle" TargetType="Button">
             <Setter Property="Background" Value="Transparent"/>
             <Setter Property="Foreground" Value="{StaticResource NavBarTextBrush}"/>
@@ -69,10 +71,10 @@
                                   Direction="0"/>
             </Border.Effect>
         </Border>
-        <!-- Content layer: no effect, so nav buttons stay sharp -->
+        <!-- Content layer: no effect, so nav buttons stay sharp; cyan border -->
         <Border Background="{StaticResource NavBarBackground}" 
                 CornerRadius="20"
-                BorderBrush="{StaticResource NavBarBorder}"
+                BorderBrush="{StaticResource NavBarBorderCyan}"
                 BorderThickness="1"
                 Padding="8,6,8,6">
             <Grid>

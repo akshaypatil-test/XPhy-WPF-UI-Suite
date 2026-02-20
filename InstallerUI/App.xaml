@@ -75,5 +75,29 @@
                 </Trigger>
             </Style.Triggers>
         </Style>
+        <!-- Checkbox: blue fill + white check when checked (e.g. Finish screen "Launch now") -->
+        <Style x:Key="PrimaryCheckBoxStyle" TargetType="CheckBox">
+            <Setter Property="FontSize" Value="13"/>
+            <Setter Property="Foreground" Value="{StaticResource TextPrimary}"/>
+            <Setter Property="Template">
+                <Setter.Value>
+                    <ControlTemplate TargetType="CheckBox">
+                        <StackPanel Orientation="Horizontal" VerticalAlignment="Center">
+                            <Border x:Name="CheckBorder" Width="18" Height="18" CornerRadius="2" BorderThickness="1" BorderBrush="#CCCCCC" Background="Transparent" VerticalAlignment="Center" Margin="0,0,8,0">
+                                <TextBlock x:Name="CheckMark" Text="&#x2713;" FontSize="14" FontWeight="Bold" Foreground="White" HorizontalAlignment="Center" VerticalAlignment="Center" Visibility="Collapsed"/>
+                            </Border>
+                            <ContentPresenter Content="{TemplateBinding Content}" ContentTemplate="{TemplateBinding ContentTemplate}" VerticalAlignment="Center"/>
+                        </StackPanel>
+                        <ControlTemplate.Triggers>
+                            <Trigger Property="IsChecked" Value="True">
+                                <Setter TargetName="CheckBorder" Property="Background" Value="{StaticResource PrimaryBlue}"/>
+                                <Setter TargetName="CheckBorder" Property="BorderBrush" Value="{StaticResource PrimaryBlue}"/>
+                                <Setter TargetName="CheckMark" Property="Visibility" Value="Visible"/>
+                            </Trigger>
+                        </ControlTemplate.Triggers>
+                    </ControlTemplate>
+                </Setter.Value>
+            </Setter>
+        </Style>
     </Application.Resources>
 </Application>

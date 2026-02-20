@@ -67,6 +67,8 @@
         <SolidColorBrush x:Key="FieldBlockBg" Color="{DynamicResource Color.Surface}"/>
         <SolidColorBrush x:Key="MetadataRowBg" Color="{DynamicResource Color.Card}"/>
         <SolidColorBrush x:Key="MetadataLabelBrush" Color="{DynamicResource Color.TextPrimary}"/>
+        <!-- Hover: dark desaturated teal/greenish-blue (subtle highlight) -->
+        <SolidColorBrush x:Key="ResultsRowHoverBg" Color="#223A3D"/>
     </UserControl.Resources>
     <Grid>
         <Grid.RowDefinitions>
@@ -134,8 +136,8 @@
                               CanUserSortColumns="True"
                               HeadersVisibility="Column"
                               GridLinesVisibility="None"
-                              RowBackground="Transparent"
-                              AlternatingRowBackground="{DynamicResource Brush.SurfaceHover}"
+                              RowBackground="{DynamicResource Brush.Card}"
+                              AlternatingRowBackground="{DynamicResource Brush.Card}"
                               BorderThickness="0"
                               Background="Transparent"
                               Foreground="{StaticResource TextPrimaryBrush}"
@@ -144,7 +146,8 @@
                               SelectionMode="Single"
                               SelectionUnit="FullRow"
                               UseLayoutRounding="True"
-                              HorizontalAlignment="Stretch">
+                              HorizontalAlignment="Stretch"
+                              PreviewMouseDown="ResultsDataGrid_PreviewMouseDown">
                         <DataGrid.ColumnHeaderStyle>
                             <Style TargetType="DataGridColumnHeader">
                                 <Setter Property="Background" Value="{DynamicResource Brush.Surface}"/>
@@ -173,7 +176,7 @@
                         </DataGrid.ColumnHeaderStyle>
                         <DataGrid.RowStyle>
                             <Style TargetType="DataGridRow">
-                                <Setter Property="Background" Value="Transparent"/>
+                                <Setter Property="Background" Value="{DynamicResource Brush.Card}"/>
                                 <Setter Property="MinHeight" Value="44"/>
                                 <Setter Property="Template">
                                     <Setter.Value>
@@ -198,6 +201,12 @@
                                     </Setter.Value>
                                 </Setter>
                                 <Style.Triggers>
+                                    <Trigger Property="IsMouseOver" Value="True">
+                                        <Setter Property="Background" Value="{StaticResource ResultsRowHoverBg}"/>
+                                    </Trigger>
+                                    <Trigger Property="IsSelected" Value="True">
+                                        <Setter Property="Background" Value="{DynamicResource Brush.Card}"/>
+                                    </Trigger>
                                     <DataTrigger Binding="{Binding}" Value="{x:Null}">
                                         <Setter Property="Visibility" Value="Collapsed"/>
                                     </DataTrigger>
@@ -223,13 +232,7 @@
                                         </ControlTemplate>
                                     </Setter.Value>
                                 </Setter>
-                                <Style.Triggers>
-                                    <Trigger Property="IsSelected" Value="True">
-                                        <Setter Property="Background" Value="{DynamicResource Brush.SurfaceHover}"/>
-                                        <Setter Property="Foreground" Value="{StaticResource TextPrimaryBrush}"/>
-                                    </Trigger>
-                                </Style.Triggers>
-                            </Style>
+                                </Style>
                         </DataGrid.CellStyle>
                         <DataGrid.Columns>
                             <DataGridTextColumn Header="Timestamp" Binding="{Binding Timestamp, StringFormat='HH:mm MMM d, yyyy'}" Width="1.2*" MinWidth="120">

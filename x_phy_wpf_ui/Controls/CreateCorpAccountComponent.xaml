@@ -397,7 +397,7 @@
             </Grid.ColumnDefinitions>
             <Button x:Name="BackButton" Grid.Column="0" Content="Back" Style="{StaticResource BackButtonStyle}" Click="Back_Click" HorizontalAlignment="Stretch" Height="40" Padding="16,0" Visibility="Collapsed"/>
             <Grid Grid.Column="2">
-                <Button x:Name="NextButton" Content="Next" Style="{StaticResource LaunchButtonStyle}" Click="Next_Click" HorizontalAlignment="Stretch" Height="40" Padding="16,0" IsEnabled="True"/>
+                <Button x:Name="NextButton" Content="Next" Style="{StaticResource LaunchButtonStyle}" Click="Next_Click" HorizontalAlignment="Stretch" Height="40" Padding="16,0" IsEnabled="False"/>
                 <Button x:Name="CreateButton" Content="Create Account" Style="{StaticResource LaunchButtonStyle}" Click="Create_Click" IsEnabled="False" HorizontalAlignment="Stretch" Height="40" Padding="16,0" Visibility="Collapsed"/>
             </Grid>
         </Grid>

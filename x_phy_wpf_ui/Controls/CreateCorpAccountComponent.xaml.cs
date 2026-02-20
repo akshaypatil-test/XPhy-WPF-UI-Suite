@@ -261,15 +261,15 @@ namespace x_phy_wpf_ui.Controls
         {
             if (_currentStep == 1)
             {
-                // Step 1: Next is always enabled so it's clickable; validation runs when user clicks Next
+                bool step1Valid = _isFirstNameValid && _isLastNameValid && _isEmailValid && _isPasswordValid && _isConfirmPasswordValid;
                 if (NextButton != null)
-                    NextButton.IsEnabled = true;
+                    NextButton.IsEnabled = step1Valid;
             }
             else if (_currentStep == 2)
             {
-                // Step 2: Next is always enabled; validation runs when user clicks Next
+                bool step2Valid = _isOrganizationNameValid && _isContactPersonNameValid && _isCountryCodeValid && _isContactNumberValid && _isOrderNumberValid;
                 if (NextButton != null)
-                    NextButton.IsEnabled = true;
+                    NextButton.IsEnabled = step2Valid;
             }
             else
             {

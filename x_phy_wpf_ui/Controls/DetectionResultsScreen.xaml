@@ -299,7 +299,15 @@
                                                 FontSize="12"
                                                 Padding="0"
                                                 HorizontalAlignment="Center"
+                                                FocusVisualStyle="{x:Null}"
                                                 Click="ViewResult_Click">
+                                            <Button.Template>
+                                                <ControlTemplate TargetType="Button">
+                                                    <Border Background="{TemplateBinding Background}" BorderBrush="{TemplateBinding BorderBrush}" BorderThickness="0" Padding="{TemplateBinding Padding}">
+                                                        <ContentPresenter HorizontalAlignment="{TemplateBinding HorizontalContentAlignment}" VerticalAlignment="{TemplateBinding VerticalContentAlignment}"/>
+                                                    </Border>
+                                                </ControlTemplate>
+                                            </Button.Template>
                                             <TextBlock Text="View Result"
                                                        Foreground="{StaticResource TextPrimaryBrush}"
                                                        TextDecorations="Underline"/>

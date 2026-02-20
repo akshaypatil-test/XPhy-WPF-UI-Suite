@@ -350,7 +350,7 @@
                         <Border x:Name="ActivationDateFieldBorder" Background="{DynamicResource Brush.InputBackground}" BorderBrush="{DynamicResource Brush.Border}" BorderThickness="1" CornerRadius="6" MinHeight="40" Margin="0,0,0,4">
                             <DatePicker x:Name="ActivationDatePicker"
                                         Background="Transparent"
-                                        Foreground="White"
+                                        Foreground="{DynamicResource Brush.TextPrimary}"
                                         BorderThickness="0"
                                         Padding="12,8"
                                         FontSize="14"
@@ -358,11 +358,11 @@
                                         VerticalAlignment="Center">
                                 <DatePicker.Resources>
                                     <Style TargetType="{x:Type primitives:DatePickerTextBox}">
-                                        <Setter Property="Background" Value="#2D2D2D"/>
-                                        <Setter Property="Foreground" Value="White"/>
-                                        <Setter Property="CaretBrush" Value="White"/>
-                                        <Setter Property="SelectionBrush" Value="#404060"/>
-                                        <Setter Property="SelectionOpacity" Value="1"/>
+                                        <Setter Property="Background" Value="{DynamicResource Brush.InputBackground}"/>
+                                        <Setter Property="Foreground" Value="{DynamicResource Brush.TextPrimary}"/>
+                                        <Setter Property="CaretBrush" Value="{DynamicResource Brush.TextPrimary}"/>
+                                        <Setter Property="BorderThickness" Value="0"/>
+                                        <Setter Property="Padding" Value="0"/>
                                     </Style>
                                 </DatePicker.Resources>
                             </DatePicker>

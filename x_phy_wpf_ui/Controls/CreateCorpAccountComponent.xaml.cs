@@ -129,7 +129,25 @@ namespace x_phy_wpf_ui.Controls
         private void CountryCodeTextBox_TextChanged(object sender, TextChangedEventArgs e) { UpdatePlaceholders(); ValidateCountryCode(); UpdateCreateButtonState(); }
         private void ContactNumberTextBox_TextChanged(object sender, TextChangedEventArgs e) { UpdatePlaceholders(); ValidateContactNumber(); UpdateCreateButtonState(); }
         private void OrderNumberTextBox_TextChanged(object sender, TextChangedEventArgs e) { UpdatePlaceholders(); ValidateOrderNumber(); UpdateCreateButtonState(); }
-        private void ActivationDatePicker_SelectedDateChanged(object sender, SelectionChangedEventArgs e) { ValidateActivationDate(); UpdateCreateButtonState(); }
+        private void ActivationDatePicker_SelectedDateChanged(object sender, SelectionChangedEventArgs e)
+        {
+            ValidateActivationDate();
+            UpdateCreateButtonState();
+            // Refresh the date text display so it doesn't appear black until clicking elsewhere
+            Dispatcher.BeginInvoke(new Action(RefreshActivationDateDisplay), System.Windows.Threading.DispatcherPriority.Loaded);
+        }
+
+        private void RefreshActivationDateDisplay()
+        {
+            var tb = FindVisualChild<TextBox>(ActivationDatePicker);
+            if (tb != null)
+            {
+                tb.SetResourceReference(Control.BackgroundProperty, "Brush.InputBackground");
+                tb.SetResourceReference(Control.ForegroundProperty, "Brush.TextPrimary");
+                tb.SetResourceReference(TextBox.CaretBrushProperty, "Brush.TextPrimary");
+                tb.InvalidateVisual();
+            }
+        }
 
         private void PasswordEyeButton_Click(object sender, RoutedEventArgs e)
         {

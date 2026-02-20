@@ -179,7 +179,8 @@ namespace x_phy_wpf_ui.Controls
 
         private void PasswordInfoButton_Click(object sender, RoutedEventArgs e)
         {
-            MessageBox.Show("Password must be at least 8 characters and contain uppercase, lowercase, a number, and a special character (@$!%*?&).", "Password requirements", MessageBoxButton.OK, MessageBoxImage.Information);
+            if (PasswordRequirementsPopup != null)
+                PasswordRequirementsPopup.IsOpen = !PasswordRequirementsPopup.IsOpen;
         }
 
         private void ValidateFirstName() { var t = FirstNameTextBox?.Text?.Trim() ?? ""; _isFirstNameValid = t.Length >= 1; FirstNameErrorText.Visibility = _isFirstNameValid ? Visibility.Collapsed : Visibility.Visible; FirstNameErrorText.Text = _isFirstNameValid ? "" : "Required."; }

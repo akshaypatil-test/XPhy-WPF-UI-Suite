@@ -211,18 +211,32 @@
                         </Border>
                         <TextBlock x:Name="EmailErrorText" Text="" FontSize="10" Foreground="{DynamicResource Brush.Error}" Margin="2,0,0,10" Visibility="Collapsed" TextWrapping="Wrap"/>
 
-                        <StackPanel Orientation="Horizontal" Margin="0,0,0,6">
-                            <TextBlock Text="Password" Style="{StaticResource FieldLabelStyle}" VerticalAlignment="Center" Margin="0,0,6,0"/>
-                            <Button x:Name="PasswordInfoButton" Width="18" Height="18" Padding="0" Margin="0" VerticalAlignment="Center" Background="Transparent" BorderThickness="0" Cursor="Hand" ToolTip="Min 8 characters, uppercase, lowercase, number, and special character (@$!%*?&amp;)" Click="PasswordInfoButton_Click">
-                                <Button.Template>
-                                    <ControlTemplate TargetType="Button">
-                                        <Border Background="{TemplateBinding Background}" CornerRadius="9" BorderThickness="0" Width="18" Height="18">
-                                            <TextBlock Text="i" FontSize="11" FontWeight="SemiBold" Foreground="{DynamicResource Brush.TextSecondary}" HorizontalAlignment="Center" VerticalAlignment="Center"/>
-                                        </Border>
-                                    </ControlTemplate>
-                                </Button.Template>
-                            </Button>
-                        </StackPanel>
+                        <Grid Margin="0,0,0,6">
+                            <StackPanel Orientation="Horizontal" VerticalAlignment="Center">
+                                <TextBlock Text="Password" Style="{StaticResource FieldLabelStyle}" VerticalAlignment="Center" Margin="0,0,6,0"/>
+                                <Button x:Name="PasswordInfoButton" Width="18" Height="18" Padding="0" Margin="0" VerticalAlignment="Center" Background="Transparent" BorderThickness="0" Cursor="Hand" ToolTip="Password requirements" Click="PasswordInfoButton_Click">
+                                    <Button.Template>
+                                        <ControlTemplate TargetType="Button">
+                                            <Border Background="{TemplateBinding Background}" BorderBrush="{DynamicResource Brush.TextSecondary}" BorderThickness="1" CornerRadius="9" Width="18" Height="18" ClipToBounds="True">
+                                                <TextBlock Text="i" FontSize="11" FontWeight="SemiBold" Foreground="{DynamicResource Brush.TextSecondary}" HorizontalAlignment="Center" VerticalAlignment="Center"/>
+                                            </Border>
+                                        </ControlTemplate>
+                                    </Button.Template>
+                                </Button>
+                            </StackPanel>
+                            <Popup x:Name="PasswordRequirementsPopup" PlacementTarget="{Binding ElementName=PasswordInfoButton}" Placement="Right" StaysOpen="False" AllowsTransparency="True" PopupAnimation="Fade">
+                                <Border Background="{DynamicResource Brush.Card}" BorderBrush="{DynamicResource Brush.Border}" BorderThickness="1" CornerRadius="8" Padding="14,12" Margin="8,0,0,0" MinWidth="220">
+                                    <StackPanel>
+                                        <TextBlock Text="Password requirements" FontSize="12" FontWeight="SemiBold" Foreground="{DynamicResource Brush.TextPrimary}" Margin="0,0,0,10"/>
+                                        <TextBlock Text="• Minimum 8 characters" FontSize="11" Foreground="#4ADE80" Margin="0,0,0,4"/>
+                                        <TextBlock Text="• One uppercase letter" FontSize="11" Foreground="#4ADE80" Margin="0,0,0,4"/>
+                                        <TextBlock Text="• One lowercase letter" FontSize="11" Foreground="#4ADE80" Margin="0,0,0,4"/>
+                                        <TextBlock Text="• One number" FontSize="11" Foreground="#4ADE80" Margin="0,0,0,4"/>
+                                        <TextBlock Text="• One special character (@$!%*?&amp;)" FontSize="11" Foreground="#4ADE80" Margin="0,0,0,0"/>
+                                    </StackPanel>
+                                </Border>
+                            </Popup>
+                        </Grid>
                         <Border x:Name="PasswordFieldBorder" Background="{DynamicResource Brush.InputBackground}" BorderBrush="{DynamicResource Brush.Border}" BorderThickness="1" CornerRadius="6" MinHeight="40" Margin="0,0,0,4">
                             <Grid>
                                 <Grid.ColumnDefinitions>

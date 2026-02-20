@@ -6,23 +6,11 @@
              mc:Ignorable="d"
              d:DesignHeight="700" d:DesignWidth="1000">
     <UserControl.Resources>
-        <SolidColorBrush x:Key="PrimaryPink" Color="#E2156B"/>
-        <SolidColorBrush x:Key="PrimaryPinkHover" Color="#F0458A"/>
-        <SolidColorBrush x:Key="DarkBackground" Color="#0F0F0F"/>
-        <SolidColorBrush x:Key="TextPrimary" Color="#FFFFFF"/>
-        <SolidColorBrush x:Key="TextSecondary" Color="#B0B0B0"/>
-        <SolidColorBrush x:Key="InputBackground" Color="#1A1A1A"/>
-        <SolidColorBrush x:Key="InputBorder" Color="#2A2A2A"/>
-        <SolidColorBrush x:Key="InputBorderFocused" Color="#E2156B"/>
-        <SolidColorBrush x:Key="ErrorText" Color="#FF6B6B"/>
-        <SolidColorBrush x:Key="BackButtonBorder" Color="#1AB4CC"/>
-        <SolidColorBrush x:Key="DarkTealBackground" Color="#0D2830"/>
-        <SolidColorBrush x:Key="DarkTealBackgroundHover" Color="#152E33"/>
         <Style x:Key="OtpBoxStyle" TargetType="TextBox">
-            <Setter Property="Background" Value="{StaticResource InputBackground}"/>
-            <Setter Property="Foreground" Value="{StaticResource TextPrimary}"/>
-            <Setter Property="CaretBrush" Value="White"/>
-            <Setter Property="BorderBrush" Value="{StaticResource InputBorder}"/>
+            <Setter Property="Background" Value="{DynamicResource Brush.InputBackground}"/>
+            <Setter Property="Foreground" Value="{DynamicResource Brush.TextPrimary}"/>
+            <Setter Property="CaretBrush" Value="{DynamicResource Brush.White}"/>
+            <Setter Property="BorderBrush" Value="{DynamicResource Brush.Border}"/>
             <Setter Property="BorderThickness" Value="1"/>
             <Setter Property="FontSize" Value="20"/>
             <Setter Property="FontWeight" Value="SemiBold"/>
@@ -46,13 +34,13 @@
             </Setter>
             <Style.Triggers>
                 <Trigger Property="IsFocused" Value="True">
-                    <Setter Property="BorderBrush" Value="{StaticResource InputBorderFocused}"/>
+                    <Setter Property="BorderBrush" Value="{DynamicResource Brush.BorderFocused}"/>
                 </Trigger>
             </Style.Triggers>
         </Style>
         <Style x:Key="LaunchButtonStyle" TargetType="Button">
-            <Setter Property="Background" Value="{StaticResource PrimaryPink}"/>
-            <Setter Property="Foreground" Value="White"/>
+            <Setter Property="Background" Value="{DynamicResource Brush.Primary}"/>
+            <Setter Property="Foreground" Value="{DynamicResource Brush.White}"/>
             <Setter Property="FontSize" Value="16"/>
             <Setter Property="FontWeight" Value="SemiBold"/>
             <Setter Property="Padding" Value="24,14"/>
@@ -69,14 +57,14 @@
             </Setter>
             <Style.Triggers>
                 <Trigger Property="IsMouseOver" Value="True">
-                    <Setter Property="Background" Value="{StaticResource PrimaryPinkHover}"/>
+                    <Setter Property="Background" Value="{DynamicResource Brush.PrimaryHover}"/>
                 </Trigger>
             </Style.Triggers>
         </Style>
         <Style x:Key="BackButtonStyle" TargetType="Button">
-            <Setter Property="Background" Value="{StaticResource DarkTealBackground}"/>
-            <Setter Property="Foreground" Value="{StaticResource TextPrimary}"/>
-            <Setter Property="BorderBrush" Value="{StaticResource BackButtonBorder}"/>
+            <Setter Property="Background" Value="{DynamicResource Brush.Card}"/>
+            <Setter Property="Foreground" Value="{DynamicResource Brush.TextPrimary}"/>
+            <Setter Property="BorderBrush" Value="{DynamicResource Brush.Secondary}"/>
             <Setter Property="BorderThickness" Value="1"/>
             <Setter Property="FontSize" Value="16"/>
             <Setter Property="FontWeight" Value="SemiBold"/>
@@ -94,7 +82,7 @@
             </Setter>
             <Style.Triggers>
                 <Trigger Property="IsMouseOver" Value="True">
-                    <Setter Property="Background" Value="{StaticResource DarkTealBackgroundHover}"/>
+                    <Setter Property="Background" Value="{DynamicResource Brush.SurfaceHover}"/>
                 </Trigger>
             </Style.Triggers>
         </Style>
@@ -102,9 +90,9 @@
     <Grid Background="Transparent">
         <ScrollViewer VerticalScrollBarVisibility="Auto">
             <StackPanel VerticalAlignment="Center" HorizontalAlignment="Left" Width="400" Margin="50,40,50,50">
-                <TextBlock Text="Verify Your Email" FontSize="24" FontWeight="Bold" Foreground="{StaticResource TextPrimary}"
+                <TextBlock Text="Verify Your Email" FontSize="24" FontWeight="Bold" Foreground="{DynamicResource Brush.TextPrimary}"
                            TextAlignment="Center" Margin="0,0,0,8"/>
-                <TextBlock Text="Verification code" FontSize="14" Foreground="{StaticResource TextSecondary}"
+                <TextBlock Text="Verification code" FontSize="14" Foreground="{DynamicResource Brush.TextSecondary}"
                            TextAlignment="Center" Margin="0,0,0,16"/>
                 <StackPanel x:Name="OtpBoxesPanel" Orientation="Horizontal" HorizontalAlignment="Center" Margin="0,0,0,16">
                     <TextBox x:Name="Otp0" Style="{StaticResource OtpBoxStyle}" Margin="0,0,6,0"
@@ -120,9 +108,9 @@
                     <TextBox x:Name="Otp5" Style="{StaticResource OtpBoxStyle}"
                              TextChanged="Otp_TextChanged" PreviewKeyDown="Otp_PreviewKeyDown"/>
                 </StackPanel>
-                <TextBlock Text="Enter the code sent to your email" FontSize="12" Foreground="{StaticResource TextSecondary}"
+                <TextBlock Text="Enter the code sent to your email" FontSize="12" Foreground="{DynamicResource Brush.TextSecondary}"
                            TextAlignment="Center" Margin="0,0,0,16"/>
-                <TextBlock x:Name="ErrorText" Text="" FontSize="12" Foreground="{StaticResource ErrorText}"
+                <TextBlock x:Name="ErrorText" Text="" FontSize="12" Foreground="{DynamicResource Brush.Error}"
                            TextAlignment="Center" Margin="0,0,0,16" Visibility="Collapsed"/>
                 <Grid Margin="0,0,0,16">
                     <Grid.ColumnDefinitions>
@@ -135,8 +123,8 @@
                     <Button Grid.Column="2" Content="Back" Style="{StaticResource BackButtonStyle}" Click="Back_Click"/>
                 </Grid>
                 <StackPanel Orientation="Horizontal" HorizontalAlignment="Center" Margin="0,16,0,0">
-                    <TextBlock Text="Didn't receive the code? " FontSize="14" Foreground="{StaticResource TextSecondary}"/>
-                    <Button Content="Resend code" Background="Transparent" Foreground="{StaticResource PrimaryPink}"
+                    <TextBlock Text="Didn't receive the code? " FontSize="14" Foreground="{DynamicResource Brush.TextSecondary}"/>
+                    <Button Content="Resend code" Background="Transparent" Foreground="{DynamicResource Brush.Primary}"
                             FontSize="14" BorderThickness="0" Cursor="Hand" Click="ResendCode_Click" Padding="4,0"/>
                 </StackPanel>
             </StackPanel>

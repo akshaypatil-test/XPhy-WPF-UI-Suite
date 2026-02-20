@@ -15,8 +15,18 @@
         <SolidColorBrush x:Key="OutcomePillBg" Color="{DynamicResource Color.Surface}"/>
         <SolidColorBrush x:Key="TealBrush" Color="{DynamicResource Color.Secondary}"/>
         <SolidColorBrush x:Key="PanelGlowBorder" Color="{DynamicResource Color.Secondary}"/>
+        <Style x:Key="BackButtonStyle" TargetType="Button">
+            <Setter Property="Background" Value="Transparent"/>
+            <Setter Property="Foreground" Value="{DynamicResource Brush.TextSecondary}"/>
+            <Setter Property="FontSize" Value="14"/>
+            <Setter Property="Padding" Value="12,8"/>
+            <Setter Property="BorderThickness" Value="0"/>
+            <Setter Property="Cursor" Value="Hand"/>
+            <Setter Property="HorizontalAlignment" Value="Left"/>
+        </Style>
     </UserControl.Resources>
     <StackPanel Margin="0,0,0,24">
+        <Button x:Name="BackButton" Content="← Back" Style="{StaticResource BackButtonStyle}" Click="BackToResults_Click" Margin="0,0,0,12"/>
         <TextBlock Text="Session Details" FontSize="24" FontWeight="Bold" Foreground="{StaticResource TextPrimaryBrush}" Margin="0,0,0,20"/>
         <Grid>
             <Grid.ColumnDefinitions>
@@ -194,6 +204,5 @@
                 </Grid>
             </Border>
         </Grid>
-        <Button x:Name="BackToResultsButton" Content="Back to Results" HorizontalAlignment="Center" Margin="0,24,0,0" Padding="32,12" FontSize="14" FontWeight="SemiBold" Foreground="{DynamicResource Brush.TextPrimary}" Background="{DynamicResource Brush.Surface}" BorderThickness="0" Cursor="Hand" Click="BackToResults_Click"/>
     </StackPanel>
 </UserControl>

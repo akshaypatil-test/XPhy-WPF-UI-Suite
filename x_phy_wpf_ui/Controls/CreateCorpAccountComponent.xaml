@@ -187,7 +187,7 @@
                         <TextBlock Text="First Name" Style="{StaticResource FieldLabelStyle}"/>
                         <Border x:Name="FirstNameFieldBorder" Background="{DynamicResource Brush.InputBackground}" BorderBrush="{DynamicResource Brush.Border}" BorderThickness="1" CornerRadius="6" MinHeight="40" Margin="0,0,0,4">
                             <Grid>
-                                <TextBox x:Name="FirstNameTextBox" Style="{StaticResource ModernTextBoxInnerStyleFullWidth}" TextChanged="FirstNameTextBox_TextChanged"/>
+                                <TextBox x:Name="FirstNameTextBox" Style="{StaticResource ModernTextBoxInnerStyleFullWidth}" TextChanged="FirstNameTextBox_TextChanged" LostFocus="FirstNameTextBox_LostFocus"/>
                                 <TextBlock x:Name="FirstNamePlaceholder" Text="Enter your first name" Foreground="{DynamicResource Brush.TextSecondary}" FontSize="13" Margin="12,8" VerticalAlignment="Center" IsHitTestVisible="False"/>
                             </Grid>
                         </Border>
@@ -196,7 +196,7 @@
                         <TextBlock Text="Last Name" Style="{StaticResource FieldLabelStyle}"/>
                         <Border x:Name="LastNameFieldBorder" Background="{DynamicResource Brush.InputBackground}" BorderBrush="{DynamicResource Brush.Border}" BorderThickness="1" CornerRadius="6" MinHeight="40" Margin="0,0,0,4">
                             <Grid>
-                                <TextBox x:Name="LastNameTextBox" Style="{StaticResource ModernTextBoxInnerStyleFullWidth}" TextChanged="LastNameTextBox_TextChanged"/>
+                                <TextBox x:Name="LastNameTextBox" Style="{StaticResource ModernTextBoxInnerStyleFullWidth}" TextChanged="LastNameTextBox_TextChanged" LostFocus="LastNameTextBox_LostFocus"/>
                                 <TextBlock x:Name="LastNamePlaceholder" Text="Enter your last name" Foreground="{DynamicResource Brush.TextSecondary}" FontSize="13" Margin="12,8" VerticalAlignment="Center" IsHitTestVisible="False"/>
                             </Grid>
                         </Border>
@@ -205,7 +205,7 @@
                         <TextBlock Text="Username" Style="{StaticResource FieldLabelStyle}"/>
                         <Border x:Name="EmailFieldBorder" Background="{DynamicResource Brush.InputBackground}" BorderBrush="{DynamicResource Brush.Border}" BorderThickness="1" CornerRadius="6" MinHeight="40" Margin="0,0,0,4">
                             <Grid>
-                                <TextBox x:Name="EmailTextBox" Style="{StaticResource ModernTextBoxInnerStyleFullWidth}" TextChanged="EmailTextBox_TextChanged"/>
+                                <TextBox x:Name="EmailTextBox" Style="{StaticResource ModernTextBoxInnerStyleFullWidth}" TextChanged="EmailTextBox_TextChanged" LostFocus="EmailTextBox_LostFocus"/>
                                 <TextBlock x:Name="EmailPlaceholder" Text="Enter your email address" Foreground="{DynamicResource Brush.TextSecondary}" FontSize="13" Margin="12,8" VerticalAlignment="Center" IsHitTestVisible="False"/>
                             </Grid>
                         </Border>
@@ -230,8 +230,8 @@
                                     <ColumnDefinition Width="Auto"/>
                                 </Grid.ColumnDefinitions>
                                 <Grid Grid.Column="0">
-                                    <PasswordBox x:Name="PasswordBox" Style="{StaticResource ModernPasswordBoxInnerStyle}" PasswordChanged="PasswordBox_PasswordChanged"/>
-                                    <TextBox x:Name="PasswordRevealTextBox" Style="{StaticResource ModernTextBoxInnerStyle}" Visibility="Collapsed" TextChanged="PasswordRevealTextBox_TextChanged"/>
+                                    <PasswordBox x:Name="PasswordBox" Style="{StaticResource ModernPasswordBoxInnerStyle}" PasswordChanged="PasswordBox_PasswordChanged" LostFocus="PasswordBox_LostFocus"/>
+                                    <TextBox x:Name="PasswordRevealTextBox" Style="{StaticResource ModernTextBoxInnerStyle}" Visibility="Collapsed" TextChanged="PasswordRevealTextBox_TextChanged" LostFocus="PasswordBox_LostFocus"/>
                                     <TextBlock x:Name="PasswordPlaceholder" Text="Create a password" Foreground="{DynamicResource Brush.TextSecondary}" FontSize="13" Margin="12,8,40,8" VerticalAlignment="Center" IsHitTestVisible="False"/>
                                 </Grid>
                                 <Button x:Name="PasswordEyeButton" Grid.Column="1" Width="36" Height="32" VerticalAlignment="Center" Margin="0,0,6,0" Background="Transparent" BorderThickness="0" Cursor="Hand" Click="PasswordEyeButton_Click">
@@ -257,8 +257,8 @@
                                     <ColumnDefinition Width="Auto"/>
                                 </Grid.ColumnDefinitions>
                                 <Grid Grid.Column="0">
-                                    <PasswordBox x:Name="ConfirmPasswordBox" Style="{StaticResource ModernPasswordBoxInnerStyle}" PasswordChanged="ConfirmPasswordBox_PasswordChanged"/>
-                                    <TextBox x:Name="ConfirmPasswordRevealTextBox" Style="{StaticResource ModernTextBoxInnerStyle}" Visibility="Collapsed" TextChanged="ConfirmPasswordRevealTextBox_TextChanged"/>
+                                    <PasswordBox x:Name="ConfirmPasswordBox" Style="{StaticResource ModernPasswordBoxInnerStyle}" PasswordChanged="ConfirmPasswordBox_PasswordChanged" LostFocus="ConfirmPasswordBox_LostFocus"/>
+                                    <TextBox x:Name="ConfirmPasswordRevealTextBox" Style="{StaticResource ModernTextBoxInnerStyle}" Visibility="Collapsed" TextChanged="ConfirmPasswordRevealTextBox_TextChanged" LostFocus="ConfirmPasswordBox_LostFocus"/>
                                     <TextBlock x:Name="ConfirmPasswordPlaceholder" Text="Re-enter your password" Foreground="{DynamicResource Brush.TextSecondary}" FontSize="13" Margin="12,8,40,8" VerticalAlignment="Center" IsHitTestVisible="False"/>
                                 </Grid>
                                 <Button x:Name="ConfirmPasswordEyeButton" Grid.Column="1" Width="36" Height="32" VerticalAlignment="Center" Margin="0,0,6,0" Background="Transparent" BorderThickness="0" Cursor="Hand" Click="ConfirmPasswordEyeButton_Click">
@@ -284,7 +284,7 @@
                         <TextBlock Text="Organisation Name" Style="{StaticResource FieldLabelStyle}"/>
                         <Border x:Name="OrganizationNameFieldBorder" Background="{DynamicResource Brush.InputBackground}" BorderBrush="{DynamicResource Brush.Border}" BorderThickness="1" CornerRadius="6" MinHeight="40" Margin="0,0,0,14">
                             <Grid>
-                                <TextBox x:Name="OrganizationNameTextBox" Style="{StaticResource ModernTextBoxInnerStyleFullWidth}" TextChanged="OrganizationNameTextBox_TextChanged"/>
+                                <TextBox x:Name="OrganizationNameTextBox" Style="{StaticResource ModernTextBoxInnerStyleFullWidth}" TextChanged="OrganizationNameTextBox_TextChanged" LostFocus="OrganizationNameTextBox_LostFocus"/>
                                 <TextBlock x:Name="OrganizationNamePlaceholder" Text="Enter your organization name" Foreground="{DynamicResource Brush.TextSecondary}" FontSize="13" Margin="12,8" VerticalAlignment="Center" IsHitTestVisible="False"/>
                             </Grid>
                         </Border>
@@ -292,7 +292,7 @@
                         <TextBlock Text="Contact Person" Style="{StaticResource FieldLabelStyle}"/>
                         <Border x:Name="ContactPersonNameFieldBorder" Background="{DynamicResource Brush.InputBackground}" BorderBrush="{DynamicResource Brush.Border}" BorderThickness="1" CornerRadius="6" MinHeight="40" Margin="0,0,0,14">
                             <Grid>
-                                <TextBox x:Name="ContactPersonNameTextBox" Style="{StaticResource ModernTextBoxInnerStyleFullWidth}" TextChanged="ContactPersonNameTextBox_TextChanged"/>
+                                <TextBox x:Name="ContactPersonNameTextBox" Style="{StaticResource ModernTextBoxInnerStyleFullWidth}" TextChanged="ContactPersonNameTextBox_TextChanged" LostFocus="ContactPersonNameTextBox_LostFocus"/>
                                 <TextBlock x:Name="ContactPersonNamePlaceholder" Text="Enter your contact person name" Foreground="{DynamicResource Brush.TextSecondary}" FontSize="13" Margin="12,8" VerticalAlignment="Center" IsHitTestVisible="False"/>
                             </Grid>
                         </Border>
@@ -300,7 +300,7 @@
                         <TextBlock Text="Country Code" Style="{StaticResource FieldLabelStyle}"/>
                         <Border x:Name="CountryCodeFieldBorder" Background="{DynamicResource Brush.InputBackground}" BorderBrush="{DynamicResource Brush.Border}" BorderThickness="1" CornerRadius="6" MinHeight="40" Margin="0,0,0,4">
                             <Grid>
-                                <TextBox x:Name="CountryCodeTextBox" Style="{StaticResource ModernTextBoxInnerStyleFullWidth}" TextChanged="CountryCodeTextBox_TextChanged"/>
+                                <TextBox x:Name="CountryCodeTextBox" Style="{StaticResource ModernTextBoxInnerStyleFullWidth}" TextChanged="CountryCodeTextBox_TextChanged" LostFocus="CountryCodeTextBox_LostFocus"/>
                                 <TextBlock x:Name="CountryCodePlaceholder" Text="Enter country code" Foreground="{DynamicResource Brush.TextSecondary}" FontSize="13" Margin="12,8" VerticalAlignment="Center" IsHitTestVisible="False"/>
                             </Grid>
                         </Border>
@@ -309,7 +309,7 @@
                         <TextBlock Text="Contact no" Style="{StaticResource FieldLabelStyle}"/>
                         <Border x:Name="ContactNumberFieldBorder" Background="{DynamicResource Brush.InputBackground}" BorderBrush="{DynamicResource Brush.Border}" BorderThickness="1" CornerRadius="6" MinHeight="40" Margin="0,0,0,4">
                             <Grid>
-                                <TextBox x:Name="ContactNumberTextBox" Style="{StaticResource ModernTextBoxInnerStyleFullWidth}" TextChanged="ContactNumberTextBox_TextChanged"/>
+                                <TextBox x:Name="ContactNumberTextBox" Style="{StaticResource ModernTextBoxInnerStyleFullWidth}" TextChanged="ContactNumberTextBox_TextChanged" LostFocus="ContactNumberTextBox_LostFocus"/>
                                 <TextBlock x:Name="ContactNumberPlaceholder" Text="Enter your contact no." Foreground="{DynamicResource Brush.TextSecondary}" FontSize="13" Margin="12,8" VerticalAlignment="Center" IsHitTestVisible="False"/>
                             </Grid>
                         </Border>
@@ -318,7 +318,7 @@
                         <TextBlock Text="Purchase Order Number" Style="{StaticResource FieldLabelStyle}"/>
                         <Border x:Name="OrderNumberFieldBorder" Background="{DynamicResource Brush.InputBackground}" BorderBrush="{DynamicResource Brush.Border}" BorderThickness="1" CornerRadius="6" MinHeight="40" Margin="0,0,0,0">
                             <Grid>
-                                <TextBox x:Name="OrderNumberTextBox" Style="{StaticResource ModernTextBoxInnerStyleFullWidth}" TextChanged="OrderNumberTextBox_TextChanged"/>
+                                <TextBox x:Name="OrderNumberTextBox" Style="{StaticResource ModernTextBoxInnerStyleFullWidth}" TextChanged="OrderNumberTextBox_TextChanged" LostFocus="OrderNumberTextBox_LostFocus"/>
                                 <TextBlock x:Name="OrderNumberPlaceholder" Text="Enter your purchase order no." Foreground="{DynamicResource Brush.TextSecondary}" FontSize="13" Margin="12,8" VerticalAlignment="Center" IsHitTestVisible="False"/>
                             </Grid>
                         </Border>
@@ -331,7 +331,7 @@
                         <TextBlock Text="Policy Number" Style="{StaticResource FieldLabelStyle}"/>
                         <Border x:Name="PolicyNumberFieldBorder" Background="{DynamicResource Brush.InputBackground}" BorderBrush="{DynamicResource Brush.Border}" BorderThickness="1" CornerRadius="6" MinHeight="40" Margin="0,0,0,4">
                             <Grid>
-                                <TextBox x:Name="PolicyNumberTextBox" Style="{StaticResource ModernTextBoxInnerStyleFullWidth}" TextChanged="PolicyNumberTextBox_TextChanged"/>
+                                <TextBox x:Name="PolicyNumberTextBox" Style="{StaticResource ModernTextBoxInnerStyleFullWidth}" TextChanged="PolicyNumberTextBox_TextChanged" LostFocus="PolicyNumberTextBox_LostFocus"/>
                                 <TextBlock x:Name="PolicyNumberPlaceholder" Text="Enter your policy number" Foreground="{DynamicResource Brush.TextSecondary}" FontSize="13" Margin="12,8" VerticalAlignment="Center" IsHitTestVisible="False"/>
                             </Grid>
                         </Border>
@@ -340,7 +340,7 @@
                         <TextBlock Text="Total Machine count" Style="{StaticResource FieldLabelStyle}"/>
                         <Border x:Name="MaxDevicesFieldBorder" Background="{DynamicResource Brush.InputBackground}" BorderBrush="{DynamicResource Brush.Border}" BorderThickness="1" CornerRadius="6" MinHeight="40" Margin="0,0,0,4">
                             <Grid>
-                                <TextBox x:Name="MaxDevicesTextBox" Style="{StaticResource ModernTextBoxInnerStyleFullWidth}" TextChanged="MaxDevicesTextBox_TextChanged"/>
+                                <TextBox x:Name="MaxDevicesTextBox" Style="{StaticResource ModernTextBoxInnerStyleFullWidth}" TextChanged="MaxDevicesTextBox_TextChanged" LostFocus="MaxDevicesTextBox_LostFocus"/>
                                 <TextBlock x:Name="MaxDevicesPlaceholder" Text="Enter your total machine count" Foreground="{DynamicResource Brush.TextSecondary}" FontSize="13" Margin="12,8" VerticalAlignment="Center" IsHitTestVisible="False"/>
                             </Grid>
                         </Border>
@@ -355,6 +355,7 @@
                                         Padding="12,8"
                                         FontSize="14"
                                         SelectedDateChanged="ActivationDatePicker_SelectedDateChanged"
+                                        LostFocus="ActivationDatePicker_LostFocus"
                                         VerticalAlignment="Center">
                                 <DatePicker.Resources>
                                     <Style TargetType="{x:Type primitives:DatePickerTextBox}">

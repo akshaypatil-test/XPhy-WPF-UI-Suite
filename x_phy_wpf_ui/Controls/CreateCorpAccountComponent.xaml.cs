@@ -129,6 +129,20 @@ namespace x_phy_wpf_ui.Controls
         private void CountryCodeTextBox_TextChanged(object sender, TextChangedEventArgs e) { UpdatePlaceholders(); ValidateCountryCode(); UpdateCreateButtonState(); }
         private void ContactNumberTextBox_TextChanged(object sender, TextChangedEventArgs e) { UpdatePlaceholders(); ValidateContactNumber(); UpdateCreateButtonState(); }
         private void OrderNumberTextBox_TextChanged(object sender, TextChangedEventArgs e) { UpdatePlaceholders(); ValidateOrderNumber(); UpdateCreateButtonState(); }
+
+        private void FirstNameTextBox_LostFocus(object sender, RoutedEventArgs e) { ValidateFirstName(); UpdateCreateButtonState(); }
+        private void LastNameTextBox_LostFocus(object sender, RoutedEventArgs e) { ValidateLastName(); UpdateCreateButtonState(); }
+        private void EmailTextBox_LostFocus(object sender, RoutedEventArgs e) { ValidateEmail(); UpdateCreateButtonState(); }
+        private void PasswordBox_LostFocus(object sender, RoutedEventArgs e) { ValidatePassword(); ValidateConfirmPassword(); UpdateCreateButtonState(); }
+        private void ConfirmPasswordBox_LostFocus(object sender, RoutedEventArgs e) { ValidateConfirmPassword(); UpdateCreateButtonState(); }
+        private void OrganizationNameTextBox_LostFocus(object sender, RoutedEventArgs e) { ValidateOrganizationName(); UpdateCreateButtonState(); }
+        private void ContactPersonNameTextBox_LostFocus(object sender, RoutedEventArgs e) { ValidateContactPersonName(); UpdateCreateButtonState(); }
+        private void CountryCodeTextBox_LostFocus(object sender, RoutedEventArgs e) { ValidateCountryCode(); UpdateCreateButtonState(); }
+        private void ContactNumberTextBox_LostFocus(object sender, RoutedEventArgs e) { ValidateContactNumber(); UpdateCreateButtonState(); }
+        private void OrderNumberTextBox_LostFocus(object sender, RoutedEventArgs e) { ValidateOrderNumber(); UpdateCreateButtonState(); }
+        private void PolicyNumberTextBox_LostFocus(object sender, RoutedEventArgs e) { ValidatePolicyNumber(); UpdateCreateButtonState(); }
+        private void MaxDevicesTextBox_LostFocus(object sender, RoutedEventArgs e) { ValidateMaxDevices(); UpdateCreateButtonState(); }
+        private void ActivationDatePicker_LostFocus(object sender, RoutedEventArgs e) { ValidateActivationDate(); UpdateCreateButtonState(); }
         private void ActivationDatePicker_SelectedDateChanged(object sender, SelectionChangedEventArgs e)
         {
             ValidateActivationDate();

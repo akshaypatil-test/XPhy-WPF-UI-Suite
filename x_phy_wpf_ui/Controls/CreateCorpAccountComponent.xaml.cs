@@ -341,7 +341,7 @@ namespace x_phy_wpf_ui.Controls
             }
             catch (Exception ex)
             {
-                ShowError(ex.Message);
+                ShowError(ToUserFriendlyError(ex.Message));
             }
             finally
             {
@@ -351,6 +351,31 @@ namespace x_phy_wpf_ui.Controls
         }
 
         private void ShowError(string message) { ErrorMessageText.Text = message; ErrorMessageText.Visibility = Visibility.Visible; }
+
+        private static string ToUserFriendlyError(string message)
+        {
+            if (string.IsNullOrWhiteSpace(message)) return "Something went wrong. Please try again or contact support.";
+            var m = message.Trim();
+            if (m.IndexOf("MachineLimitExceeded", StringComparison.OrdinalIgnoreCase) >= 0 ||
+                m.IndexOf("machine limit exceeded", StringComparison.OrdinalIgnoreCase) >= 0 ||
+                m.IndexOf("policy machine limit", StringComparison.OrdinalIgnoreCase) >= 0)
+                return "This policy has reached its machine limit. You cannot add more machines. Please contact your administrator or use a different policy.";
+            if (m.IndexOf("BAD_REQUEST_BODY", StringComparison.OrdinalIgnoreCase) >= 0 ||
+                (m.IndexOf("regex", StringComparison.OrdinalIgnoreCase) >= 0 && m.IndexOf("match", StringComparison.OrdinalIgnoreCase) >= 0) ||
+                m.IndexOf("format attribute", StringComparison.OrdinalIgnoreCase) >= 0 ||
+                m.IndexOf("int32", StringComparison.OrdinalIgnoreCase) >= 0)
+                return "The policy number format is invalid. Please enter a valid policy number (check with your administrator for the correct format).";
+            if (m.IndexOf("User created but license purchase failed", StringComparison.OrdinalIgnoreCase) >= 0 ||
+                m.IndexOf("license purchase failed", StringComparison.OrdinalIgnoreCase) >= 0)
+                return "Your account was created, but we couldn't complete the license setup. Please contact support or try again later.";
+            if (m.IndexOf("Network error", StringComparison.OrdinalIgnoreCase) >= 0)
+                return "Please check your internet connection and try again.";
+            if (m.IndexOf("timeout", StringComparison.OrdinalIgnoreCase) >= 0)
+                return "Request timed out. Please check your connection and try again.";
+            if (m.IndexOf("Registration error:", StringComparison.OrdinalIgnoreCase) >= 0)
+                return "We couldn't complete registration. Please check your details and try again, or contact support.";
+            return "Something went wrong. Please try again or contact support.";
+        }
 
         private static bool IsValidEmail(string email) { if (string.IsNullOrWhiteSpace(email)) return false; try { return new Regex(@"^[^@\s]+@[^@\s]+\.[^@\s]+$", RegexOptions.IgnoreCase).IsMatch(email); } catch { return false; } }
 

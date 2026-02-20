@@ -26,5 +26,10 @@ namespace InstallerUI.Views
         {
 
         }
+
+        private void QuickInstallRadio_Checked(object sender, RoutedEventArgs e)
+        {
+
+        }
     }
 }

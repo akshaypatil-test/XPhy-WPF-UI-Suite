@@ -631,16 +631,16 @@ namespace x_phy_wpf_ui
                 }
             }
 
-            // Have stored tokens with a refresh token: validate session (try refresh) before showing app. If refresh fails, clear and show Welcome.
+            // When Remember Me was true, tokens persist across exit and system restart. Restore session so user is logged in on next launch.
             var tokenStorageForLaunch = new TokenStorage();
             var tokensForLaunch = tokenStorageForLaunch.GetTokens();
-            if (tokensForLaunch?.UserInfo != null && !string.IsNullOrWhiteSpace(tokensForLaunch.RefreshToken))
+            if (tokensForLaunch?.RememberMe == true && tokensForLaunch.UserInfo != null && !string.IsNullOrWhiteSpace(tokensForLaunch.RefreshToken))
             {
                 TryRestoreSessionAndShowAppAsync(tokenStorageForLaunch, tokensForLaunch);
                 return;
             }
-            // Tokens missing or invalid (e.g. no refresh token, corrupted): clear so we don't trigger "access token is null" elsewhere
-            if (tokensForLaunch != null && string.IsNullOrWhiteSpace(tokensForLaunch.RefreshToken))
+            // Tokens missing, invalid, or Remember Me was false: clear so we don't auto-login or trigger "access token is null" elsewhere
+            if (tokensForLaunch != null && (string.IsNullOrWhiteSpace(tokensForLaunch.RefreshToken) || !tokensForLaunch.RememberMe))
             {
                 try { tokenStorageForLaunch.ClearTokens(); } catch { }
             }
@@ -3051,14 +3051,16 @@ videoLiveFakeProportionThreshold = 0.7
             }
         }
 
-        /// <summary>Exit from tray: logout (clear tokens) and close the application.</summary>
+        /// <summary>Exit from tray: close the application. Clear tokens only when Remember Me was false so user stays logged in next launch when they had checked Remember Me.</summary>
         private void ExitFromTray()
         {
             StopBackgroundProcessCheck();
             try
             {
                 var tokenStorage = new TokenStorage();
-                tokenStorage.ClearTokens();
+                var tokens = tokenStorage.GetTokens();
+                if (tokens == null || !tokens.RememberMe)
+                    tokenStorage.ClearTokens();
             }
             catch { }
             HideTray();

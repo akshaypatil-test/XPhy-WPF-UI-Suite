@@ -46,7 +46,7 @@
                   IsChecked="{Binding LaunchOnStartup, Mode=TwoWay, UpdateSourceTrigger=PropertyChanged, Converter={StaticResource NullableBoolToBool}}"
                   FontSize="13" Foreground="{StaticResource TextPrimary}" Margin="0,16,0,0"
                   Checked="LaunchOnStartupCheckBox_Checked">
-            <TextBlock TextWrapping="Wrap" Width="428"><Run Text="Launch X-PHY Deepfake Detector "/><Run Language="en-in" Text="automatically on system startup"/></TextBlock>
+            <TextBlock TextWrapping="Wrap" Width="428" FontWeight="Bold"><Run Text="Launch X-PHY Deepfake Detector "/><Run Language="en-in" Text="automatically on system startup"/></TextBlock>
         </CheckBox>
     </Grid>
 </UserControl>

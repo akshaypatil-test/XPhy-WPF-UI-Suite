@@ -290,12 +290,6 @@ namespace x_phy_wpf_ui.Controls
             if (btn?.DataContext is DetectionResultItem item)
             {
                 var resultsDir = _resultsDirectory ?? DetectionResultsLoader.GetDefaultResultsDir();
-                // For audio results: open the result directory in Explorer instead of showing Session Details
-                if (string.Equals(item.Type, "Audio", StringComparison.OrdinalIgnoreCase))
-                {
-                    OpenAudioResultDirectory(item.ResultPathOrId, resultsDir);
-                    return;
-                }
                 ShowSessionDetail(item, resultsDir);
             }
         }

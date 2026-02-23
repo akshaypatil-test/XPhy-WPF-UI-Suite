@@ -1,5 +1,6 @@
 using System;
 using System.Collections.Generic;
+using System.Diagnostics;
 using System.IO;
 using System.Linq;
 using System.Windows;
@@ -17,6 +18,8 @@ namespace x_phy_wpf_ui.Controls
 
         private readonly List<BitmapSource> _carouselImages = new List<BitmapSource>();
         private int _carouselIndex;
+        private string _resultsDirectory;
+        private DetectionResultItem _currentResult;
 
         public SessionDetailsPanel()
         {
@@ -29,6 +32,8 @@ namespace x_phy_wpf_ui.Controls
         public void SetResult(DetectionResultItem result, string resultsDirectory = null)
         {
             if (result == null) return;
+            _currentResult = result;
+            _resultsDirectory = resultsDirectory;
 
             DetailConfidencePercent.Text = result.ConfidencePercent + "%";
             DetailConfidencePercent.Foreground = result.IsAiManipulationDetected
@@ -65,16 +70,25 @@ namespace x_phy_wpf_ui.Controls
             CarouselNextButton.Visibility = Visibility.Collapsed;
             CarouselCounterText.Visibility = Visibility.Collapsed;
 
-            if (result.IsAiManipulationDetected)
+            var isAudio = string.Equals(result.Type, "Audio", StringComparison.OrdinalIgnoreCase);
+            if (isAudio)
             {
                 MediaEvidenceNoManipulationPanel.Visibility = Visibility.Collapsed;
+                MediaEvidenceImagesGrid.Visibility = Visibility.Collapsed;
+                MediaEvidenceAudioPanel.Visibility = Visibility.Visible;
+            }
+            else if (result.IsAiManipulationDetected)
+            {
+                MediaEvidenceNoManipulationPanel.Visibility = Visibility.Collapsed;
+                MediaEvidenceAudioPanel.Visibility = Visibility.Collapsed;
                 MediaEvidenceImagesGrid.Visibility = Visibility.Visible;
                 TryLoadMediaEvidence(result, resultsDirectory);
             }
             else
             {
-                MediaEvidenceNoManipulationPanel.Visibility = Visibility.Visible;
+                MediaEvidenceAudioPanel.Visibility = Visibility.Collapsed;
                 MediaEvidenceImagesGrid.Visibility = Visibility.Collapsed;
+                MediaEvidenceNoManipulationPanel.Visibility = Visibility.Visible;
             }
         }
 
@@ -208,6 +222,48 @@ namespace x_phy_wpf_ui.Controls
         private void BackToResults_Click(object sender, RoutedEventArgs e)
         {
             BackToResultsRequested?.Invoke(this, EventArgs.Empty);
+        }
+
+        private void OpenMediaDirectory_Click(object sender, RoutedEventArgs e)
+        {
+            if (_currentResult == null) return;
+            var dir = ResolveAudioResultDirectory(_currentResult, _resultsDirectory);
+            if (string.IsNullOrEmpty(dir) || !Directory.Exists(dir))
+            {
+                try { if (!string.IsNullOrEmpty(dir)) Directory.CreateDirectory(dir); } catch { }
+                if (string.IsNullOrEmpty(dir) || !Directory.Exists(dir))
+                {
+                    MessageBox.Show("Result directory could not be found or created.", "Media Directory", MessageBoxButton.OK, MessageBoxImage.Warning);
+                    return;
+                }
+            }
+            try
+            {
+                Process.Start("explorer.exe", "\"" + dir + "\"");
+            }
+            catch (Exception ex)
+            {
+                MessageBox.Show("Failed to open folder: " + ex.Message, "Error", MessageBoxButton.OK, MessageBoxImage.Error);
+            }
+        }
+
+        private static string ResolveAudioResultDirectory(DetectionResultItem result, string resultsDirectory)
+        {
+            var resultPathOrId = result?.ResultPathOrId;
+            if (!string.IsNullOrWhiteSpace(resultPathOrId) && resultPathOrId != "Local")
+            {
+                if (Directory.Exists(resultPathOrId))
+                    return resultPathOrId;
+                if (File.Exists(resultPathOrId))
+                    return Path.GetDirectoryName(resultPathOrId);
+            }
+            if (string.IsNullOrEmpty(resultsDirectory))
+                return resultsDirectory;
+            var typeFolder = "audio";
+            var dateFolder = result?.Timestamp.ToString("dd-MM-yyyy") ?? DateTime.Now.ToString("dd-MM-yyyy");
+            var timeFolder = result?.Timestamp.ToString("HH-mm") ?? DateTime.Now.ToString("HH-mm");
+            var builtPath = Path.Combine(resultsDirectory, typeFolder, dateFolder, timeFolder);
+            return Directory.Exists(builtPath) ? builtPath : resultsDirectory;
         }
     }
 }

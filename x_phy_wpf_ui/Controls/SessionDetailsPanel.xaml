@@ -133,6 +133,29 @@
                     <Border Grid.Row="2" x:Name="MediaEvidenceNoManipulationPanel" Background="{DynamicResource Brush.Card}" CornerRadius="8" MinHeight="120" Visibility="Collapsed">
                         <TextBlock x:Name="MediaEvidenceNoManipulationText" Text="No AI Manipulation Found" FontSize="18" FontWeight="SemiBold" Foreground="{StaticResource TealBrush}" HorizontalAlignment="Center" VerticalAlignment="Center"/>
                     </Border>
+                    <!-- When audio: single clickable card (icon + text) opens result directory -->
+                    <Border Grid.Row="2" x:Name="MediaEvidenceAudioPanel" Background="{DynamicResource Brush.Card}" CornerRadius="8" MinHeight="120" Visibility="Collapsed">
+                        <Button x:Name="OpenMediaDirectoryButton" Background="Transparent" BorderThickness="0" Cursor="Hand" Click="OpenMediaDirectory_Click"
+                                VerticalAlignment="Center" HorizontalAlignment="Center" Padding="24,20">
+                            <Button.Template>
+                                <ControlTemplate TargetType="Button">
+                                    <Border x:Name="Bd" Background="{TemplateBinding Background}" BorderBrush="{DynamicResource Brush.Border}" BorderThickness="1" CornerRadius="8" Padding="{TemplateBinding Padding}">
+                                        <StackPanel VerticalAlignment="Center" HorizontalAlignment="Center">
+                                            <Viewbox Width="40" Height="40" Margin="0,0,0,10">
+                                                <Path Fill="{StaticResource TealBrush}" Data="M10 4H4c-1.1 0-1.99.9-1.99 2L2 18c0 1.1.9 2 2 2h16c1.1 0 2-.9 2-2V8c0-1.1-.9-2-2-2h-8l-2-2z"/>
+                                            </Viewbox>
+                                            <TextBlock Text="Open Result Directory" FontSize="14" Foreground="{StaticResource TealBrush}" HorizontalAlignment="Center" TextDecorations="Underline"/>
+                                        </StackPanel>
+                                    </Border>
+                                    <ControlTemplate.Triggers>
+                                        <Trigger Property="IsMouseOver" Value="True">
+                                            <Setter TargetName="Bd" Property="Background" Value="{DynamicResource Brush.SurfaceHover}"/>
+                                        </Trigger>
+                                    </ControlTemplate.Triggers>
+                                </ControlTemplate>
+                            </Button.Template>
+                        </Button>
+                    </Border>
                     <!-- When AI manipulation detected: two-image carousel (fills Media Evidence panel) -->
                     <Grid Grid.Row="2" x:Name="MediaEvidenceImagesGrid" VerticalAlignment="Stretch">
                         <Grid.RowDefinitions>

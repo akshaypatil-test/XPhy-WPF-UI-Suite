@@ -33,9 +33,15 @@ namespace x_phy_wpf_ui.Controls
             SessionDetailPanelHost.Content = _sessionDetailsPanel;
             _sessionDetailsPanel.BackToResultsRequested += (s, _) =>
             {
+                ResultsDataGrid.SelectedItem = null;
                 ResultsListView.Visibility = Visibility.Visible;
                 SessionDetailView.Visibility = Visibility.Collapsed;
                 BackToResultsListRequested?.Invoke(this, EventArgs.Empty);
+                // Move focus off the grid so no cell shows focus highlight (white flash) when returning.
+                Dispatcher.BeginInvoke(new Action(() =>
+                {
+                    ResultsListView.Focus();
+                }), DispatcherPriority.Loaded);
             };
             _items = new ObservableCollection<DetectionResultItem>();
             ResultsDataGrid.ItemsSource = _items;
@@ -103,6 +109,21 @@ namespace x_phy_wpf_ui.Controls
                 if (hit is Button)
                     return; // Click was on the View Result button — let it through
                 if (hit is DataGridRow)
+                {
+                    e.Handled = true;
+                    return;
+                }
+                hit = VisualTreeHelper.GetParent(hit);
+            }
+        }
+
+        private void ResultsDataGrid_MouseDown(object sender, MouseButtonEventArgs e)
+        {
+            // Bubble phase: if click originated from a Button (e.g. View Result), prevent the DataGrid from selecting the row so no blue highlight appears.
+            var hit = e.OriginalSource as DependencyObject;
+            while (hit != null)
+            {
+                if (hit is Button)
                 {
                     e.Handled = true;
                     return;
@@ -289,6 +310,7 @@ namespace x_phy_wpf_ui.Controls
             var btn = sender as Button;
             if (btn?.DataContext is DetectionResultItem item)
             {
+                ResultsDataGrid.SelectedItem = null;
                 var resultsDir = _resultsDirectory ?? DetectionResultsLoader.GetDefaultResultsDir();
                 ShowSessionDetail(item, resultsDir);
             }

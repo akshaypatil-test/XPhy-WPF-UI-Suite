@@ -2041,6 +2041,8 @@ videoLiveFakeProportionThreshold = 0.7
                     return;
                 }
                 if (list.Count != 1 || single == null) return;
+                // Do not show if a single-process notification is already open (avoids duplicate popups)
+                if (MediaSourceDetectedPopup.IsAnyOpen) return;
                 // Show only if: we saw 0 since last popup (close-and-reopen), or 30-min cooldown has passed
                 bool cooldownPassed = (DateTime.UtcNow - _lastMediaSourcePopupShownAt).TotalSeconds >= MediaSourcePopupCooldownSeconds;
                 if (!_hasSeenZeroProcessesSinceLastPopup && !cooldownPassed) return;

@@ -13,6 +13,12 @@ namespace x_phy_wpf_ui
     /// </summary>
     public partial class MediaSourceDetectedPopup : Window
     {
+        private static int _openCount;
+        private bool _closeCounted;
+
+        /// <summary>True if at least one single-process (media source) popup is currently open. Used to avoid showing duplicates.</summary>
+        public static bool IsAnyOpen => _openCount > 0;
+
         private DetectionSource _option1Source;
         private DetectionSource _option2Source;
 
@@ -23,6 +29,12 @@ namespace x_phy_wpf_ui
         {
             InitializeComponent();
             VersionText.Text = "Version: " + GetAppVersion();
+            Closed += (s, _) =>
+            {
+                if (_closeCounted) return;
+                _closeCounted = true;
+                if (_openCount > 0) _openCount--;
+            };
         }
 
         private static string GetAppVersion()
@@ -66,6 +78,7 @@ namespace x_phy_wpf_ui
 
             Loaded += OnLoadedPosition;
             SizeChanged += OnSizeChangedPosition;
+            _openCount++;
             Show();
             Activate();
             Dispatcher.BeginInvoke(new Action(EnsureFitsScreen), System.Windows.Threading.DispatcherPriority.Loaded);

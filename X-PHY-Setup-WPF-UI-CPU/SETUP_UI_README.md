@@ -1,5 +1,14 @@
 # X-PHY Setup – License Agreement, Welcome & Banner
 
+**Note:** This project (X-PHY-Setup-WPF-UI-CPU) is the **MSI/setup installer only**. It does not perform license activation. License activation in the WPF suite works as follows:
+
+- **Backend (XPhy.Licensing.Api):** When a trial or paid license is **created**, the backend calls the LMS **activate** API (e.g. `POST licenses/activate` with the license key) so that the license gets an **expiry** (e.g. one year from activation). Without this step, retrieving the license from LMS would return `expiry: null`.
+- **WPF app (x_phy_wpf_ui):** When the user runs the installed app, **native** code (Keygen via `ApplicationController` + `KeygenLicenseManager` in the wrapper) validates the license and, if the machine is not yet registered, **registers the machine** with Keygen (“machine activation”). See `keygen_license_manager.h` and `ApplicationControllerWrapperNative.cpp` (e.g. `ActivationError` → “Machine activation unsuccessful.”). The app then calls **POST /api/License/validate** (with device fingerprint) to refresh license info from the backend, including the expiry set by LMS.
+
+So: **create license → backend activates with LMS (sets expiry) → user runs app → native Keygen validates/registers machine → app calls validate to get expiry.**
+
+---
+
 ## MSI project (X-PHY-Setup-WPF-UI-CPU) – standards
 
 - **Output:** The MSI takes the main app (exe + .NET DLLs) from **x_phy_wpf_ui** build output: `..\bin\x_phy_wpf_ui\x64\Release\`. Native DLLs, `config.toml`, and the `models\` folder are taken from **x_phy_wpf_wrapper**: `..\bin\x_phy_wpf_wrapper\x64\Release\`. **Build order:** 1) Build **x_phy_wpf_wrapper** (Release|x64) so that `x_phy_wpf_wrapper\x64\Release` is populated. 2) Build **x_phy_wpf_ui** (Release|x64) so that `x_phy_wpf_ui\x64\Release` exists with the exe and managed DLLs. 3) Build the MSI (X-PHY-Setup-WPF-UI-CPU).

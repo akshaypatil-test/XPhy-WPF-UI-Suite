@@ -2190,6 +2190,23 @@ videoLiveFakeProportionThreshold = 0.7
             PaymentSuccessOverlay.Visibility = Visibility.Collapsed;
             UpdateLicenseDisplay();
             ShowDetectionContent();
+
+            // Re-initialize native controller with the new license key so Keygen validates/activates this machine.
+            // (Config was already updated by StripePaymentComponent on success; controller was created with the old key.)
+            try
+            {
+                if (controller != null)
+                {
+                    controller.Dispose();
+                    controller = null;
+                }
+                controllerInitializationAttempted = false;
+                Dispatcher.BeginInvoke(new Action(() => InitializeController(forceRetry: true)), DispatcherPriority.Loaded);
+            }
+            catch (Exception ex)
+            {
+                System.Diagnostics.Debug.WriteLine($"PaymentSuccessPopup_CloseRequested: re-init controller failed: {ex.Message}");
+            }
         }
 
         private void OpenResultsFolder_Click(object sender, RoutedEventArgs e)
@@ -2428,6 +2445,32 @@ videoLiveFakeProportionThreshold = 0.7
             catch (Exception ex)
             {
                 System.Diagnostics.Debug.WriteLine($"Refresh license after detection started: {ex.Message}");
+            }
+        }
+
+        /// <summary>
+        /// Called after controller is created (license activated with Keygen). LMS sets expiry at activation time,
+        /// so we retrieve the license from LMS again and update tokens/UI with the correct expiry.
+        /// </summary>
+        private async void RefreshLicenseFromServerAfterActivationAsync()
+        {
+            try
+            {
+                await Task.Delay(800); // Give LMS time to record activation and set expiry
+                var licenseService = new LicensePurchaseService();
+                var result = await licenseService.ValidateLicenseAsync();
+                if (result != null && result.Valid && result.License != null)
+                {
+                    var tokenStorage = new TokenStorage();
+                    var tokens = tokenStorage.GetTokens();
+                    if (tokens != null)
+                        tokenStorage.UpdateUserAndLicense(tokens.UserInfo, result.License);
+                    Dispatcher.Invoke(() => UpdateLicenseDisplay());
+                }
+            }
+            catch (Exception ex)
+            {
+                System.Diagnostics.Debug.WriteLine($"Refresh license after activation: {ex.Message}");
             }
         }
 
@@ -2808,14 +2851,33 @@ videoLiveFakeProportionThreshold = 0.7
                     // When LicenseInfo is null (e.g. old session), treat as Trial if User has TrialEndsAt
                     string status = licenseInfo?.Status ?? (!string.IsNullOrEmpty(userInfo.LicenseStatus) ? userInfo.LicenseStatus : "Trial");
                     int daysRemaining = 0;
-                    
-                    // Calculate remaining days based on license status
+
+                    // Prefer ExpiryDate from backend (stored on License table) for remaining-days calculation
+                    var expiryForDays = licenseInfo?.ExpiryDate ?? (status.Equals("Trial", StringComparison.OrdinalIgnoreCase) ? userInfo.TrialEndsAt : null) ?? licenseInfo?.TrialEndsAt;
+                    if (expiryForDays.HasValue)
+                        daysRemaining = Math.Max(0, (int)Math.Ceiling((expiryForDays.Value - DateTime.UtcNow).TotalDays));
+                    else if (licenseInfo?.PurchaseDate.HasValue == true && status.Equals("Active", StringComparison.OrdinalIgnoreCase))
+                    {
+                        // Fallback: no ExpiryDate from backend; derive from PurchaseDate + plan name (legacy)
+                        int durationDays = 365;
+                        if (!string.IsNullOrWhiteSpace(licenseInfo.PlanName))
+                            durationDays = GetDurationDaysFromPlanName(licenseInfo.PlanName);
+                        else if (licenseInfo.PlanId.HasValue)
+                        {
+                            try
+                            {
+                                var planService = new LicensePlanService();
+                                var plans = await planService.GetPlansAsync();
+                                var plan = plans.FirstOrDefault(p => p.EffectivePlanId == licenseInfo.PlanId.Value);
+                                if (plan != null) durationDays = GetDurationDaysFromPlanName(plan.Name);
+                            }
+                            catch (Exception ex) { System.Diagnostics.Debug.WriteLine($"Error fetching plan for duration: {ex.Message}"); }
+                        }
+                        daysRemaining = Math.Max(0, (int)Math.Ceiling((licenseInfo.PurchaseDate!.Value.AddDays(durationDays) - DateTime.UtcNow).TotalDays));
+                    }
+
                     if (status.Equals("Trial", StringComparison.OrdinalIgnoreCase))
                     {
-                        if (userInfo.TrialEndsAt.HasValue)
-                            daysRemaining = Math.Max(0, (int)Math.Ceiling((userInfo.TrialEndsAt.Value - DateTime.UtcNow).TotalDays));
-                        else if (licenseInfo?.TrialEndsAt.HasValue == true)
-                            daysRemaining = Math.Max(0, (int)Math.Ceiling((licenseInfo.TrialEndsAt.Value - DateTime.UtcNow).TotalDays));
                         BottomBar.Status = "Trial";
                         BottomBar.RemainingDays = daysRemaining;
                         BottomBar.Attempts = licenseInfo?.TrialAttemptsRemaining;
@@ -2823,45 +2885,9 @@ videoLiveFakeProportionThreshold = 0.7
                     }
                     else if (licenseInfo != null && status.Equals("Active", StringComparison.OrdinalIgnoreCase))
                     {
-                        // For Active: Prefer ExpiryDate from License table; else compute from PurchaseDate + plan duration
-                        if (licenseInfo.ExpiryDate.HasValue)
-                        {
-                            daysRemaining = Math.Max(0, (int)Math.Ceiling((licenseInfo.ExpiryDate.Value - DateTime.UtcNow).TotalDays));
-                        }
-                        else if (licenseInfo.PurchaseDate.HasValue)
-                        {
-                            // Backend sends PurchaseDate only (no ExpiryDate); derive duration from plan name
-                            int durationDays = 365; // Default 1 year
-                            if (!string.IsNullOrWhiteSpace(licenseInfo.PlanName))
-                            {
-                                durationDays = GetDurationDaysFromPlanName(licenseInfo.PlanName);
-                            }
-                            else if (licenseInfo.PlanId.HasValue)
-                            {
-                                try
-                                {
-                                    var planService = new LicensePlanService();
-                                    var plans = await planService.GetPlansAsync();
-                                    var plan = plans.FirstOrDefault(p => p.EffectivePlanId == licenseInfo.PlanId.Value);
-                                    if (plan != null)
-                                        durationDays = GetDurationDaysFromPlanName(plan.Name);
-                                }
-                                catch (Exception ex)
-                                {
-                                    System.Diagnostics.Debug.WriteLine($"Error fetching plan for duration: {ex.Message}");
-                                }
-                            }
-                            var expiryDate = licenseInfo.PurchaseDate.Value.AddDays(durationDays);
-                            daysRemaining = Math.Max(0, (int)Math.Ceiling((expiryDate - DateTime.UtcNow).TotalDays));
-                        }
-                        else
-                        {
-                            daysRemaining = 0;
-                        }
-                        
                         BottomBar.Status = "Active";
                         BottomBar.RemainingDays = daysRemaining;
-                        BottomBar.Attempts = null; // Paid license: no trial attempts display
+                        BottomBar.Attempts = null;
                         BottomBar.ShowSubscribeButton = false;
                     }
                     else

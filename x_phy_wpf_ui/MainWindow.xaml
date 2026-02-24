@@ -247,6 +247,18 @@
                 <ContentControl x:Name="ChangePasswordOverlayContent"/>
             </Border>
         </Grid>
+
+        <!-- Payment Success overlay: glass-style transparent popup -->
+        <Grid x:Name="PaymentSuccessOverlay" Visibility="Collapsed" Background="#80000000" IsHitTestVisible="True">
+            <Border HorizontalAlignment="Center" VerticalAlignment="Center" MinWidth="420" MaxWidth="480"
+                    Background="#CC1C1E23" BorderBrush="#60E0E6F1" BorderThickness="1.5"
+                    CornerRadius="12" Padding="32,28">
+                <Border.Effect>
+                    <DropShadowEffect BlurRadius="24" ShadowDepth="0" Opacity="0.4" Color="Black"/>
+                </Border.Effect>
+                <ContentControl x:Name="PaymentSuccessOverlayContent"/>
+            </Border>
+        </Grid>
         </Grid>
     </Border>
 </Window>

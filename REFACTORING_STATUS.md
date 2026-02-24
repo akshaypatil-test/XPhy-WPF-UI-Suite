@@ -111,8 +111,8 @@ The resources have been removed, but the content section still needs:
 ### Window Files (Lower Priority)
 - ❌ `MainWindow.xaml` - Main application window
 - ❌ `PlansWindow.xaml` - Plans modal
-- ❌ `PaymentSuccessWindow.xaml` - Success modal
-- ❌ `StripePaymentWindow.xaml` - Payment modal
+- ~~`PaymentSuccessWindow.xaml`~~ - Replaced by in-app PaymentSuccessPopup overlay (no separate window)
+- ~~`StripePaymentWindow.xaml`~~ - Removed (unused; payment uses StripePaymentComponent in MainWindow)
 - ❌ `LaunchWindow.xaml` - Launch window
 - ❌ `FloatingWidgetWindow.xaml` - Widget window
 - ❌ `DetectionNotificationWindow.xaml` - Notification

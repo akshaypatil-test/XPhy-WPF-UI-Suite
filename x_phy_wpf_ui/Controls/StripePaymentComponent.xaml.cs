@@ -1,4 +1,5 @@
 using System;
+using System.Drawing;
 using System.IO;
 using System.Threading.Tasks;
 using System.Windows;
@@ -10,6 +11,7 @@ using x_phy_wpf_ui.Models;
 using x_phy_wpf_ui.Services;
 using Newtonsoft.Json;
 using static x_phy_wpf_ui.Services.StripePaymentService;
+using static x_phy_wpf_ui.Services.ThemeManager;
 
 namespace x_phy_wpf_ui.Controls
 {
@@ -29,7 +31,6 @@ namespace x_phy_wpf_ui.Controls
             _plan = plan;
             _purchaseService = new LicensePurchaseService();
 
-            PlanDetailsText.Text = $"{plan.Name} Plan - ${plan.Price:F2} ({plan.DurationDays} days)";
 
             // Use a writable user data folder to avoid E_ACCESSDENIED when app is installed via MSI (e.g. under Program Files).
             var userDataFolder = Path.Combine(
@@ -62,6 +63,9 @@ namespace x_phy_wpf_ui.Controls
             {
                 // Ensure WebView2 runtime is initialized
                 await StripeWebView.EnsureCoreWebView2Async(null);
+
+                // Transparent background so HTML glass effect shows through
+                try { StripeWebView.DefaultBackgroundColor = System.Drawing.Color.Transparent; } catch { }
 
                 // Enable script execution and web messaging
                 StripeWebView.CoreWebView2.Settings.IsScriptEnabled = true;
@@ -128,7 +132,7 @@ namespace x_phy_wpf_ui.Controls
                 string fileName = Path.GetFileName(htmlPath);
                 StripeWebView.CoreWebView2.Navigate($"https://payment.local/{fileName}");
                 
-                StatusText.Text = "Enter your card details below";
+                StatusText.Text = "";
             }
             catch (Exception ex)
             {
@@ -165,7 +169,7 @@ namespace x_phy_wpf_ui.Controls
                     {
                         case "payment_processing":
                             StatusText.Text = "Processing payment...";
-                            StatusText.Foreground = (SolidColorBrush)FindResource("SecondaryTextColor");
+                            StatusText.Foreground = (SolidColorBrush)FindResource("Brush.TextSecondary");
                             ErrorMessageText.Visibility = Visibility.Collapsed;
                             break;
 
@@ -234,6 +238,8 @@ namespace x_phy_wpf_ui.Controls
 
         private string GenerateStripeHtml(string clientSecret, decimal amount)
         {
+            bool isLight = CurrentTheme == Theme.Light;
+            string bodyClass = isLight ? "light" : "dark";
             return $@"
 <!DOCTYPE html>
 <html>
@@ -250,35 +256,80 @@ namespace x_phy_wpf_ui.Controls
         }}
         body {{
             font-family: 'Segoe UI', Arial, sans-serif;
-            background: #ffffff;
-            padding: 20px;
+            background: transparent;
+            padding: 24px 20px 80px 20px;
             min-height: 100vh;
+            display: flex;
+            justify-content: center;
+            align-items: flex-start;
         }}
-        .amount-display {{
-            background: #f6f9fc;
-            border: 1px solid #e3e8ee;
-            border-radius: 8px;
-            padding: 16px;
-            margin-bottom: 24px;
-            text-align: center;
+        body.dark {{ color: #ffffff; }}
+        body.light {{ color: #1A202C; }}
+        .form-container {{
+            width: 100%;
+            max-width: 380px;
+            margin: 0 auto;
         }}
-        .amount-label {{
+        .section-label {{
+            display: block;
+            font-size: 12px;
+            font-weight: 600;
+            margin-bottom: 8px;
+        }}
+        body.dark .section-label {{ color: #ffffff; }}
+        body.light .section-label {{ color: #1A202C; }}
+        .card-info-block {{
+            border-radius: 10px;
+            overflow: hidden;
+            margin-bottom: 0;
+        }}
+        body.dark .card-info-block {{ border: 1px solid rgba(255,255,255,0.4); background: rgba(0,0,0,0.35); }}
+        body.light .card-info-block {{ border: 1px solid #E0E0E0; background: #FFFFFF; }}
+        .card-info-block .element-wrap {{
+            border: none;
+            margin: 0;
+            border-radius: 0;
+            padding: 10px 12px;
+            overflow: hidden;
+        }}
+        body.dark .card-info-block .element-wrap {{ background: transparent; border-bottom: 1px solid rgba(255,255,255,0.25); }}
+        body.light .card-info-block .element-wrap {{ background: transparent; border-bottom: 1px solid #E0E0E0; }}
+        .card-info-block .row-2 .element-wrap {{ border-bottom: none; }}
+        .card-info-block .row-2 {{
+            display: grid;
+            grid-template-columns: 1fr 1fr;
+            gap: 0;
+            margin-bottom: 0;
+        }}
+        body.dark .card-info-block .row-2 > div:first-child .element-wrap {{ border-right: 1px solid rgba(255,255,255,0.25); }}
+        body.light .card-info-block .row-2 > div:first-child .element-wrap {{ border-right: 1px solid #E0E0E0; }}
+        .element-wrap {{
+            border-radius: 10px;
+            padding: 10px 12px;
+            margin-bottom: 12px;
+            overflow: hidden;
+        }}
+        body.dark .element-wrap {{ border: 1px solid rgba(255,255,255,0.4); background: rgba(0,0,0,0.35); }}
+        body.light .element-wrap {{ border: 1px solid #E0E0E0; background: #FFFFFF; }}
+        #cardholder-name {{
+            width: 100%;
+            padding: 10px 12px;
             font-size: 14px;
-            color: #6b7c93;
-            margin-bottom: 4px;
+            font-family: 'Segoe UI', Arial, sans-serif;
+            border-radius: 10px;
+            margin-bottom: 16px;
         }}
-        .amount-value {{
-            font-size: 32px;
-            font-weight: bold;
-            color: #E2156B;
-        }}
+        body.dark #cardholder-name {{ color: #ffffff; background: rgba(0,0,0,0.35); border: 1px solid rgba(255,255,255,0.4); }}
+        body.light #cardholder-name {{ color: #1A202C; background: #FFFFFF; border: 1px solid #E0E0E0; }}
+        body.dark #cardholder-name::placeholder {{ color: #9ca3af; }}
+        body.light #cardholder-name::placeholder {{ color: #718096; }}
         #submit-button {{
             background: #E2156B;
             color: white;
             border: none;
-            border-radius: 8px;
-            padding: 14px 24px;
-            font-size: 16px;
+            border-radius: 10px;
+            padding: 12px 20px;
+            font-size: 14px;
             font-weight: 600;
             width: 100%;
             cursor: pointer;
@@ -292,63 +343,66 @@ namespace x_phy_wpf_ui.Controls
             cursor: not-allowed;
         }}
         #error-message {{
-            color: #e74c3c;
-            font-size: 14px;
-            margin-top: 12px;
-            padding: 12px;
-            background: #fee;
-            border-radius: 4px;
+            font-size: 11px;
+            margin-top: 6px;
+            padding: 4px 0;
+            background: transparent;
+            border: none;
+            border-radius: 0;
             display: none;
+            line-height: 1.3;
         }}
+        body.dark #error-message {{ color: #fca5a5; }}
+        body.light #error-message {{ color: #B91C1C; }}
         .spinner {{
             display: inline-block;
-            width: 16px;
-            height: 16px;
-            border: 3px solid rgba(255,255,255,.3);
+            width: 14px;
+            height: 14px;
+            border: 2px solid rgba(255,255,255,.3);
             border-radius: 50%;
             border-top-color: #fff;
             animation: spin 0.8s ease-in-out infinite;
-            margin-left: 8px;
+            margin-left: 6px;
         }}
+        body.light .spinner {{ border-color: rgba(0,0,0,.15); border-top-color: #1A202C; }}
         @keyframes spin {{
             to {{ transform: rotate(360deg); }}
         }}
+        .field-group {{
+            margin-bottom: 16px;
+        }}
     </style>
 </head>
-<body>
-    <div class=""amount-display"">
-        <div class=""amount-label"">Amount to pay</div>
-        <div class=""amount-value"">${amount:F2}</div>
-    </div>
-
+<body class=""{bodyClass}"">
+    <div class=""form-container"">
     <form id=""payment-form"">
-        <div style=""margin-bottom: 16px;"">
-            <label style=""display: block; font-size: 13px; font-weight: 600; margin-bottom: 6px; color: #374151;"">Card Number</label>
-            <div id=""card-number-element"" style=""border: 1px solid #d1d5db; border-radius: 8px; padding: 12px;""></div>
+        <div class=""field-group"">
+            <span class=""section-label"">Card information</span>
+            <div class=""card-info-block"">
+                <div id=""card-number-element"" class=""element-wrap""></div>
+                <div class=""row-2"">
+                    <div>
+                        <div id=""card-expiry-element"" class=""element-wrap""></div>
+                    </div>
+                    <div>
+                        <div id=""card-cvc-element"" class=""element-wrap""></div>
+                    </div>
+                </div>
+            </div>
         </div>
         
-        <div style=""display: grid; grid-template-columns: 1fr 1fr; gap: 16px; margin-bottom: 16px;"">
-            <div>
-                <label style=""display: block; font-size: 13px; font-weight: 600; margin-bottom: 6px; color: #374151;"">Expiry Date</label>
-                <div id=""card-expiry-element"" style=""border: 1px solid #d1d5db; border-radius: 8px; padding: 12px;""></div>
-            </div>
-            <div>
-                <label style=""display: block; font-size: 13px; font-weight: 600; margin-bottom: 6px; color: #374151;"">CVC</label>
-                <div id=""card-cvc-element"" style=""border: 1px solid #d1d5db; border-radius: 8px; padding: 12px;""></div>
-            </div>
-        </div>
-        
-        <div style=""margin-bottom: 20px;"">
-            <label style=""display: block; font-size: 13px; font-weight: 600; margin-bottom: 6px; color: #374151;"">ZIP Code</label>
-            <div id=""card-postal-element"" style=""border: 1px solid #d1d5db; border-radius: 8px; padding: 12px;""></div>
+        <div class=""field-group"">
+            <span class=""section-label"">Cardholder name</span>
+            <input type=""text"" id=""cardholder-name"" name=""cardholderName"" placeholder=""Full name on card"" autocomplete=""cc-name"" />
         </div>
         
         <button id=""submit-button"" type=""submit"">
-            <span id=""button-text"">Pay ${amount:F2}</span>
+            <span id=""button-text"">Pay Securely</span>
             <span id=""button-spinner"" class=""spinner"" style=""display:none;""></span>
         </button>
         <div id=""error-message""></div>
     </form>
+    </div>
 
     <script>
         (function() {{
@@ -357,83 +411,48 @@ namespace x_phy_wpf_ui.Controls
                 console.log('Stripe key:', '{StripePaymentService.StripePublishableKey}'.substring(0, 20) + '...');
                 console.log('Client secret:', '{clientSecret}'.substring(0, 20) + '...');
                 
-                // Check if Stripe.js loaded
                 if (typeof Stripe === 'undefined') {{
                     throw new Error('Stripe.js failed to load');
                 }}
                 
-                // Initialize Stripe
                 const stripe = Stripe('{StripePaymentService.StripePublishableKey}');
                 console.log('Stripe object created');
                 
-                // Create individual card elements for better UI
                 const elements = stripe.elements();
-                
-                const cardNumberElement = elements.create('cardNumber', {{
-                    style: {{
-                        base: {{
-                            fontSize: '16px',
-                            fontFamily: 'Segoe UI, Arial, sans-serif',
-                            color: '#111827',
-                            '::placeholder': {{ color: '#9ca3af' }}
-                        }},
-                        invalid: {{ 
-                            color: '#dc2626',
-                            iconColor: '#dc2626'
-                        }}
+                const isLight = {isLight.ToString().ToLower()};
+                const elementStyle = isLight ? {{
+                    base: {{
+                        fontSize: '14px',
+                        fontFamily: 'Segoe UI, Arial, sans-serif',
+                        color: '#1A202C',
+                        '::placeholder': {{ color: '#718096' }},
+                        iconColor: '#718096'
+                    }},
+                    invalid: {{ 
+                        color: '#B91C1C',
+                        iconColor: '#B91C1C'
                     }}
-                }});
-                
-                const cardExpiryElement = elements.create('cardExpiry', {{
-                    style: {{
-                        base: {{
-                            fontSize: '16px',
-                            fontFamily: 'Segoe UI, Arial, sans-serif',
-                            color: '#111827',
-                            '::placeholder': {{ color: '#9ca3af' }}
-                        }},
-                        invalid: {{ 
-                            color: '#dc2626',
-                            iconColor: '#dc2626'
-                        }}
+                }} : {{
+                    base: {{
+                        fontSize: '14px',
+                        fontFamily: 'Segoe UI, Arial, sans-serif',
+                        color: '#ffffff',
+                        '::placeholder': {{ color: '#9ca3af' }},
+                        iconColor: '#9ca3af'
+                    }},
+                    invalid: {{ 
+                        color: '#fca5a5',
+                        iconColor: '#fca5a5'
                     }}
-                }});
+                }};
                 
-                const cardCvcElement = elements.create('cardCvc', {{
-                    style: {{
-                        base: {{
-                            fontSize: '16px',
-                            fontFamily: 'Segoe UI, Arial, sans-serif',
-                            color: '#111827',
-                            '::placeholder': {{ color: '#9ca3af' }}
-                        }},
-                        invalid: {{ 
-                            color: '#dc2626',
-                            iconColor: '#dc2626'
-                        }}
-                    }}
-                }});
+                const cardNumberElement = elements.create('cardNumber', {{ style: elementStyle, showIcon: true }});
+                const cardExpiryElement = elements.create('cardExpiry', {{ style: elementStyle }});
+                const cardCvcElement = elements.create('cardCvc', {{ style: elementStyle }});
                 
-                const postalCodeElement = elements.create('postalCode', {{
-                    style: {{
-                        base: {{
-                            fontSize: '16px',
-                            fontFamily: 'Segoe UI, Arial, sans-serif',
-                            color: '#111827',
-                            '::placeholder': {{ color: '#9ca3af' }}
-                        }},
-                        invalid: {{ 
-                            color: '#dc2626',
-                            iconColor: '#dc2626'
-                        }}
-                    }}
-                }});
-                
-                // Mount elements to their containers
                 cardNumberElement.mount('#card-number-element');
                 cardExpiryElement.mount('#card-expiry-element');
                 cardCvcElement.mount('#card-cvc-element');
-                postalCodeElement.mount('#card-postal-element');
                 console.log('Card elements mounted');
                 
                 const form = document.getElementById('payment-form');
@@ -441,8 +460,8 @@ namespace x_phy_wpf_ui.Controls
                 const buttonText = document.getElementById('button-text');
                 const buttonSpinner = document.getElementById('button-spinner');
                 const errorMessage = document.getElementById('error-message');
+                const cardholderInput = document.getElementById('cardholder-name');
                 
-                // Handle card validation errors for all elements
                 const displayError = function(event) {{
                     if (event.error) {{
                         errorMessage.textContent = event.error.message;
@@ -456,22 +475,24 @@ namespace x_phy_wpf_ui.Controls
                 cardExpiryElement.on('change', displayError);
                 cardCvcElement.on('change', displayError);
                 
-                // Handle form submission
                 form.addEventListener('submit', async function(event) {{
                     event.preventDefault();
                     
+                    const cardholderName = (cardholderInput && cardholderInput.value) ? cardholderInput.value.trim() : '';
+                    if (!cardholderName) {{
+                        errorMessage.textContent = 'Please enter the cardholder name.';
+                        errorMessage.style.display = 'block';
+                        return;
+                    }}
+                    
                     submitButton.disabled = true;
+                    buttonText.textContent = 'Processing...';
                     buttonSpinner.style.display = 'inline-block';
                     errorMessage.style.display = 'none';
                     
                     try {{
-                        // Notify C# that processing started
                         try {{
-                            console.log('Attempting to send processing message to C#...');
-                            window.chrome.webview.postMessage(JSON.stringify({{
-                                type: 'payment_processing'
-                            }}));
-                            console.log('Processing message sent successfully');
+                            window.chrome.webview.postMessage(JSON.stringify({{ type: 'payment_processing' }}));
                         }} catch (postError) {{
                             console.error('Failed to send processing message:', postError);
                         }}
@@ -481,7 +502,8 @@ namespace x_phy_wpf_ui.Controls
                             '{clientSecret}',
                             {{
                                 payment_method: {{ 
-                                    card: cardNumberElement
+                                    card: cardNumberElement,
+                                    billing_details: {{ name: cardholderName }}
                                 }}
                             }}
                         );
@@ -492,6 +514,7 @@ namespace x_phy_wpf_ui.Controls
                             errorMessage.style.display = 'block';
                             submitButton.disabled = false;
                             buttonSpinner.style.display = 'none';
+                            buttonText.textContent = 'Pay Again';
                             
                             try {{
                                 console.log('Attempting to send error message to C#...');
@@ -507,28 +530,17 @@ namespace x_phy_wpf_ui.Controls
                             console.log('Payment succeeded! Payment Intent:', paymentIntent);
                             
                             try {{
-                                console.log('Checking webview availability...');
-                                console.log('window.chrome:', typeof window.chrome);
-                                console.log('window.chrome.webview:', typeof window.chrome?.webview);
-                                
                                 if (!window.chrome || !window.chrome.webview) {{
                                     throw new Error('WebView2 communication not available');
                                 }}
-                                
-                                console.log('Attempting to send success message to C#...');
-                                window.chrome.webview.postMessage(JSON.stringify({{
-                                    type: 'payment_success'
-                                }}));
-                                console.log('Success message sent to C#!');
-                                
-                                // Visual feedback
-                                buttonText.textContent = 'Payment Successful!';
-                                buttonSpinner.style.display = 'none';
-                                errorMessage.style.display = 'none';
+                                window.chrome.webview.postMessage(JSON.stringify({{ type: 'payment_success' }}));
                             }} catch (postError) {{
                                 console.error('Failed to send success message to C#:', postError);
                                 errorMessage.textContent = 'Payment succeeded but failed to communicate with application: ' + postError.message;
                                 errorMessage.style.display = 'block';
+                                submitButton.disabled = false;
+                                buttonSpinner.style.display = 'none';
+                                buttonText.textContent = 'Pay Again';
                             }}
                         }}
                     }} catch (e) {{
@@ -537,6 +549,7 @@ namespace x_phy_wpf_ui.Controls
                         errorMessage.style.display = 'block';
                         submitButton.disabled = false;
                         buttonSpinner.style.display = 'none';
+                        buttonText.textContent = 'Pay Again';
                     }}
                 }});
                 
@@ -557,7 +570,7 @@ namespace x_phy_wpf_ui.Controls
         {
             ErrorMessageText.Text = message;
             ErrorMessageText.Visibility = Visibility.Visible;
-            StatusText.Foreground = (SolidColorBrush)FindResource("ErrorColor");
+            StatusText.Foreground = (SolidColorBrush)FindResource("Brush.Error");
             StatusText.Text = "Payment failed. Please try again.";
         }
 

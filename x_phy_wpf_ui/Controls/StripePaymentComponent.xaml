@@ -7,18 +7,10 @@
              mc:Ignorable="d" 
              d:DesignHeight="600" d:DesignWidth="900">
     <UserControl.Resources>
-        <SolidColorBrush x:Key="BackgroundColor" Color="#000000"/>
-        <SolidColorBrush x:Key="SurfaceColor" Color="#1A1A1F"/>
-        <SolidColorBrush x:Key="PrimaryColor" Color="#E2156B"/>
-        <SolidColorBrush x:Key="PrimaryHoverColor" Color="#F0458A"/>
-        <SolidColorBrush x:Key="TextColor" Color="#FFFFFF"/>
-        <SolidColorBrush x:Key="SecondaryTextColor" Color="#999999"/>
-        <SolidColorBrush x:Key="ErrorColor" Color="#EF4444"/>
-        
-        <!-- Back Button Style -->
+        <!-- Theme-aware: use app brushes so Light/Dark match rest of app -->
         <Style x:Key="BackButtonStyle" TargetType="Button">
-            <Setter Property="Background" Value="Transparent"/>
-            <Setter Property="Foreground" Value="{StaticResource SecondaryTextColor}"/>
+            <Setter Property="Background" Value="{DynamicResource Brush.SurfaceHover}"/>
+            <Setter Property="Foreground" Value="{DynamicResource Brush.TextPrimary}"/>
             <Setter Property="FontSize" Value="14"/>
             <Setter Property="FontWeight" Value="Medium"/>
             <Setter Property="Padding" Value="12,8"/>
@@ -38,18 +30,17 @@
             </Setter>
             <Style.Triggers>
                 <Trigger Property="IsMouseOver" Value="True">
-                    <Setter Property="Foreground" Value="{StaticResource TextColor}"/>
-                    <Setter Property="Background" Value="#2A2A2A"/>
+                    <Setter Property="Background" Value="{DynamicResource Brush.Border}"/>
                 </Trigger>
             </Style.Triggers>
         </Style>
     </UserControl.Resources>
 
-    <Grid Background="{StaticResource BackgroundColor}">
+    <Grid Background="Transparent">
         <Grid.RowDefinitions>
             <RowDefinition Height="Auto"/>
             <RowDefinition Height="Auto"/>
-            <RowDefinition Height="*"/>
+            <RowDefinition Height="*" MinHeight="480"/>
             <RowDefinition Height="Auto"/>
         </Grid.RowDefinitions>
 
@@ -67,27 +58,20 @@
                 <TextBlock Text="Complete Your Payment"
                           FontSize="24"
                           FontWeight="Bold"
-                          Foreground="{StaticResource TextColor}"
+                          Foreground="{DynamicResource Brush.TextPrimary}"
                           HorizontalAlignment="Center"/>
                 <TextBlock Text="Securely Complete Your Subscription Purchase."
                           FontSize="14"
-                          Foreground="{StaticResource SecondaryTextColor}"
+                          Foreground="{DynamicResource Brush.TextSecondary}"
                           HorizontalAlignment="Center"
                           Margin="0,6,0,0"/>
-                <TextBlock x:Name="PlanDetailsText"
-                          FontSize="14"
-                          Foreground="{StaticResource SecondaryTextColor}"
-                          HorizontalAlignment="Center"
-                          Margin="0,4,0,0"/>
             </StackPanel>
         </Grid>
 
-        <!-- WebView2 Container -->
+        <!-- WebView2: no wrapper background, just the Stripe form -->
         <Border Grid.Row="2" 
-                Background="White"
-                CornerRadius="8"
+                Background="Transparent"
                 Margin="0,0,0,16">
-            <!-- Source is set dynamically in code-behind after injecting payment details -->
             <wv2:WebView2 x:Name="StripeWebView" 
                          Source="about:blank"/>
         </Border>
@@ -96,7 +80,7 @@
         <StackPanel Grid.Row="3">
             <TextBlock x:Name="StatusText"
                       FontSize="13"
-                      Foreground="{StaticResource SecondaryTextColor}"
+                      Foreground="{DynamicResource Brush.TextSecondary}"
                       TextAlignment="Center"
                       TextWrapping="Wrap"
                       Margin="0,0,0,16"
@@ -104,14 +88,14 @@
 
             <TextBlock x:Name="ErrorMessageText"
                       FontSize="13"
-                      Foreground="{StaticResource ErrorColor}"
+                      Foreground="{DynamicResource Brush.Error}"
                       TextWrapping="Wrap"
                       TextAlignment="Center"
                       Margin="0,0,0,16"
                       Visibility="Collapsed"/>
 
             <TextBlock FontSize="11"
-                      Foreground="{StaticResource SecondaryTextColor}"
+                      Foreground="{DynamicResource Brush.TextSecondary}"
                       TextAlignment="Center"
                       TextWrapping="Wrap">
                 <Run Text="🔒 Secured by Stripe"/>

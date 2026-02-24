@@ -2172,18 +2172,24 @@ videoLiveFakeProportionThreshold = 0.7
             if (ProfileComponent != null && ProfileComponent.Visibility == Visibility.Visible)
                 _ = ProfileComponent.LoadProfileAsync();
 
-            var successWindow = new PaymentSuccessWindow(
-                e.PlanName,
-                e.DurationDays,
-                e.Price,
-                e.PaymentIntentId
-            );
-            successWindow.Show();
-            successWindow.Closed += (s, args) =>
+            // Show payment success as in-app popup (no separate window)
+            var popup = PaymentSuccessOverlayContent.Content as Controls.PaymentSuccessPopup;
+            if (popup == null)
             {
-                UpdateLicenseDisplay();
-                ShowDetectionContent();
-            };
+                popup = new Controls.PaymentSuccessPopup();
+                popup.CloseRequested += PaymentSuccessPopup_CloseRequested;
+                PaymentSuccessOverlayContent.Content = popup;
+            }
+            popup.SetDetails(e.PlanName, e.DurationDays, e.Price, e.PaymentIntentId);
+            StripePaymentComponentContainer.Visibility = Visibility.Collapsed;
+            PaymentSuccessOverlay.Visibility = Visibility.Visible;
+        }
+
+        private void PaymentSuccessPopup_CloseRequested(object sender, EventArgs e)
+        {
+            PaymentSuccessOverlay.Visibility = Visibility.Collapsed;
+            UpdateLicenseDisplay();
+            ShowDetectionContent();
         }
 
         private void OpenResultsFolder_Click(object sender, RoutedEventArgs e)

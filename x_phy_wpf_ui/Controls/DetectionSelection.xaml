@@ -247,18 +247,25 @@
                 </StackPanel>
             </ScrollViewer>
             
-            <!-- Start Detection: smaller, centered (like reference) -->
-            <Button Grid.Row="2" 
-                    Content="Start Detection" 
-                    Style="{StaticResource PrimaryButtonStyle}"
-                    Click="StartDetection_Click"
-                    x:Name="StartDetectionButton"
-                    Margin="0,12,0,0"
-                    HorizontalAlignment="Center"
-                    MinWidth="180"
-                    Width="63"
-                    Padding="24,10"
-                    IsEnabled="False"/>
+            <!-- Start Detection + Cancel: side by side, Cancel on right (secondary like back button) -->
+            <StackPanel Grid.Row="2" 
+                        Orientation="Horizontal" 
+                        HorizontalAlignment="Center" 
+                        Margin="0,12,0,0">
+                <Button Content="Start Detection" 
+                        Style="{StaticResource PrimaryButtonStyle}"
+                        Click="StartDetection_Click"
+                        x:Name="StartDetectionButton"
+                        MinWidth="180"
+                        Padding="24,10"
+                        Margin="0,0,12,0"
+                        IsEnabled="False"/>
+                <Button Content="Cancel" 
+                        Style="{StaticResource SecondaryButtonStyle}"
+                        Click="CancelButton_Click"
+                        MinWidth="120"
+                        Padding="24,10"/>
+            </StackPanel>
         </Grid>
     </Border>
 </UserControl>

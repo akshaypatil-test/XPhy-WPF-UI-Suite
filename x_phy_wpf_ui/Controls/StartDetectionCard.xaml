@@ -76,7 +76,7 @@
             MaxWidth="560"
             HorizontalAlignment="Center"
             VerticalAlignment="Center"
-            ClipToBounds="True">
+            ClipToBounds="True" Width="374">
         <Border.Background>
             <ImageBrush x:Name="BackgroundImageBrush"
                         ImageSource="pack://application:,,,/facebg.png"
@@ -87,7 +87,7 @@
         <StackPanel VerticalAlignment="Center">
             <!-- Figma .start_deep: 20px, Inter, weight 500, white -->
             <StackPanel HorizontalAlignment="Center" Margin="0,0,0,0">
-                <TextBlock Text="Start Deepfake Detection" 
+                <TextBlock Text="Deepfake Detector" 
                            FontSize="20" 
                            FontFamily="Inter, Segoe UI, Sans-Serif"
                            FontWeight="Medium"
@@ -95,7 +95,7 @@
                            HorizontalAlignment="Center"
                            Margin="0,0,0,12"/>
                 <!-- Figma .monitor_me: 14px, Inter, weight 400, white -->
-                <TextBlock Text="Monitor Meetings And Media Streams" 
+                <TextBlock Text="Trust What You See Again" 
                            FontSize="14" 
                            FontFamily="Inter, Segoe UI, Sans-Serif"
                            FontWeight="Normal"
@@ -152,7 +152,7 @@
                            HorizontalAlignment="Center"
                            Visibility="Collapsed"
                            Margin="0,0,0,6"/>
-                <Button Content="Click To Start Detection"
+                <Button Content="Click To Detect"
                         Style="{StaticResource ClickableTextStyle}"
                         Click="StartButton_Click"/>
             </StackPanel>

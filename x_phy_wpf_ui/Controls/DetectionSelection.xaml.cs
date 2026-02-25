@@ -366,7 +366,12 @@ namespace x_phy_wpf_ui.Controls
 
         private void CloseButton_Click(object sender, RoutedEventArgs e)
         {
-            // Trigger cancel event to go back to previous component
+            CancelRequested?.Invoke(this, EventArgs.Empty);
+        }
+
+        private void CancelButton_Click(object sender, RoutedEventArgs e)
+        {
+            // Go back to home (Start Detection card)
             CancelRequested?.Invoke(this, EventArgs.Empty);
         }
     }

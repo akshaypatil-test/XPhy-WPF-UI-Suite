@@ -89,7 +89,7 @@
                                 FontSize="14"
                                 Padding="0,-2,0,0"/>
                             <Button Content="✕" 
-                                Width="40" Height="32" 
+                                Width="50" Height="32" 
                                 Background="Transparent" 
                                 Foreground="{DynamicResource Brush.TextPrimary}"
                                 BorderThickness="0"

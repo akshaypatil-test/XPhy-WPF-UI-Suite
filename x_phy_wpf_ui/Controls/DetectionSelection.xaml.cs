@@ -5,6 +5,7 @@ using System.Linq;
 using System.Windows;
 using System.Windows.Controls;
 using System.Windows.Media;
+using MaterialDesignThemes.Wpf;
 using x_phy_wpf_ui.Models;
 using x_phy_wpf_ui.Services;
 
@@ -147,7 +148,7 @@ namespace x_phy_wpf_ui.Controls
                     Content = CreateProcessButtonContent(process),
                     Style = (Style)FindResource(i == 0 ? "SelectedProcessButtonStyle" : "ProcessButtonStyle"),
                     Tag = process,
-                    Margin = new Thickness(0, 0, 0, 8)
+                    Margin = new Thickness(0, 0, 0, 6)
                 };
                 button.Click += ProcessButton_Click;
                 ProcessesPanel.Children.Add(button);
@@ -163,18 +164,16 @@ namespace x_phy_wpf_ui.Controls
         private StackPanel CreateProcessButtonContent(DetectedProcess process)
         {
             var panel = new StackPanel { Orientation = Orientation.Horizontal };
-            
-            // Camera icon (pink color to match Figma)
-            var iconText = new TextBlock
+            // App/source icon (not video – that’s for Input Type). Pink to match design.
+            var packIcon = new PackIcon
             {
-                Text = "📹", // Camera icon for all processes
-                FontSize = 16,
+                Kind = GetProcessIconKind(process.ProcessType),
+                Width = 22,
+                Height = 22,
                 Margin = new Thickness(0, 0, 10, 0),
                 VerticalAlignment = VerticalAlignment.Center,
-                Foreground = new SolidColorBrush(Color.FromRgb(226, 21, 107)) // Pink color
+                Foreground = new SolidColorBrush(Color.FromRgb(226, 21, 107))
             };
-            
-            // Process name (inherits Foreground from button: dark when unselected, white when selected)
             var processNameText = new TextBlock
             {
                 Text = process.DisplayName,
@@ -184,17 +183,21 @@ namespace x_phy_wpf_ui.Controls
             };
             processNameText.SetBinding(TextBlock.ForegroundProperty,
                 new System.Windows.Data.Binding("Foreground") { RelativeSource = new System.Windows.Data.RelativeSource(System.Windows.Data.RelativeSourceMode.FindAncestor, typeof(Button), 1) });
-            
-            panel.Children.Add(iconText);
+            panel.Children.Add(packIcon);
             panel.Children.Add(processNameText);
-            
             return panel;
         }
 
-        private string GetProcessIcon(string processType)
+        private static PackIconKind GetProcessIconKind(string processType)
         {
-            // Use camera icon for all processes to match Figma design
-            return "📹";
+            // Detection source = which app; use app-style icon (not Video/Microphone, those are Input Type).
+            switch (processType)
+            {
+                case "Browser": return PackIconKind.Web;
+                case "MediaPlayer": return PackIconKind.Television;
+                case "Streaming": return PackIconKind.Broadcast;
+                default: return PackIconKind.Application; // VideoCalling (Zoom, Teams, etc.)
+            }
         }
 
         private void ProcessButton_Click(object sender, RoutedEventArgs e)
@@ -229,7 +232,7 @@ namespace x_phy_wpf_ui.Controls
             {
                 var conferenceVideoButton = new Button
                 {
-                    Content = CreateSourceButtonContent("Conference Video", "📹"),
+                    Content = CreateSourceButtonContent("Conference Video", PackIconKind.Video),
                     Style = (Style)FindResource("SelectedSourceButtonStyle"),
                     Tag = DetectionSource.ZoomConferenceVideo
                 };
@@ -239,7 +242,7 @@ namespace x_phy_wpf_ui.Controls
                 
                 var conferenceAudioButton = new Button
                 {
-                    Content = CreateSourceButtonContent("Conference Audio", "🎤"),
+                    Content = CreateSourceButtonContent("Conference Audio", PackIconKind.Microphone),
                     Style = (Style)FindResource("SourceButtonStyle"),
                     Tag = DetectionSource.ZoomConferenceAudio
                 };
@@ -258,7 +261,7 @@ namespace x_phy_wpf_ui.Controls
                 var videoSource = process.ProcessType == "Browser" ? DetectionSource.YouTubeWebStreamVideo : DetectionSource.VLCWebStreamVideo;
                 var webVideoButton = new Button
                 {
-                    Content = CreateSourceButtonContent("Web Stream Video", "📹"),
+                    Content = CreateSourceButtonContent("Web Stream Video", PackIconKind.Video),
                     Style = (Style)FindResource("SelectedSourceButtonStyle"),
                     Tag = videoSource
                 };
@@ -268,7 +271,7 @@ namespace x_phy_wpf_ui.Controls
                 
                 var webAudioButton = new Button
                 {
-                    Content = CreateSourceButtonContent("Web Stream Audio", "🎤"),
+                    Content = CreateSourceButtonContent("Web Stream Audio", PackIconKind.Microphone),
                     Style = (Style)FindResource("SourceButtonStyle"),
                     Tag = (process.ProcessType == "Browser") ? DetectionSource.YouTubeWebStreamAudio : DetectionSource.VLCWebStreamAudio
                 };
@@ -284,21 +287,18 @@ namespace x_phy_wpf_ui.Controls
             }
         }
 
-        private StackPanel CreateSourceButtonContent(string text, string icon)
+        private StackPanel CreateSourceButtonContent(string text, PackIconKind iconKind)
         {
             var panel = new StackPanel { Orientation = Orientation.Horizontal };
-            
-            // Camera icon (pink color to match Figma)
-            var iconText = new TextBlock
+            var packIcon = new PackIcon
             {
-                Text = icon, // Use the passed icon parameter
-                FontSize = 16,
+                Kind = iconKind,
+                Width = 22,
+                Height = 22,
                 Margin = new Thickness(0, 0, 10, 0),
                 VerticalAlignment = VerticalAlignment.Center,
-                Foreground = new SolidColorBrush(Color.FromRgb(226, 21, 107)) // Pink color
+                Foreground = new SolidColorBrush(Color.FromRgb(226, 21, 107))
             };
-            
-            // Text inherits Foreground from button: dark when unselected, white when selected
             var textBlock = new TextBlock
             {
                 Text = text,
@@ -308,10 +308,8 @@ namespace x_phy_wpf_ui.Controls
             };
             textBlock.SetBinding(TextBlock.ForegroundProperty,
                 new System.Windows.Data.Binding("Foreground") { RelativeSource = new System.Windows.Data.RelativeSource(System.Windows.Data.RelativeSourceMode.FindAncestor, typeof(Button), 1) });
-            
-            panel.Children.Add(iconText);
+            panel.Children.Add(packIcon);
             panel.Children.Add(textBlock);
-            
             return panel;
         }
 

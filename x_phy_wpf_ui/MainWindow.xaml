@@ -121,8 +121,8 @@
             </StackPanel>
         </Grid>
         
-        <!-- Top Navigation Bar -->
-        <Grid Grid.Row="1" Margin="0,10,0,10" Height="64">
+        <!-- Top Navigation Bar (reduced vertical margin so icon+text fit without adding scroll) -->
+        <Grid Grid.Row="1" Margin="0,6,0,6" Height="60">
             <controls:TopNavigationBar x:Name="TopNavBar"
                                        SelectedPage="Home"
                                        HorizontalAlignment="Center"

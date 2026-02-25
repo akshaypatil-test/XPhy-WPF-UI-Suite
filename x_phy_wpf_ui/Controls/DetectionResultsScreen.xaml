@@ -248,7 +248,13 @@
                             </Style>
                         </DataGrid.CellStyle>
                         <DataGrid.Columns>
-                            <DataGridTextColumn Header="Timestamp" Binding="{Binding TimestampDisplay}" Width="1.2*" MinWidth="120">
+                            <DataGridTextColumn Binding="{Binding TimestampDisplay}" Width="1.2*" MinWidth="120" CanUserSort="True">
+                                <DataGridTextColumn.Header>
+                                    <StackPanel Orientation="Horizontal" HorizontalAlignment="Center">
+                                        <TextBlock Text="Timestamp" VerticalAlignment="Center"/>
+                                        <TextBlock Text="▼" FontSize="9" VerticalAlignment="Center" Margin="4,0,0,0" Opacity="0.9"/>
+                                    </StackPanel>
+                                </DataGridTextColumn.Header>
                                 <DataGridTextColumn.ElementStyle>
                                     <Style TargetType="TextBlock">
                                         <Setter Property="HorizontalAlignment" Value="Center"/>

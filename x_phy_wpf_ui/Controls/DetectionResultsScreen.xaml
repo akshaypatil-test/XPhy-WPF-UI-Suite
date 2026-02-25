@@ -248,7 +248,7 @@
                             </Style>
                         </DataGrid.CellStyle>
                         <DataGrid.Columns>
-                            <DataGridTextColumn Header="Timestamp" Binding="{Binding Timestamp, StringFormat='HH:mm MMM d, yyyy'}" Width="1.2*" MinWidth="120">
+                            <DataGridTextColumn Header="Timestamp" Binding="{Binding TimestampDisplay}" Width="1.2*" MinWidth="120">
                                 <DataGridTextColumn.ElementStyle>
                                     <Style TargetType="TextBlock">
                                         <Setter Property="HorizontalAlignment" Value="Center"/>

@@ -63,7 +63,7 @@
             <!-- Detection Completed: title, message, Close + View Result buttons -->
             <StackPanel x:Name="CompletedContentPanel" Grid.Row="1" Visibility="Collapsed">
                 <StackPanel Margin="20,20,20,16">
-                    <TextBlock x:Name="CompletedTitleText" Text="Detection Completed" FontWeight="Bold" FontSize="16" Foreground="#1A1A1A" Margin="0,0,0,8"/>
+                    <TextBlock x:Name="CompletedTitleText" Text="Detection Complete" FontWeight="Bold" FontSize="16" Foreground="#1A1A1A" Margin="0,0,0,8"/>
                     <TextBlock x:Name="CompletedMessageText" Text="No AI Manipulation Found" FontSize="14" Foreground="#333333" TextWrapping="Wrap" Margin="0,0,0,20"/>
                     <Grid>
                         <Grid.ColumnDefinitions>
@@ -124,7 +124,7 @@
             <!-- Detection Completed (AI Manipulated): title, AI Detected + confidence + timestamp, evidence, Close + View Result -->
             <StackPanel x:Name="CompletedWithThreatContentPanel" Grid.Row="1" Visibility="Collapsed">
                 <StackPanel Margin="20,16,20,16">
-                    <TextBlock Text="Detection Completed" FontWeight="Bold" FontSize="16" Foreground="#1A1A1A" Margin="0,0,0,12"/>
+                    <TextBlock Text="Detection Complete" FontWeight="Bold" FontSize="16" Foreground="#1A1A1A" Margin="0,0,0,12"/>
                     <TextBlock x:Name="CompletedThreatAlertText" Text="AI Manipulated Content Detected" FontWeight="Bold" FontSize="14" Foreground="#C41E3A" Margin="0,0,0,4"/>
                     <TextBlock x:Name="CompletedThreatConfidenceText" Text="Confidence 97%" FontWeight="Bold" FontSize="13" Foreground="#C41E3A" Margin="0,0,0,4"/>
                     <TextBlock x:Name="CompletedThreatTimestampText" Text="14:20 Jan 5, 2026" FontSize="12" Foreground="#333333" Margin="0,0,0,12"/>

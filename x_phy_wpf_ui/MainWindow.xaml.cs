@@ -2570,7 +2570,7 @@ videoLiveFakeProportionThreshold = 0.7
             }
             else
             {
-                ShowDetectionCompletedNotification(isAudioDetection ? "Audio: No AI Manipulation Found" : "No AI Manipulation Found", displayPath ?? "", isAudioDetection);
+                ShowDetectionCompletedNotification(isAudioDetection ? "Audio: NOT DETECTED" : "NOT DETECTED", displayPath ?? "", isAudioDetection);
             }
 
             if (isStoppingDetection)

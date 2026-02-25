@@ -76,8 +76,8 @@ namespace x_phy_wpf_ui
             CompletedWithThreatContentPanel.Visibility = Visibility.Collapsed;
             CompletedContentPanel.Visibility = Visibility.Visible;
 
-            CompletedTitleText.Text = isAudio ? "Audio Detection Completed" : "Detection Completed";
-            CompletedMessageText.Text = message ?? (isAudio ? "Audio: No AI Manipulation Found" : "No AI Manipulation Found");
+            CompletedTitleText.Text = isAudio ? "Audio Detection Complete" : "Detection Complete";
+            CompletedMessageText.Text = message ?? (isAudio ? "Audio: NOT DETECTED" : "NOT DETECTED");
             _resultPath = resultPath ?? "";
             _openResultsFolder = openResultsFolder;
             _navigateToResultsPage = navigateToResultsPage;
@@ -94,9 +94,9 @@ namespace x_phy_wpf_ui
             CompletedContentPanel.Visibility = Visibility.Collapsed;
             CompletedWithThreatContentPanel.Visibility = Visibility.Visible;
 
-            CompletedThreatAlertText.Text = isAudio ? "Audio: AI Manipulated Content Detected" : "AI Manipulated Content Detected";
+            CompletedThreatAlertText.Text = isAudio ? "Audio: DEEPFAKE DETECTED" : "DEEPFAKE DETECTED";
             CompletedThreatConfidenceText.Text = $"Confidence {confidencePercent}%";
-            CompletedThreatTimestampText.Text = DateTime.Now.ToString("HH:mm MMM d, yyyy");
+            CompletedThreatTimestampText.Text = DateTime.Now.ToString("dd/MM/yyyy, HH:mm");
             _resultPath = resultPath ?? "";
             _openResultsFolder = openResultsFolder;
             _navigateToResultsPage = navigateToResultsPage;
@@ -121,7 +121,7 @@ namespace x_phy_wpf_ui
 
             AlertTitleText.Text = isAudio ? "Audio: AI Manipulated Content Detected" : "AI Manipulated Content Detected";
             ConfidenceText.Text = $"Confidence {confidencePercent}%";
-            TimestampText.Text = DateTime.Now.ToString("HH:mm MMM d, yyyy");
+            TimestampText.Text = DateTime.Now.ToString("dd/MM/yyyy, HH:mm");
 
             _resultPath = resultPath ?? "";
             _openResultsFolder = openResultsFolder;

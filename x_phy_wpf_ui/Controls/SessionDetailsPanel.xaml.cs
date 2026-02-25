@@ -55,7 +55,7 @@ namespace x_phy_wpf_ui.Controls
             }
             DetailOutcomePill.Effect = null;
 
-            DetailDateAndTime.Text = result.Timestamp.ToString("HH:mm MMM d, yyyy");
+            DetailDateAndTime.Text = result.TimestampDisplay;
             // Show application name (Zoom, Google Chrome, etc.) when available; otherwise "Local"
             DetailMediaSource.Text = !string.IsNullOrEmpty(result.MediaSourceDisplay)
                 ? result.MediaSourceDisplay

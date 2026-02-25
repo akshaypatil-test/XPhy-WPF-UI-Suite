@@ -7,7 +7,12 @@ namespace x_phy_wpf_ui.Models
     /// </summary>
     public class DetectionResultItem
     {
+        /// <summary>Timestamp as stored (UTC from API/DB, or local from current run/local DB). Use TimestampLocal for display.</summary>
         public DateTime Timestamp { get; set; }
+        /// <summary>Timestamp in system local time for display (converts from UTC when applicable).</summary>
+        public DateTime TimestampLocal => Timestamp.Kind == DateTimeKind.Utc ? Timestamp.ToLocalTime() : Timestamp;
+        /// <summary>Formatted for UI: DD/MM/YYYY, HH:mm in local time.</summary>
+        public string TimestampDisplay => TimestampLocal.ToString("dd/MM/yyyy, HH:mm");
         public string Type { get; set; }  // "Video" or "Audio"
         public bool IsAiManipulationDetected { get; set; }
         public int ConfidencePercent { get; set; }

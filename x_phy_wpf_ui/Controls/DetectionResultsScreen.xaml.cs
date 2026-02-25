@@ -169,7 +169,8 @@ namespace x_phy_wpf_ui.Controls
                 bool isAiDetected = (r.Outcome ?? "").Trim().Equals("AI Manipulation Detected", StringComparison.OrdinalIgnoreCase);
                 _items.Add(new DetectionResultItem
                 {
-                    Timestamp = r.Timestamp,
+                    // Backend stores UTC; treat as UTC so TimestampLocal converts to system time for display
+                    Timestamp = r.Timestamp.Kind == DateTimeKind.Utc ? r.Timestamp : DateTime.SpecifyKind(r.Timestamp, DateTimeKind.Utc),
                     Type = r.Type ?? "Video",
                     IsAiManipulationDetected = isAiDetected,
                     ConfidencePercent = (int)Math.Min(100, Math.Max(0, r.DetectionConfidence)),
@@ -261,8 +262,8 @@ namespace x_phy_wpf_ui.Controls
                         foreach (var row in itemsToExport)
                         {
                             w.WriteLine(
-                                "\"{0:yyyy-MM-dd HH:mm:ss}\",\"{1}\",\"{2}\",\"{3}%\",\"{4}\"",
-                                row.Timestamp, row.Type, row.ResultText, row.ConfidencePercent,
+                                "\"{0}\",\"{1}\",\"{2}\",\"{3}%\",\"{4}\"",
+                                row.TimestampDisplay, row.Type, row.ResultText, row.ConfidencePercent,
                                 (row.ResultPathOrId ?? "").Replace("\"", "\"\""));
                         }
                     }

@@ -6,6 +6,7 @@ using System.Linq;
 using System.Windows;
 using System.Windows.Controls;
 using System.Windows.Media;
+using System.Windows.Media.Animation;
 using System.Windows.Media.Imaging;
 using x_phy_wpf_ui.Models;
 
@@ -64,8 +65,7 @@ namespace x_phy_wpf_ui.Controls
 
             _carouselImages.Clear();
             _carouselIndex = 0;
-            CarouselImageLeft.Source = null;
-            CarouselImageRight.Source = null;
+            CarouselImage.Source = null;
             CarouselPrevButton.Visibility = Visibility.Collapsed;
             CarouselNextButton.Visibility = Visibility.Collapsed;
             CarouselCounterText.Visibility = Visibility.Collapsed;
@@ -178,15 +178,14 @@ namespace x_phy_wpf_ui.Controls
             }
         }
 
-        /// <summary>Number of "slides" (each slide shows 2 images: left + right).</summary>
-        private int CarouselSlideCount => (_carouselImages.Count + 1) / 2;
+        /// <summary>Number of slides (one image per slide).</summary>
+        private int CarouselSlideCount => _carouselImages.Count;
 
         private void UpdateCarouselDisplay()
         {
             if (_carouselImages.Count == 0)
             {
-                CarouselImageLeft.Source = null;
-                CarouselImageRight.Source = null;
+                CarouselImage.Source = null;
                 CarouselPrevButton.Visibility = Visibility.Collapsed;
                 CarouselNextButton.Visibility = Visibility.Collapsed;
                 CarouselCounterText.Visibility = Visibility.Collapsed;
@@ -194,10 +193,7 @@ namespace x_phy_wpf_ui.Controls
             }
             var slideCount = CarouselSlideCount;
             _carouselIndex = Math.Max(0, Math.Min(_carouselIndex, slideCount - 1));
-            var leftIdx = 2 * _carouselIndex;
-            var rightIdx = 2 * _carouselIndex + 1;
-            CarouselImageLeft.Source = leftIdx < _carouselImages.Count ? _carouselImages[leftIdx] : null;
-            CarouselImageRight.Source = rightIdx < _carouselImages.Count ? _carouselImages[rightIdx] : null;
+            CarouselImage.Source = _carouselImages[_carouselIndex];
             var showNav = slideCount > 1;
             CarouselPrevButton.Visibility = showNav ? Visibility.Visible : Visibility.Collapsed;
             CarouselNextButton.Visibility = showNav ? Visibility.Visible : Visibility.Collapsed;
@@ -208,15 +204,35 @@ namespace x_phy_wpf_ui.Controls
         private void CarouselPrev_Click(object sender, RoutedEventArgs e)
         {
             if (CarouselSlideCount <= 1) return;
-            _carouselIndex = _carouselIndex <= 0 ? CarouselSlideCount - 1 : _carouselIndex - 1;
-            UpdateCarouselDisplay();
+            var newIndex = _carouselIndex <= 0 ? CarouselSlideCount - 1 : _carouselIndex - 1;
+            TransitionToSlide(newIndex);
         }
 
         private void CarouselNext_Click(object sender, RoutedEventArgs e)
         {
             if (CarouselSlideCount <= 1) return;
-            _carouselIndex = _carouselIndex >= CarouselSlideCount - 1 ? 0 : _carouselIndex + 1;
-            UpdateCarouselDisplay();
+            var newIndex = _carouselIndex >= CarouselSlideCount - 1 ? 0 : _carouselIndex + 1;
+            TransitionToSlide(newIndex);
+        }
+
+        private const int CarouselTransitionDurationMs = 180;
+
+        private void TransitionToSlide(int newIndex)
+        {
+            if (newIndex == _carouselIndex) return;
+            var grid = MediaEvidenceTwoColumnGrid;
+            var fadeOut = new DoubleAnimation(1, 0, TimeSpan.FromMilliseconds(CarouselTransitionDurationMs),
+                FillBehavior.HoldEnd) { EasingFunction = new QuadraticEase { EasingMode = EasingMode.EaseOut } };
+            fadeOut.Completed += (_, __) =>
+            {
+                _carouselIndex = newIndex;
+                UpdateCarouselDisplay();
+                grid.Opacity = 0;
+                var fadeIn = new DoubleAnimation(0, 1, TimeSpan.FromMilliseconds(CarouselTransitionDurationMs),
+                    FillBehavior.HoldEnd) { EasingFunction = new QuadraticEase { EasingMode = EasingMode.EaseIn } };
+                grid.BeginAnimation(UIElement.OpacityProperty, fadeIn);
+            };
+            grid.BeginAnimation(UIElement.OpacityProperty, fadeOut);
         }
 
         private void BackToResults_Click(object sender, RoutedEventArgs e)

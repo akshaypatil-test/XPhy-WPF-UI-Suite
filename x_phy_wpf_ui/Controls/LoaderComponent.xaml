@@ -43,7 +43,8 @@
 
             <!-- Pink X-PHY logo -->
             <Image x:Name="LogoImage"
-                   Source="/x-phy.png" Width="83" Height="48" Stretch="Uniform" HorizontalAlignment="Center" Margin="0,0,0,24">
+                   Source="/x-phy.png" Width="83" Height="48" Stretch="Uniform" HorizontalAlignment="Center" Margin="0,0,0,24"
+                   RenderOptions.BitmapScalingMode="HighQuality">
                 <Image.Effect>
                     <DropShadowEffect Color="{DynamicResource Color.Primary}" BlurRadius="0" ShadowDepth="0" Opacity="0.8"/>
                 </Image.Effect>

@@ -57,7 +57,8 @@
                    Width="57" 
                    Height="32" 
                    Stretch="Uniform"
-                   VerticalAlignment="Center"/>
+                   VerticalAlignment="Center"
+                   RenderOptions.BitmapScalingMode="HighQuality"/>
             
             <!-- Window Controls -->
             <StackPanel Grid.Column="2" Orientation="Horizontal" HorizontalAlignment="Right">

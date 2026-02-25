@@ -17,6 +17,9 @@ namespace x_phy_wpf_ui.Services
 
         public static Theme CurrentTheme { get; private set; } = Theme.Dark;
 
+        /// <summary>Raised after the theme has been applied so UI (e.g. top bar logo) can refresh.</summary>
+        public static event EventHandler ThemeChanged;
+
         public static void ApplyTheme(Theme theme)
         {
             try
@@ -57,6 +60,7 @@ namespace x_phy_wpf_ui.Services
                 System.Diagnostics.Debug.WriteLine($"ThemeManager.ApplyTheme: Theme applied successfully. CurrentTheme is now: {CurrentTheme}");
                 
                 SaveThemePreference(theme);
+                ThemeChanged?.Invoke(null, EventArgs.Empty);
             }
             catch (Exception ex)
             {

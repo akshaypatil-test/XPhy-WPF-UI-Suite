@@ -121,7 +121,17 @@
                                 <ColumnDefinition Width="*"/>
                                 <ColumnDefinition Width="Auto"/>
                             </Grid.ColumnDefinitions>
-                            <Ellipse Grid.Column="0" Width="40" Height="40" Margin="0,0,10,0" Stroke="{DynamicResource Brush.Secondary}" Fill="{DynamicResource Brush.Surface}"/>
+                            <Ellipse Grid.Column="0"
+         Width="40"
+         Height="40"
+         Margin="0,0,10,0"
+         Stroke="{DynamicResource Brush.Secondary}"
+         RenderOptions.BitmapScalingMode="HighQuality">
+                                <Ellipse.Fill>
+                                    <ImageBrush ImageSource="pack://application:,,,/x_phy_wpf_ui;component/profile.jpg"
+                    Stretch="UniformToFill"/>
+                                </Ellipse.Fill>
+                            </Ellipse>
                             <TextBlock Grid.Column="1" x:Name="ProfileFullName" Text="—" FontSize="14" FontWeight="SemiBold" Foreground="{DynamicResource Brush.TextPrimary}" VerticalAlignment="Center"/>
                             <Button Grid.Column="2" Content="Change Password" Style="{StaticResource PinkButton}" Click="ChangePassword_Click" VerticalAlignment="Center" Padding="12,6" FontSize="12"/>
                         </Grid>

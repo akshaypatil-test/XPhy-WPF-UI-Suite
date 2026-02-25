@@ -19,7 +19,7 @@
                    Width="140" 
                    Height="80" 
                    Stretch="Uniform"
-                   />
+                   RenderOptions.BitmapScalingMode="HighQuality"/>
 
             <!-- Main Heading -->
             <TextBlock Text="WELCOME TO X-PHY DEEPFAKE DETECTOR" 

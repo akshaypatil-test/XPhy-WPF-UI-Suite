@@ -20,6 +20,9 @@
                 <ResourceDictionary Source="Resources/Styles/Lists.xaml"/>
             </ResourceDictionary.MergedDictionaries>
             
+            <!-- App-wide font: Roboto embedded (extract your Roboto zip into the Fonts folder and add .ttf files) -->
+            <FontFamily x:Key="AppFontFamily">pack://application:,,,/x_phy_wpf_ui;component/Fonts/#Roboto</FontFamily>
+            
             <!-- Theme Colors -->
             <Color x:Key="Color.Primary">#E2156B</Color>
             <Color x:Key="Color.PrimaryHover">#F0458A</Color>
@@ -109,6 +112,18 @@
             <SolidColorBrush x:Key="AnalyzingColor" Color="#F0C674"/>
             <SolidColorBrush x:Key="RealColor" Color="#22C55E"/>
             <SolidColorBrush x:Key="FakeColor" Color="#E2156B"/>
+            
+            <!-- Default font and high-quality text rendering for all TextBlocks and Controls -->
+            <Style TargetType="TextBlock">
+                <Setter Property="FontFamily" Value="{StaticResource AppFontFamily}"/>
+                <Setter Property="TextOptions.TextFormattingMode" Value="Ideal"/>
+                <Setter Property="TextOptions.TextRenderingMode" Value="ClearType"/>
+            </Style>
+            <Style TargetType="Control">
+                <Setter Property="FontFamily" Value="{StaticResource AppFontFamily}"/>
+                <Setter Property="TextOptions.TextFormattingMode" Value="Ideal"/>
+                <Setter Property="TextOptions.TextRenderingMode" Value="ClearType"/>
+            </Style>
         </ResourceDictionary>
     </Application.Resources>
 </Application>

@@ -25,7 +25,7 @@
                         <ColumnDefinition Width="*"/>
                         <ColumnDefinition Width="Auto"/>
                     </Grid.ColumnDefinitions>
-                    <Image Grid.Column="0" Source="/x-phy-inverted-logo.png" Height="24" Stretch="Uniform" VerticalAlignment="Center" Grid.ColumnSpan="2" Margin="0,0,238,0"/>
+                    <Image Grid.Column="0" Source="/x-phy-inverted-logo.png" Height="24" Stretch="Uniform" VerticalAlignment="Center" Grid.ColumnSpan="2" Margin="0,0,238,0" RenderOptions.BitmapScalingMode="HighQuality"/>
                     <TextBlock x:Name="VersionText" Grid.Column="1" Text="Version: 1.0.10"
                                Foreground="#666666" FontSize="11" VerticalAlignment="Center" Margin="73,0,0,0" HorizontalAlignment="Left"/>
                     <Button Grid.Column="2" Content="✕" Width="24" Height="24"

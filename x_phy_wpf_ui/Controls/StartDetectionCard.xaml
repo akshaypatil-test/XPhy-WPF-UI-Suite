@@ -51,7 +51,7 @@
             <Setter Property="Cursor" Value="Hand"/>
             <Setter Property="Foreground" Value="{StaticResource TextPrimary}"/>
             <Setter Property="FontSize" Value="14"/>
-            <Setter Property="FontFamily" Value="Inter, Segoe UI, Sans-Serif"/>
+            <Setter Property="FontFamily" Value="{StaticResource AppFontFamily}"/>
             <Setter Property="FontWeight" Value="Normal"/>
             <Setter Property="Template">
                 <Setter.Value>
@@ -89,7 +89,7 @@
             <StackPanel HorizontalAlignment="Center" Margin="0,0,0,0">
                 <TextBlock Text="Deepfake Detector" 
                            FontSize="20" 
-                           FontFamily="Inter, Segoe UI, Sans-Serif"
+                           FontFamily="{StaticResource AppFontFamily}"
                            FontWeight="Medium"
                            Foreground="{StaticResource TextPrimary}"
                            HorizontalAlignment="Center"
@@ -97,7 +97,7 @@
                 <!-- Figma .monitor_me: 14px, Inter, weight 400, white -->
                 <TextBlock Text="Trust What You See Again" 
                            FontSize="14" 
-                           FontFamily="Inter, Segoe UI, Sans-Serif"
+                           FontFamily="{StaticResource AppFontFamily}"
                            FontWeight="Normal"
                            Foreground="{StaticResource TextSecondary}"
                            HorizontalAlignment="Center"/>

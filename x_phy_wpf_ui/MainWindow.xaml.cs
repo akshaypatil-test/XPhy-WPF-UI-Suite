@@ -580,8 +580,9 @@ namespace x_phy_wpf_ui
 
         private void MainWindow_Loaded(object sender, RoutedEventArgs e)
         {
-            // Update logo based on theme
+            // Update logo based on theme (and when user changes theme in Settings)
             UpdateLogo();
+            ThemeManager.ThemeChanged += (_, __) => Dispatcher.BeginInvoke(new Action(UpdateLogo));
             
             // Set exact window size (1000x783)
             this.Width = 1000;

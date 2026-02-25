@@ -64,7 +64,8 @@
                            Width="60"
                            Height="32"
                            VerticalAlignment="Bottom"
-                           Margin="16,0,8,0" Stretch="Fill" HorizontalAlignment="Center"/>
+                           Margin="16,0,8,0" Stretch="Fill" HorizontalAlignment="Center"
+                           RenderOptions.BitmapScalingMode="HighQuality"/>
 
                     <!-- Version (next to logo) -->
                     <TextBlock Grid.Column="1"

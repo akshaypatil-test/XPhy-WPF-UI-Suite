@@ -106,5 +106,10 @@
     <Resource Include="..\X-PHY Resource Files\kpi-logo.png">
       <Link>kpi-logo.png</Link>
     </Resource>
+    <Resource Include="..\X-PHY Resource Files\profile.jpg">
+      <Link>profile.jpg</Link>
+    </Resource>
+    <!-- Embedded Roboto font (extract zip into Fonts folder; include .ttf files) -->
+    <Resource Include="Fonts\*.ttf" />
   </ItemGroup>
 </Project>

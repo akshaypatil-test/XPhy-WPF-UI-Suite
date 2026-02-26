@@ -129,23 +129,28 @@
                     <Border Grid.Row="2" x:Name="MediaEvidenceNoManipulationPanel" Background="{DynamicResource Brush.Card}" CornerRadius="8" MinHeight="140" Visibility="Collapsed">
                         <TextBlock x:Name="MediaEvidenceNoManipulationText" Text="No AI Manipulation Found" FontSize="15" FontWeight="SemiBold" Foreground="{StaticResource TealBrush}" HorizontalAlignment="Center" VerticalAlignment="Center"/>
                     </Border>
-                    <!-- When audio: single clickable card (icon + text) opens result directory -->
-                    <Border Grid.Row="2" x:Name="MediaEvidenceAudioPanel" Background="{DynamicResource Brush.Card}" CornerRadius="8" MinHeight="140" Visibility="Collapsed">
+                    <!-- When audio: folder card opens result directory in Explorer (no outer border; inner border has cyan-to-transparent gradient) -->
+                    <Border Grid.Row="2" x:Name="MediaEvidenceAudioPanel" Background="Transparent" CornerRadius="8" MinHeight="160"
+                            BorderThickness="0" Visibility="Collapsed"
+                            VerticalAlignment="Top" HorizontalAlignment="Stretch">
                         <Button x:Name="OpenMediaDirectoryButton" Background="Transparent" BorderThickness="0" Cursor="Hand" Click="OpenMediaDirectory_Click"
-                                VerticalAlignment="Center" HorizontalAlignment="Center" Padding="24,18">
+                                VerticalAlignment="Stretch" HorizontalAlignment="Stretch" Padding="0" MinHeight="160">
                             <Button.Template>
                                 <ControlTemplate TargetType="Button">
-                                    <Border x:Name="Bd" Background="{TemplateBinding Background}" BorderBrush="{DynamicResource Brush.Border}" BorderThickness="1" CornerRadius="8" Padding="{TemplateBinding Padding}">
+                                    <Border x:Name="Bd" Background="#1A232E" BorderBrush="{StaticResource CardBorderBrush}" BorderThickness="1" CornerRadius="8"
+                                            MinWidth="220" MinHeight="140" Padding="24,20"
+                                            VerticalAlignment="Center" HorizontalAlignment="Center">
                                         <StackPanel VerticalAlignment="Center" HorizontalAlignment="Center">
-                                            <Viewbox Width="36" Height="36" Margin="0,0,0,8">
-                                                <Path Fill="{StaticResource TealBrush}" Data="M10 4H4c-1.1 0-1.99.9-1.99 2L2 18c0 1.1.9 2 2 2h16c1.1 0 2-.9 2-2V8c0-1.1-.9-2-2-2h-8l-2-2z"/>
+                                            <Viewbox Width="48" Height="48" Margin="0,0,0,12">
+                                                <Path Fill="#1AB4CC" Data="M10 4H4c-1.1 0-1.99.9-1.99 2L2 18c0 1.1.9 2 2 2h16c1.1 0 2-.9 2-2V8c0-1.1-.9-2-2-2h-8l-2-2z"/>
                                             </Viewbox>
-                                            <TextBlock Text="Open Result Directory" FontSize="13" Foreground="{StaticResource TealBrush}" HorizontalAlignment="Center" TextDecorations="Underline"/>
+                                            <TextBlock Text="Open Result Folder" FontSize="15" FontWeight="SemiBold" Foreground="#1AB4CC" HorizontalAlignment="Center" TextDecorations="Underline"/>
+                                            <TextBlock Text="Opens the results in File Explorer" FontSize="12" Foreground="#A0AEC0" HorizontalAlignment="Center" Margin="0,6,0,0"/>
                                         </StackPanel>
                                     </Border>
                                     <ControlTemplate.Triggers>
                                         <Trigger Property="IsMouseOver" Value="True">
-                                            <Setter TargetName="Bd" Property="Background" Value="{DynamicResource Brush.SurfaceHover}"/>
+                                            <Setter TargetName="Bd" Property="Background" Value="#252E3D"/>
                                         </Trigger>
                                     </ControlTemplate.Triggers>
                                 </ControlTemplate>

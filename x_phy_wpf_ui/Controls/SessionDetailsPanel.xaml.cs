@@ -70,7 +70,9 @@ namespace x_phy_wpf_ui.Controls
             CarouselNextButton.Visibility = Visibility.Collapsed;
             CarouselCounterText.Visibility = Visibility.Collapsed;
 
-            var isAudio = string.Equals(result.Type, "Audio", StringComparison.OrdinalIgnoreCase);
+            var isAudio = string.Equals(result.Type, "Audio", StringComparison.OrdinalIgnoreCase)
+                || (result.Type != null && result.Type.IndexOf("Audio", StringComparison.OrdinalIgnoreCase) >= 0)
+                || string.Equals(result.DetectionTypeDisplay, "Audio", StringComparison.OrdinalIgnoreCase);
             if (isAudio)
             {
                 MediaEvidenceNoManipulationPanel.Visibility = Visibility.Collapsed;

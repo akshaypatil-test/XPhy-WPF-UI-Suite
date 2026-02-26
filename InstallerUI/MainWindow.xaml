@@ -32,7 +32,8 @@
                            Foreground="{StaticResource TextPrimary}"
                            VerticalAlignment="Center"/>
                 <Image Source="/x-phy-inverted-logo.png" Width="80" Height="40"
-                       HorizontalAlignment="Right" VerticalAlignment="Center" Stretch="Fill"/>
+                       HorizontalAlignment="Right" VerticalAlignment="Center" Stretch="Uniform"
+                       RenderOptions.BitmapScalingMode="HighQuality"/>
             </Grid>
         </Border>
 

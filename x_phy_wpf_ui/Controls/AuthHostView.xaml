@@ -69,7 +69,7 @@
 
                     <!-- Version (next to logo) -->
                     <TextBlock Grid.Column="1"
-                               Text="Version: 1.0.10" 
+                               Text="Version: 1.0.0" 
                                FontSize="12" 
                                Foreground="{DynamicResource Brush.TextSecondary}" 
                                VerticalAlignment="Center"

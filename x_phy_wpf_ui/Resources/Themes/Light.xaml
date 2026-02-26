@@ -14,6 +14,8 @@
     <Color x:Key="Color.Background">#F0F4F8</Color>
     <Color x:Key="Color.Surface">#FFFFFF</Color>
     <Color x:Key="Color.SurfaceHover">#F5F5F5</Color>
+    <!-- Slightly darker than SurfaceHover so results grid row hover is more visible in light mode -->
+    <Color x:Key="Color.ResultsRowHover">#E5E5E5</Color>
     <Color x:Key="Color.Card">#FFFFFF</Color>
     
     <!-- Border Colors (Light Theme) -->

@@ -83,7 +83,7 @@ namespace x_phy_wpf_ui.Controls
             var row = e.Row;
             row.MouseEnter += (s, _) =>
             {
-                var hoverBrush = row.TryFindResource("ResultsRowHoverBg") as System.Windows.Media.Brush;
+                var hoverBrush = row.TryFindResource("Brush.ResultsRowHover") as System.Windows.Media.Brush;
                 if (hoverBrush != null) row.Background = hoverBrush;
             };
             row.MouseLeave += (s, _) =>

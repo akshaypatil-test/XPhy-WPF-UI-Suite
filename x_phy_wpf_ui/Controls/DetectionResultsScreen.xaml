@@ -35,7 +35,7 @@
             </Setter>
             <Style.Triggers>
                 <Trigger Property="IsMouseOver" Value="True">
-                    <Setter Property="Background" Value="{DynamicResource Brush.SurfaceHover}"/>
+                    <Setter Property="Background" Value="{DynamicResource Brush.ResultsRowHover}"/>
                 </Trigger>
             </Style.Triggers>
         </Style>
@@ -67,8 +67,7 @@
         <SolidColorBrush x:Key="FieldBlockBg" Color="{DynamicResource Color.Surface}"/>
         <SolidColorBrush x:Key="MetadataRowBg" Color="{DynamicResource Color.Card}"/>
         <SolidColorBrush x:Key="MetadataLabelBrush" Color="{DynamicResource Color.TextPrimary}"/>
-        <!-- Hover: dark desaturated teal/greenish-blue (subtle highlight) -->
-        <SolidColorBrush x:Key="ResultsRowHoverBg" Color="#223A3D"/>
+        <!-- Row hover uses Brush.ResultsRowHover (theme-aware; slightly darker in light mode so hover is visible, dark in dark mode) -->
     </UserControl.Resources>
     <Grid>
         <Grid.RowDefinitions>
@@ -205,7 +204,7 @@
                                 </Setter>
                                 <Style.Triggers>
                                     <Trigger Property="IsMouseOver" Value="True">
-                                        <Setter Property="Background" Value="{StaticResource ResultsRowHoverBg}"/>
+                                        <Setter Property="Background" Value="{DynamicResource Brush.ResultsRowHover}"/>
                                     </Trigger>
                                     <Trigger Property="IsSelected" Value="True">
                                         <Setter Property="Background" Value="{DynamicResource Brush.Card}"/>

@@ -126,6 +126,11 @@ namespace x_phy_wpf_ui.Controls
 
             if (_detectedProcesses.Count == 0)
             {
+                // When no processes: hide titles and status so only the message and buttons show
+                SelectDetectionSourceTitle.Visibility = Visibility.Collapsed;
+                SelectInputTypeHeading.Visibility = Visibility.Collapsed;
+                StatusText.Visibility = Visibility.Collapsed;
+
                 var noProcessesText = new TextBlock
                 {
                     Text = "No relevant processes detected.\n\nPlease start a supported app (e.g. Zoom, Teams, Webex, Slack, Discord, VLC, OBS, or open YouTube in Chrome/Edge/Firefox). Only the top 3 detected apps are shown.",
@@ -139,6 +144,11 @@ namespace x_phy_wpf_ui.Controls
                 ProcessesPanel.Children.Add(noProcessesText);
                 return;
             }
+
+            // When processes are detected: show titles and status
+            SelectDetectionSourceTitle.Visibility = Visibility.Visible;
+            SelectInputTypeHeading.Visibility = Visibility.Visible;
+            StatusText.Visibility = Visibility.Visible;
 
             for (int i = 0; i < _detectedProcesses.Count; i++)
             {

@@ -201,9 +201,9 @@
                 <RowDefinition Height="Auto"/>
             </Grid.RowDefinitions>
             
-            <!-- Header: only "Select Detection Source" + Close -->
+            <!-- Header: only "Select Detection Source" + Close (title hidden when no processes) -->
             <Grid Grid.Row="0" Margin="0,0,0,6">
-                <TextBlock Text="Select Detection Source" 
+                <TextBlock x:Name="SelectDetectionSourceTitle" Text="Select Detection Source" 
                            FontSize="14" 
                            FontWeight="SemiBold" 
                            Foreground="{DynamicResource Brush.TextPrimary}"
@@ -226,8 +226,8 @@
                     <!-- Source buttons (Zoom, VLC, Youtube) - no extra heading -->
                     <StackPanel x:Name="ProcessesPanel" Margin="0,0,0,6"/>
                     
-                    <!-- Only second heading: Select Input Type -->
-                    <TextBlock Text="Select Input Type" 
+                    <!-- Only second heading: Select Input Type (hidden when no processes) -->
+                    <TextBlock x:Name="SelectInputTypeHeading" Text="Select Input Type" 
                                FontSize="13" 
                                FontWeight="SemiBold" 
                                Foreground="{DynamicResource Brush.TextPrimary}"

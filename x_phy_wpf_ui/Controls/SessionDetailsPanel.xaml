@@ -137,20 +137,19 @@
                                 VerticalAlignment="Stretch" HorizontalAlignment="Stretch" Padding="0" MinHeight="160">
                             <Button.Template>
                                 <ControlTemplate TargetType="Button">
-                                    <Border x:Name="Bd" Background="#1A232E" BorderBrush="{StaticResource CardBorderBrush}" BorderThickness="1" CornerRadius="8"
+                                    <Border x:Name="Bd" Background="{DynamicResource Brush.Surface}" BorderBrush="{StaticResource CardBorderBrush}" BorderThickness="1" CornerRadius="8"
                                             MinWidth="220" MinHeight="140" Padding="24,20"
                                             VerticalAlignment="Center" HorizontalAlignment="Center">
                                         <StackPanel VerticalAlignment="Center" HorizontalAlignment="Center">
                                             <Viewbox Width="48" Height="48" Margin="0,0,0,12">
-                                                <Path Fill="#1AB4CC" Data="M10 4H4c-1.1 0-1.99.9-1.99 2L2 18c0 1.1.9 2 2 2h16c1.1 0 2-.9 2-2V8c0-1.1-.9-2-2-2h-8l-2-2z"/>
+                                                <Path Fill="{DynamicResource Brush.Secondary}" Data="M10 4H4c-1.1 0-1.99.9-1.99 2L2 18c0 1.1.9 2 2 2h16c1.1 0 2-.9 2-2V8c0-1.1-.9-2-2-2h-8l-2-2z"/>
                                             </Viewbox>
-                                            <TextBlock Text="Open Result Folder" FontSize="15" FontWeight="SemiBold" Foreground="#1AB4CC" HorizontalAlignment="Center" TextDecorations="Underline"/>
-                                            <TextBlock Text="Opens the results in File Explorer" FontSize="12" Foreground="#A0AEC0" HorizontalAlignment="Center" Margin="0,6,0,0"/>
+                                            <TextBlock Text="Open Result Folder" FontSize="15" FontWeight="SemiBold" Foreground="{DynamicResource Brush.Secondary}" HorizontalAlignment="Center" TextDecorations="Underline"/>
                                         </StackPanel>
                                     </Border>
                                     <ControlTemplate.Triggers>
                                         <Trigger Property="IsMouseOver" Value="True">
-                                            <Setter TargetName="Bd" Property="Background" Value="#252E3D"/>
+                                            <Setter TargetName="Bd" Property="Background" Value="{DynamicResource Brush.SurfaceHover}"/>
                                         </Trigger>
                                     </ControlTemplate.Triggers>
                                 </ControlTemplate>

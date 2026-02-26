@@ -218,7 +218,7 @@
                                        FontSize="13" 
                                        Foreground="{DynamicResource Brush.TextSecondary}"/>
                             <TextBlock x:Name="AppVersionText" 
-                                       Text="V3.2.1" 
+                                       Text="V1.0" 
                                        FontSize="13" 
                                        FontWeight="SemiBold" 
                                        Foreground="{DynamicResource Brush.Secondary}" 
@@ -233,7 +233,7 @@
                                        FontSize="13" 
                                        Foreground="{DynamicResource Brush.TextSecondary}"/>
                             <TextBlock x:Name="BuildNumberText" 
-                                       Text="2023.11.28.1342" 
+                                       Text="2026.03.02" 
                                        FontSize="13" 
                                        FontWeight="SemiBold" 
                                        Foreground="{DynamicResource Brush.Secondary}" 
@@ -248,7 +248,7 @@
                                        FontSize="13" 
                                        Foreground="{DynamicResource Brush.TextSecondary}"/>
                             <TextBlock x:Name="ReleaseDateText" 
-                                       Text="November 28, 2023" 
+                                       Text="02/03/2026" 
                                        FontSize="13" 
                                        FontWeight="SemiBold" 
                                        Foreground="{DynamicResource Brush.Secondary}" 

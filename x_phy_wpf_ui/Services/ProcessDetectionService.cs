@@ -643,5 +643,107 @@ namespace x_phy_wpf_ui.Services
             ShowWindow(hWnd, SW_RESTORE);
             SetForegroundWindow(hWnd);
         }
+
+        /// <summary>
+        /// Finds a top-level window whose title contains the given substring (case-insensitive).
+        /// Used for UWP apps (e.g. Windows 11 Media Player) where the process may have MainWindowHandle zero.
+        /// </summary>
+        public static IntPtr FindWindowByTitleContains(string titleSubstring)
+        {
+            if (string.IsNullOrWhiteSpace(titleSubstring)) return IntPtr.Zero;
+            IntPtr found = IntPtr.Zero;
+            string lower = titleSubstring.Trim().ToLowerInvariant();
+            EnumWindows((hWnd, lParam) =>
+            {
+                if (!IsWindow(hWnd) || (!IsWindowVisible(hWnd) && !IsIconic(hWnd)))
+                    return true;
+                int len = GetWindowTextLength(hWnd);
+                if (len <= 0) return true;
+                var sb = new StringBuilder(len + 1);
+                GetWindowText(hWnd, sb, sb.Capacity);
+                if (sb.ToString().Trim().ToLowerInvariant().IndexOf(lower, StringComparison.Ordinal) >= 0)
+                {
+                    found = hWnd;
+                    return false;
+                }
+                return true;
+            }, IntPtr.Zero);
+            return found;
+        }
+
+        /// <summary>
+        /// Activates or launches the Windows 11 Media Player (UWP). Uses shell AUMID so that if the app
+        /// is already running (including suspended), Windows brings it to the foreground and resumes it.
+        /// </summary>
+        public static bool TryActivateOrLaunchMediaPlayer(string processName)
+        {
+            if (!processName.Equals("Microsoft.Media.Player.exe", StringComparison.OrdinalIgnoreCase))
+                return false;
+            try
+            {
+                // Shell activation with AUMID: launches if not running, activates (resumes from suspended) and brings to foreground if already running
+                var startInfo = new ProcessStartInfo
+                {
+                    FileName = "explorer.exe",
+                    Arguments = "shell:AppsFolder\\Microsoft.ZuneMusic_8wekyb3d8bbwe!Microsoft.ZuneMusic",
+                    UseShellExecute = true,
+                    CreateNoWindow = true
+                };
+                Process.Start(startInfo);
+                return true;
+            }
+            catch
+            {
+                try
+                {
+                    string aliasPath = Environment.GetFolderPath(Environment.SpecialFolder.LocalApplicationData);
+                    aliasPath = System.IO.Path.Combine(aliasPath, "Microsoft", "WindowsApps", "Microsoft.Media.Player.exe");
+                    if (System.IO.File.Exists(aliasPath))
+                    {
+                        Process.Start(new ProcessStartInfo { FileName = aliasPath, UseShellExecute = true });
+                        return true;
+                    }
+                }
+                catch { }
+                try
+                {
+                    Process.Start(new ProcessStartInfo { FileName = "wmplayer.exe", UseShellExecute = true });
+                    return true;
+                }
+                catch { }
+            }
+            return false;
+        }
+
+        /// <summary>
+        /// Ensures the selected media player app is running and brings its window to the foreground.
+        /// For Windows 11 Media Player (UWP), always activates via AUMID so a suspended or minimized app is resumed and shown.
+        /// </summary>
+        public static void EnsureMediaPlayerOpenAndForeground(DetectedProcess selectedProcess)
+        {
+            if (selectedProcess == null) return;
+            bool isWin11MediaPlayer = selectedProcess.ProcessName.Equals("Microsoft.Media.Player.exe", StringComparison.OrdinalIgnoreCase)
+                || (selectedProcess.DisplayName?.IndexOf("Media Player", StringComparison.OrdinalIgnoreCase) >= 0 && selectedProcess.ProcessType == "MediaPlayer");
+
+            if (isWin11MediaPlayer)
+            {
+                // Always activate/launch via AUMID so that suspended or minimized UWP app is resumed and brought to foreground
+                TryActivateOrLaunchMediaPlayer(selectedProcess.ProcessName);
+                System.Threading.Thread.Sleep(2800);
+            }
+
+            IntPtr hWnd = GetWindowHandleForProcess(selectedProcess.ProcessId);
+            if (hWnd == IntPtr.Zero && isWin11MediaPlayer)
+                hWnd = FindWindowByTitleContains("Media Player");
+            if (hWnd == IntPtr.Zero)
+                hWnd = GetWindowHandleForProcess(selectedProcess.ProcessId);
+            if (hWnd == IntPtr.Zero && isWin11MediaPlayer)
+                hWnd = FindWindowByTitleContains("Media Player");
+            if (hWnd != IntPtr.Zero)
+            {
+                ShowWindow(hWnd, SW_RESTORE);
+                SetForegroundWindow(hWnd);
+            }
+        }
     }
 }

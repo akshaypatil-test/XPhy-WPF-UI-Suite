@@ -2351,9 +2351,12 @@ videoLiveFakeProportionThreshold = 0.7
                 DetectionSelectionContainer.Visibility = Visibility.Collapsed;
                 DetectionResultsPanel.Visibility = Visibility.Visible;
 
-                // Minimize MainWindow and bring the selected process window to the foreground
+                // Bring the selected app to the foreground first (so it stays visible when we minimize), then minimize our app
+                if (e.SelectedProcess.ProcessType == "MediaPlayer")
+                    ProcessDetectionService.EnsureMediaPlayerOpenAndForeground(e.SelectedProcess);
+                else
+                    ProcessDetectionService.BringProcessWindowToForeground(e.SelectedProcess.ProcessId);
                 this.WindowState = WindowState.Minimized;
-                ProcessDetectionService.BringProcessWindowToForeground(e.SelectedProcess.ProcessId);
             }
             catch (Exception ex)
             {

@@ -129,6 +129,12 @@ namespace x_phy_wpf_ui.Controls
             NavigateBack?.Invoke(this, EventArgs.Empty);
         }
 
+        private void ResendCode_RequestNavigate(object sender, System.Windows.Navigation.RequestNavigateEventArgs e)
+        {
+            e.Handled = true;
+            ResendCode_Click(sender, e);
+        }
+
         private async void ResendCode_Click(object sender, RoutedEventArgs e)
         {
             if (string.IsNullOrWhiteSpace(_email)) return;

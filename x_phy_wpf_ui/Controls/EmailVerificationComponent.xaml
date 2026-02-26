@@ -122,11 +122,12 @@
                             Style="{StaticResource LaunchButtonStyle}" Click="CreateAccount_Click" IsEnabled="False"/>
                     <Button Grid.Column="2" Content="Back" Style="{StaticResource BackButtonStyle}" Click="Back_Click"/>
                 </Grid>
-                <StackPanel Orientation="Horizontal" HorizontalAlignment="Center" Margin="0,16,0,0">
-                    <TextBlock Text="Didn't receive the code? " FontSize="14" Foreground="{DynamicResource Brush.TextSecondary}"/>
-                    <Button Content="Resend code" Background="Transparent" Foreground="{DynamicResource Brush.Primary}"
-                            FontSize="14" BorderThickness="0" Cursor="Hand" Click="ResendCode_Click" Padding="4,0"/>
-                </StackPanel>
+                <TextBlock FontSize="14" Foreground="{DynamicResource Brush.TextSecondary}" HorizontalAlignment="Center" Margin="0,16,0,0" TextWrapping="NoWrap">
+                    <Run Text="Didn't receive the code? "/>
+                    <Hyperlink Foreground="{DynamicResource Brush.Primary}" RequestNavigate="ResendCode_RequestNavigate" Cursor="Hand">
+                        <Run Text="Resend code"/>
+                    </Hyperlink>
+                </TextBlock>
             </StackPanel>
         </ScrollViewer>
     </Grid>

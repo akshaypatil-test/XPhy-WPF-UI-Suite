@@ -11,7 +11,7 @@ So: **create license → backend activates with LMS (sets expiry) → user runs 
 
 ## MSI project (X-PHY-Setup-WPF-UI-CPU) – standards
 
-- **Output:** The MSI takes the main app (exe + .NET DLLs) from **x_phy_wpf_ui** build output: `..\bin\x_phy_wpf_ui\x64\Release\`. Native DLLs, `config.toml`, and the `models\` folder are taken from **x_phy_wpf_wrapper**: `..\bin\x_phy_wpf_wrapper\x64\Release\`. **Build order:** 1) Build **x_phy_wpf_wrapper** (Release|x64) so that `x_phy_wpf_wrapper\x64\Release` is populated. 2) Build **x_phy_wpf_ui** (Release|x64) so that `x_phy_wpf_ui\x64\Release` exists with the exe and managed DLLs. 3) Build the MSI (X-PHY-Setup-WPF-UI-CPU).
+- **Output:** The MSI takes the main app (exe + .NET DLLs) from **x_phy_wpf_ui** build output: `..\bin\x_phy_wpf_ui\x64\Release\`. Native DLLs, `config.toml`, and the `models\` folder are taken from **x_phy_wpf_wrapper**: `..\bin\x_phy_wpf_wrapper\x64\Release\`. **Build order:** 1) Build **x_phy_wpf_wrapper** (Release|x64) so that `x_phy_wpf_wrapper\x64\Release` is populated. 2) Build **x_phy_wpf_ui** with **Configuration = Release** and **Platform = x64** so that `x_phy_wpf_ui\x64\Release` exists with the exe and all managed DLLs (including **MaterialDesignThemes.Wpf.dll** and **MaterialDesignColors.dll**). 3) Build the MSI (X-PHY-Setup-WPF-UI-CPU). If you build x_phy_wpf_ui with Any CPU or Debug, the MSI may not pick up the correct output and the installed app may fail to start.
 - **Install location:** Default is `[ProgramFilesFolder]X-PHY\`. Overridden by **INSTALLDIR** when the installer is run by InstallerUI (e.g. `INSTALLDIR="C:\Program Files\X-PHY\X-PHY Deepfake Detector"`).
 - **Single app folder (TARGETDIR):** All files (exe, DLLs, config, models, runtimes) go into one folder; no separate Program Menu or Desktop shortcuts from the MSI (InstallerUI creates the desktop shortcut).
 - **.NET requirement:** .NET Framework 4.8 or later (LaunchCondition and bootstrapper). Debug and Release both use 4.8.
@@ -32,6 +32,15 @@ To deploy: place the built MSI (e.g. `X-PHY-Setup-WPF-UI-CPU.msi`) next to `Inst
 **Desktop shortcut:** The **MSI** creates the desktop shortcut (in DesktopFolder) so that when the user uninstalls via Add/Remove Programs, the shortcut is removed. InstallerUI does not create a desktop shortcut (it no longer calls CreateDesktopShortcut).
 
 The MSI project has **no custom dialogs** (all dialog entries in the vdproj User Interface have been removed). The only installer UI is the WPF **InstallerUI** app.
+
+---
+
+## If the app does not start after install
+
+If the app starts from Visual Studio but fails to open after installation (e.g. nothing happens or it closes immediately):
+
+1. **Build and MSI:** Ensure **x_phy_wpf_ui** is built with **Release | x64** (not Any CPU / not Debug). Then rebuild the MSI so it picks up files from `..\bin\x_phy_wpf_ui\x64\Release\`.
+2. **New NuGet packages:** The MSI does **not** auto-include dependencies. When you add a new NuGet package to x_phy_wpf_ui, add the corresponding output DLL(s) to the setup project (vdproj **File** list) so they are installed with the app. For example, **MaterialDesignThemes.Wpf.dll**, **MaterialDesignColors.dll**, and **Microsoft.Xaml.Behaviors.dll** are explicitly listed in the vdproj. After adding new DLLs to the vdproj, **rebuild the setup project** and **reinstall** the MSI (the previously installed app will not get the new files until you do).
 
 ---
 

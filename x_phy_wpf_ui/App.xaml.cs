@@ -58,11 +58,18 @@ namespace x_phy_wpf_ui
             {
                 string appDir = AppDomain.CurrentDomain.BaseDirectory;
                 if (!string.IsNullOrEmpty(appDir) && Directory.Exists(appDir))
-                {
                     Environment.CurrentDirectory = appDir;
-                }
             }
             catch { /* non-fatal */ }
+
+            // Load Material Design theme in code so a missing theme DLL does not crash at XAML parse time.
+            try
+            {
+                var themeUri = new Uri("pack://application:,,,/MaterialDesignThemes.Wpf;component/Themes/MaterialDesignTheme.Defaults.xaml", UriKind.Absolute);
+                var themeDict = new System.Windows.ResourceDictionary { Source = themeUri };
+                Resources.MergedDictionaries.Insert(0, themeDict);
+            }
+            catch { /* non-fatal: icons may be missing */ }
 
             base.OnStartup(e);
 

@@ -8,8 +8,7 @@
         <!-- Enterprise Design System - Centralized Resources -->
         <ResourceDictionary>
             <ResourceDictionary.MergedDictionaries>
-                <!-- Material Design Icons (PackIcon) -->
-                <ResourceDictionary Source="pack://application:,,,/MaterialDesignThemes.Wpf;component/Themes/MaterialDesignTheme.Defaults.xaml"/>
+                <!-- Material Design Icons (PackIcon) - loaded in code so missing/wrong theme does not crash startup -->
                 <!-- Design Tokens -->
                 <ResourceDictionary Source="Resources/Brushes.xaml"/>
                 <ResourceDictionary Source="Resources/Typography.xaml"/>

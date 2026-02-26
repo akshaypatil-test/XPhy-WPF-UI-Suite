@@ -1261,8 +1261,12 @@ videoLiveFakeProportionThreshold = 0.7
 
                 if (controller.IsDetectionRunning())
                 {
-                    MessageBox.Show("Detection is already running.", "Information", 
-                        MessageBoxButton.OK, MessageBoxImage.Information);
+                    Dispatcher.Invoke(() =>
+                    {
+                        ShowAnalyzingScreenWhenDetectionRunning();
+                        MessageBox.Show("Detection is already running.", "Information", 
+                            MessageBoxButton.OK, MessageBoxImage.Information);
+                    });
                     return;
                 }
 
@@ -1601,6 +1605,17 @@ videoLiveFakeProportionThreshold = 0.7
             _deepfakeDetectedDuringRun = false;
         }
 
+        /// <summary>
+        /// Shows the analyzing screen (DetectionResultsPanel) and hides start card/selection when detection is already running.
+        /// Use when user returns to Home tab or clicks Start Detection while detection is running.
+        /// </summary>
+        private void ShowAnalyzingScreenWhenDetectionRunning()
+        {
+            DetectionSelectionContainer.Visibility = Visibility.Collapsed;
+            StartDetectionCard.Visibility = Visibility.Collapsed;
+            DetectionResultsPanel.Visibility = Visibility.Visible;
+        }
+
         private void InitializeStatusTimer()
         {
             statusTimer = new DispatcherTimer();
@@ -1646,7 +1661,10 @@ videoLiveFakeProportionThreshold = 0.7
             {
                 case "Home":
                     ShowDetectionContent();
-                    ResetAppContentToHome();
+                    if (controller != null && controller.IsDetectionRunning())
+                        ShowAnalyzingScreenWhenDetectionRunning();
+                    else
+                        ResetAppContentToHome();
                     break;
                 case "Results":
                     ShowDetectionResultsScreen();
@@ -2285,6 +2303,7 @@ videoLiveFakeProportionThreshold = 0.7
 
                 if (controller.IsDetectionRunning())
                 {
+                    ShowAnalyzingScreenWhenDetectionRunning();
                     MessageBox.Show("Detection is already running.", "Information", 
                         MessageBoxButton.OK, MessageBoxImage.Information);
                     return;
@@ -2319,6 +2338,7 @@ videoLiveFakeProportionThreshold = 0.7
 
                 if (controller.IsDetectionRunning())
                 {
+                    ShowAnalyzingScreenWhenDetectionRunning();
                     MessageBox.Show("Detection is already running.", "Information", 
                         MessageBoxButton.OK, MessageBoxImage.Information);
                     return;

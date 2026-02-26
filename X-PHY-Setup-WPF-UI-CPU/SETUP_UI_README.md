@@ -12,8 +12,8 @@ So: **create license → backend activates with LMS (sets expiry) → user runs 
 ## MSI project (X-PHY-Setup-WPF-UI-CPU) – standards
 
 - **Output:** The MSI takes the main app (exe + .NET DLLs) from **x_phy_wpf_ui** build output: `..\bin\x_phy_wpf_ui\x64\Release\`. Native DLLs, `config.toml`, and the `models\` folder are taken from **x_phy_wpf_wrapper**: `..\bin\x_phy_wpf_wrapper\x64\Release\`. **Build order:** 1) Build **x_phy_wpf_wrapper** (Release|x64) so that `x_phy_wpf_wrapper\x64\Release` is populated. 2) Build **x_phy_wpf_ui** with **Configuration = Release** and **Platform = x64** so that `x_phy_wpf_ui\x64\Release` exists with the exe and all managed DLLs (including **MaterialDesignThemes.Wpf.dll** and **MaterialDesignColors.dll**). 3) Build the MSI (X-PHY-Setup-WPF-UI-CPU). If you build x_phy_wpf_ui with Any CPU or Debug, the MSI may not pick up the correct output and the installed app may fail to start.
-- **Install location:** Default is `[ProgramFilesFolder]X-PHY\`. Overridden by **INSTALLDIR** when the installer is run by InstallerUI (e.g. `INSTALLDIR="C:\Program Files\X-PHY\X-PHY Deepfake Detector"`).
-- **Single app folder (TARGETDIR):** All files (exe, DLLs, config, models, runtimes) go into one folder; no separate Program Menu or Desktop shortcuts from the MSI (InstallerUI creates the desktop shortcut).
+- **Install location:** The MSI install folder uses the **INSTALLDIR** property. Default is `[ProgramFilesFolder]X-PHY\` when INSTALLDIR is not set. When the user selects a custom path in InstallerUI (e.g. `D:\Program Files\X-PHY\`), InstallerUI passes `INSTALLDIR="<path>"` to msiexec, and the MSI installs to that path so installation on any drive works.
+- **Single app folder:** All files (exe, DLLs, config, models, runtimes) go into one folder (INSTALLDIR); no separate Program Menu or Desktop shortcuts from the MSI (InstallerUI creates the desktop shortcut).
 - **.NET requirement:** .NET Framework 4.8 or later (LaunchCondition and bootstrapper). Debug and Release both use 4.8.
 - **Product:** ProductName = "X-PHY Deepfake Detector", Manufacturer = "X-PHY", UpgradeCode and ProductCode for proper install/upgrade/uninstall.
 
@@ -24,7 +24,7 @@ When using the **InstallerUI** WPF application as the installer entry point:
 - **The end user only sees the WPF UI.** The MSI is run silently in the background via:
   `msiexec /i "path" /quiet /norestart INSTALLDIR="<selected path>"`
 - **MSI dialogs are not required.** With `/quiet`, the MSI shows no UI. The WPF app handles Welcome, License, Install Path, Progress, and Finish. The dialogs defined in the vdproj (Welcome, License Agreement, Installation Folder, Progress, Finished) are **never shown** when InstallerUI launches the MSI; they are only used if someone runs the MSI directly (e.g. double‑click the .msi) without using InstallerUI. You can leave them in the vdproj for that case or simplify/remove them if you only ever use InstallerUI.
-- **INSTALLDIR:** The MSI must accept the `INSTALLDIR` property on the command line so the WPF installer can pass the user-selected install path.
+- **INSTALLDIR:** The MSI install folder is bound to the `INSTALLDIR` property (default `[ProgramFilesFolder]X-PHY\`). InstallerUI passes `INSTALLDIR="<selected path>"` on the command line so the app installs to the user-selected path (any drive).
 - **Exit codes:** InstallerUI treats MSI exit code **0** (success) and **3010** (success, restart required) as success; any other code is shown as failure.
 
 To deploy: place the built MSI (e.g. `X-PHY-Setup-WPF-UI-CPU.msi`) next to `InstallerUI.exe` so the WPF app can locate and run it.
@@ -56,7 +56,7 @@ The application that runs when the user double‑clicks the desktop shortcut (or
    - In the vdproj file: see the **ProjectOutput** section; it references:
      - **SourcePath** = `..\bin\x_phy_wpf_ui\x64\Release\x_phy_wpf_ui.exe` (the **x_phy_wpf_ui** project output path; ensure the WPF project is built first).
      - **OutputProjectGuid** = `{F07B28F5-A73F-E45D-141A-CDC56708B059}` (the x_phy_wpf_ui project).
-     - **Folder** = the app folder (e.g. `[ProgramFilesFolder]X-PHY\`; overridden by INSTALLDIR when InstallerUI runs the MSI).
+     - **Folder** = the app folder (property **INSTALLDIR**; default `[ProgramFilesFolder]X-PHY\`; set to user-selected path when InstallerUI runs the MSI).
    - **TargetName** = empty, so the file is installed as **x_phy_wpf_ui.exe**.
 
 2. **In InstallerUI**  

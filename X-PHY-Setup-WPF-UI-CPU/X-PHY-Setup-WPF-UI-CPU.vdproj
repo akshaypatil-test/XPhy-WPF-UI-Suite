@@ -1746,7 +1746,7 @@
             "AlwaysCreate" = "11:FALSE"
             "Condition" = "8:"
             "Transitive" = "11:FALSE"
-            "Property" = "8:TARGETDIR"
+            "Property" = "8:INSTALLDIR"
                 "Folders"
                 {
                     "{9EF0B969-E518-4E46-987F-47570745A589}:_MODELS_FOLDER_KEY"

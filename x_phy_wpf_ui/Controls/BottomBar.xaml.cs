@@ -36,6 +36,13 @@ namespace x_phy_wpf_ui.Controls
                 typeof(BottomBar),
                 new PropertyMetadata(true, OnShowSubscribeButtonChanged));
 
+        public static readonly DependencyProperty ShowContactAdminButtonProperty =
+            DependencyProperty.Register(
+                nameof(ShowContactAdminButton),
+                typeof(bool),
+                typeof(BottomBar),
+                new PropertyMetadata(false, OnShowContactAdminButtonChanged));
+
         public static readonly DependencyProperty AttemptsProperty =
             DependencyProperty.Register(
                 nameof(Attempts),
@@ -59,6 +66,13 @@ namespace x_phy_wpf_ui.Controls
         {
             get => (bool)GetValue(ShowSubscribeButtonProperty);
             set => SetValue(ShowSubscribeButtonProperty, value);
+        }
+
+        /// <summary>When true, show Contact Administrator button (disabled for now). Used for Corp user when license is Expired.</summary>
+        public bool ShowContactAdminButton
+        {
+            get => (bool)GetValue(ShowContactAdminButtonProperty);
+            set => SetValue(ShowContactAdminButtonProperty, value);
         }
 
         public int? Attempts
@@ -111,7 +125,16 @@ namespace x_phy_wpf_ui.Controls
         {
             if (d is BottomBar bottomBar)
             {
-                bottomBar.SubscribeButton.Visibility = (bool)e.NewValue ? Visibility.Visible : Visibility.Collapsed;
+                bool show = (bool)e.NewValue;
+                bottomBar.SubscribeButton.Visibility = show ? Visibility.Visible : Visibility.Collapsed;
+            }
+        }
+
+        private static void OnShowContactAdminButtonChanged(DependencyObject d, DependencyPropertyChangedEventArgs e)
+        {
+            if (d is BottomBar bottomBar && bottomBar.ContactAdminButton != null)
+            {
+                bottomBar.ContactAdminButton.Visibility = (bool)e.NewValue ? Visibility.Visible : Visibility.Collapsed;
             }
         }
 
@@ -129,6 +152,8 @@ namespace x_phy_wpf_ui.Controls
             UpdateRemainingDaysDisplay();
             UpdateAttemptsDisplay();
             SubscribeButton.Visibility = ShowSubscribeButton ? Visibility.Visible : Visibility.Collapsed;
+            if (ContactAdminButton != null)
+                ContactAdminButton.Visibility = ShowContactAdminButton ? Visibility.Visible : Visibility.Collapsed;
         }
 
         private void UpdateStatusDisplay()

@@ -302,58 +302,69 @@ namespace x_phy_wpf_ui
                 return;
             }
 
+            var response = args.LoginResponse;
+            var licenseInfo = response.License ?? (response.User != null
+                ? new LicenseInfo
+                {
+                    Status = string.IsNullOrEmpty(response.User.LicenseStatus) ? "Trial" : response.User.LicenseStatus,
+                    TrialEndsAt = response.User.TrialEndsAt
+                }
+                : null);
+            string licenseStatus = licenseInfo?.Status ?? response.User?.LicenseStatus ?? "Trial";
+            bool isExpiredFromLms = licenseStatus.Trim().Equals("Expired", StringComparison.OrdinalIgnoreCase);
+
             var elapsed = (DateTime.UtcNow - _loaderShownAt).TotalSeconds;
-            if (elapsed < 3.0)
+            if (elapsed < 3.0 && !isExpiredFromLms)
             {
                 var delayMs = (int)((3.0 - elapsed) * 1000);
                 await Task.Delay(delayMs);
             }
 
-            // 2. Run native license validation (Keygen) by creating the controller. If invalid (e.g. machine limit), show error and do not complete login.
+            // 2. When LMS says Expired: allow login without controller; save tokens and show app (expired UI). Otherwise run Keygen validation.
             Dispatcher.Invoke(() =>
             {
-                try
+                if (!isExpiredFromLms)
                 {
-                    string appData = Environment.GetFolderPath(Environment.SpecialFolder.ApplicationData);
-                    string outputDir = Path.Combine(appData, "X-PHY", "X-PHY Deepfake Detector");
-                    Directory.CreateDirectory(outputDir);
-                    string configPath = GetAppDataConfigPath();
-                    controller = new ApplicationControllerWrapper(outputDir, configPath);
-                    controllerInitializationAttempted = true;
-                    System.Diagnostics.Debug.WriteLine("License validation (Keygen) succeeded at sign-in.");
-                    var ctrl = controller;
-                    _inferenceWarmUpTask = Task.Run(() =>
+                    try
                     {
-                        try
+                        string appData = Environment.GetFolderPath(Environment.SpecialFolder.ApplicationData);
+                        string outputDir = Path.Combine(appData, "X-PHY", "X-PHY Deepfake Detector");
+                        Directory.CreateDirectory(outputDir);
+                        string configPath = GetAppDataConfigPath();
+                        controller = new ApplicationControllerWrapper(outputDir, configPath);
+                        controllerInitializationAttempted = true;
+                        System.Diagnostics.Debug.WriteLine("License validation (Keygen) succeeded at sign-in.");
+                        var ctrl = controller;
+                        _inferenceWarmUpTask = Task.Run(() =>
                         {
-                            System.Threading.Thread.Sleep(3000);
-                            var method = ctrl?.GetType().GetMethod("PrepareInferenceEnvironment", Type.EmptyTypes);
-                            if (method != null) method.Invoke(ctrl, null);
-                        }
-                        catch (Exception ex) { System.Diagnostics.Debug.WriteLine($"Warm-up: {ex.Message}"); }
-                    });
+                            try
+                            {
+                                System.Threading.Thread.Sleep(3000);
+                                var method = ctrl?.GetType().GetMethod("PrepareInferenceEnvironment", Type.EmptyTypes);
+                                if (method != null) method.Invoke(ctrl, null);
+                            }
+                            catch (Exception ex) { System.Diagnostics.Debug.WriteLine($"Warm-up: {ex.Message}"); }
+                        });
+                    }
+                    catch (Exception ex)
+                    {
+                        controller = null;
+                        controllerInitializationAttempted = true;
+                        string message = GetControllerInitFailureMessage(ex);
+                        bool isLicenseError = IsLicenseValidationFailure(ex);
+                        string title = isLicenseError ? "License Error" : "Validation Failed";
+                        MessageBox.Show(message, title, MessageBoxButton.OK, MessageBoxImage.Error);
+                        AuthPanel.SetContent(signInComponentOnError);
+                        return;
+                    }
                 }
-                catch (Exception ex)
+                else
                 {
-                    controller = null;
                     controllerInitializationAttempted = true;
-                    string message = GetControllerInitFailureMessage(ex);
-                    bool isLicenseError = IsLicenseValidationFailure(ex);
-                    string title = isLicenseError ? "License Error" : "Validation Failed";
-                    MessageBox.Show(message, title, MessageBoxButton.OK, MessageBoxImage.Error);
-                    AuthPanel.SetContent(signInComponentOnError);
-                    return;
+                    System.Diagnostics.Debug.WriteLine("Login allowed with Expired license from LMS; app will show expired UI.");
                 }
 
-                // 3. License valid: save tokens and complete login.
-                var response = args.LoginResponse;
-                var licenseInfo = response.License ?? (response.User != null
-                    ? new LicenseInfo
-                    {
-                        Status = string.IsNullOrEmpty(response.User.LicenseStatus) ? "Trial" : response.User.LicenseStatus,
-                        TrialEndsAt = response.User.TrialEndsAt
-                    }
-                    : null);
+                // 3. Save tokens and complete login.
                 var tokenStorage = new TokenStorage();
                 tokenStorage.SaveTokens(
                     response.AccessToken,
@@ -380,7 +391,16 @@ namespace x_phy_wpf_ui
                 AuthPanel.SetContent(_signInComponent);
                 return;
             }
+            string licenseStatus = storedTokens?.LicenseInfo?.Status ?? storedTokens?.UserInfo?.LicenseStatus ?? "";
+            bool isExpiredFromLms = licenseStatus.Trim().Equals("Expired", StringComparison.OrdinalIgnoreCase);
+
             WriteLicenseKeyToExeConfig(licenseKey.Trim());
+            if (isExpiredFromLms)
+            {
+                controllerInitializationAttempted = true;
+                ShowAppView();
+                return;
+            }
             try
             {
                 string appData = Environment.GetFolderPath(Environment.SpecialFolder.ApplicationData);
@@ -2900,12 +2920,16 @@ videoLiveFakeProportionThreshold = 0.7
                         daysRemaining = Math.Max(0, (int)Math.Ceiling((licenseInfo.PurchaseDate!.Value.AddDays(durationDays) - DateTime.UtcNow).TotalDays));
                     }
 
+                    bool isCorpUser = string.Equals(userInfo.UserType, "Corp", StringComparison.OrdinalIgnoreCase);
+
                     if (status.Equals("Trial", StringComparison.OrdinalIgnoreCase))
                     {
                         BottomBar.Status = "Trial";
                         BottomBar.RemainingDays = daysRemaining;
                         BottomBar.Attempts = licenseInfo?.TrialAttemptsRemaining;
                         BottomBar.ShowSubscribeButton = true;
+                        BottomBar.ShowContactAdminButton = false;
+                        if (StartDetectionCard != null) { StartDetectionCard.IsLicenseExpired = false; StartDetectionCard.StatusText = "Ready to start detection"; }
                     }
                     else if (licenseInfo != null && status.Equals("Active", StringComparison.OrdinalIgnoreCase))
                     {
@@ -2913,13 +2937,29 @@ videoLiveFakeProportionThreshold = 0.7
                         BottomBar.RemainingDays = daysRemaining;
                         BottomBar.Attempts = null;
                         BottomBar.ShowSubscribeButton = false;
+                        BottomBar.ShowContactAdminButton = false;
+                        if (StartDetectionCard != null) { StartDetectionCard.IsLicenseExpired = false; StartDetectionCard.StatusText = "Ready to start detection"; }
                     }
                     else
                     {
                         BottomBar.Status = "Expired";
                         BottomBar.RemainingDays = 0;
                         BottomBar.Attempts = null;
-                        BottomBar.ShowSubscribeButton = true;
+                        if (isCorpUser)
+                        {
+                            BottomBar.ShowSubscribeButton = false;
+                            BottomBar.ShowContactAdminButton = true;
+                        }
+                        else
+                        {
+                            BottomBar.ShowSubscribeButton = true;
+                            BottomBar.ShowContactAdminButton = false;
+                        }
+                        if (StartDetectionCard != null)
+                        {
+                            StartDetectionCard.IsLicenseExpired = true;
+                            StartDetectionCard.StatusText = "Subscribe To Start Detection";
+                        }
                     }
                 }
                 else
@@ -2928,6 +2968,8 @@ videoLiveFakeProportionThreshold = 0.7
                     BottomBar.RemainingDays = 0;
                     BottomBar.Attempts = null;
                     BottomBar.ShowSubscribeButton = true;
+                    BottomBar.ShowContactAdminButton = false;
+                    if (StartDetectionCard != null) StartDetectionCard.IsLicenseExpired = true;
                 }
                 if (TopNavBar != null && storedTokens == null)
                     TopNavBar.IsAdmin = false;
@@ -2941,7 +2983,9 @@ videoLiveFakeProportionThreshold = 0.7
                     BottomBar.Status = "No License";
                     BottomBar.RemainingDays = 0;
                     BottomBar.ShowSubscribeButton = true;
+                    BottomBar.ShowContactAdminButton = false;
                 }
+                if (StartDetectionCard != null) StartDetectionCard.IsLicenseExpired = true;
                 if (TopNavBar != null)
                     TopNavBar.IsAdmin = false;
             }

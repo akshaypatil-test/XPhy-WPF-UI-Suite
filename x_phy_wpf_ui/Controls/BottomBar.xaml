@@ -79,7 +79,7 @@
                                Foreground="{StaticResource TealColor}" VerticalAlignment="Center"/>
                 </StackPanel>
 
-                <!-- Subscribe Now Button -->
+                <!-- Subscribe Now Button (Non-Corp when expired or trial) -->
                 <Button x:Name="SubscribeButton"
                         Content="Subscribe Now"
                         Foreground="White"
@@ -117,6 +117,42 @@
                                     <Setter Property="Background" Value="#F0458A"/>
                                 </Trigger>
                             </Style.Triggers>
+                        </Style>
+                    </Button.Style>
+                </Button>
+                <!-- Contact Administrator (Corp when expired; disabled for now, functionality later) -->
+                <Button x:Name="ContactAdminButton"
+                        Content="Contact Administrator"
+                        FontSize="14"
+                        FontWeight="SemiBold"
+                        Padding="20,10"
+                        MinWidth="160"
+                        BorderThickness="1"
+                        BorderBrush="{StaticResource TextSecondaryBrush}"
+                        Foreground="{StaticResource TextSecondaryBrush}"
+                        VerticalAlignment="Center"
+                        IsEnabled="False"
+                        Opacity="0.7"
+                        Visibility="Collapsed" Height="37">
+                    <Button.Background>
+                        <SolidColorBrush Color="#1A1F2E"/>
+                    </Button.Background>
+                    <Button.Style>
+                        <Style TargetType="Button">
+                            <Setter Property="Template">
+                                <Setter.Value>
+                                    <ControlTemplate TargetType="Button">
+                                        <Border Background="{TemplateBinding Background}"
+                                               BorderBrush="{TemplateBinding BorderBrush}"
+                                               BorderThickness="{TemplateBinding BorderThickness}"
+                                               CornerRadius="20"
+                                               Padding="{TemplateBinding Padding}">
+                                            <ContentPresenter HorizontalAlignment="Center"
+                                                            VerticalAlignment="Center"/>
+                                        </Border>
+                                    </ControlTemplate>
+                                </Setter.Value>
+                            </Setter>
                         </Style>
                     </Button.Style>
                 </Button>

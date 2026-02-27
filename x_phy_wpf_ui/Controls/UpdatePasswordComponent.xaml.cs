@@ -72,8 +72,8 @@ namespace x_phy_wpf_ui.Controls
 
         private static bool IsValidPassword(string password)
         {
-            if (string.IsNullOrEmpty(password) || password.Length < 8) return false;
-            var regex = new Regex(@"^(?=.*[a-z])(?=.*[A-Z])(?=.*\d)(?=.*[@$!%*?&])[A-Za-z\d@$!%*?&]{8,}$");
+            if (string.IsNullOrEmpty(password) || password.Length < 8 || password.Contains(" ")) return false;
+            var regex = new Regex(@"^(?=.*[a-z])(?=.*[A-Z])(?=.*\d)(?=.*[^a-zA-Z0-9\s])[^\s]{8,}$");
             return regex.IsMatch(password);
         }
 
@@ -90,7 +90,7 @@ namespace x_phy_wpf_ui.Controls
             var newPwd = NewPasswordReveal.Visibility == Visibility.Visible ? NewPasswordReveal.Text : NewPasswordBox.Password;
             var valid = !string.IsNullOrEmpty(newPwd) && IsValidPassword(newPwd);
             NewPasswordErrorText.Visibility = valid ? Visibility.Collapsed : Visibility.Visible;
-            NewPasswordErrorText.Text = valid ? "" : "Min 8 chars, upper, lower, number, special.";
+            NewPasswordErrorText.Text = valid ? "" : "Min 8 chars, upper, lower, number, one special (no spaces).";
         }
 
         private void ValidateConfirmPassword()

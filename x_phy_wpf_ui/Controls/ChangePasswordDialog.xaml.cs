@@ -11,7 +11,7 @@ namespace x_phy_wpf_ui.Controls
         public event EventHandler? UpdatePasswordRequested;
 
         private static readonly Regex PasswordRegex = new Regex(
-            @"^(?=.*[a-z])(?=.*[A-Z])(?=.*\d)(?=.*[@$!%*?&])[A-Za-z\d@$!%*?&]{8,}$");
+            @"^(?=.*[a-z])(?=.*[A-Z])(?=.*\d)(?=.*[^a-zA-Z0-9\s])[^\s]{8,}$");
 
         public ChangePasswordDialog()
         {
@@ -37,7 +37,7 @@ namespace x_phy_wpf_ui.Controls
             }
             if (!PasswordRegex.IsMatch(NewPassword))
             {
-                error = "Password must be at least 8 characters and contain uppercase, lowercase, number, and special character (@$!%*?&).";
+                error = "Password must be at least 8 characters with uppercase, lowercase, number, and at least one special character. Spaces are not allowed.";
                 return false;
             }
             if (NewPassword != ConfirmPassword)
@@ -167,7 +167,7 @@ namespace x_phy_wpf_ui.Controls
             }
             else if (!PasswordRegex.IsMatch(@new))
             {
-                NewErrorText.Text = "Password must be at least 8 characters and contain uppercase, lowercase, number, and special character (@$!%*?&).";
+                NewErrorText.Text = "Password must be at least 8 characters with uppercase, lowercase, number, and at least one special character. Spaces are not allowed.";
                 NewErrorText.Visibility = Visibility.Visible;
                 SetBorderErrorState(NewBorder, true);
             }

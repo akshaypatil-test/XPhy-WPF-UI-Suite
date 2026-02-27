@@ -203,7 +203,7 @@
                                 <TextBlock Text="• Minimum 8 characters" FontSize="11" Foreground="#4ADE80" Margin="0,0,0,4"/>
                                 <TextBlock Text="• One uppercase letter" FontSize="11" Foreground="#4ADE80" Margin="0,0,0,4"/>
                                 <TextBlock Text="• One number" FontSize="11" Foreground="#4ADE80" Margin="0,0,0,4"/>
-                                <TextBlock Text="• One special character" FontSize="11" Foreground="#4ADE80" Margin="0,0,0,0"/>
+                                <TextBlock Text="• At least one special character (no spaces)" FontSize="11" Foreground="#4ADE80" Margin="0,0,0,0"/>
                             </StackPanel>
                         </Border>
                     </Popup>

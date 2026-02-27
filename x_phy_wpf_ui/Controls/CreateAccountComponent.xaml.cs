@@ -345,10 +345,17 @@ namespace x_phy_wpf_ui.Controls
                 PasswordErrorText.Visibility = Visibility.Visible;
                 SetPasswordBoxErrorState(PasswordBox, true);
             }
+            else if (password.Contains(" "))
+            {
+                _isPasswordValid = false;
+                PasswordErrorText.Text = "Password must not contain spaces";
+                PasswordErrorText.Visibility = Visibility.Visible;
+                SetPasswordBoxErrorState(PasswordBox, true);
+            }
             else if (password.Length < 8 || !IsValidPassword(password))
             {
                 _isPasswordValid = false;
-                PasswordErrorText.Text = "Password does not meet requirements";
+                PasswordErrorText.Text = "Min 8 characters, uppercase, lowercase, number, and at least one special character";
                 PasswordErrorText.Visibility = Visibility.Visible;
                 SetPasswordBoxErrorState(PasswordBox, true);
             }
@@ -531,15 +538,19 @@ namespace x_phy_wpf_ui.Controls
                 return;
             }
 
-            if (password.Length < 8)
+            if (password.Contains(" "))
             {
-                ShowError("Password does not meet requirements.");
+                ShowError("Password must not contain spaces.");
                 return;
             }
-
+            if (password.Length < 8)
+            {
+                ShowError("Password must be at least 8 characters with uppercase, lowercase, number, and at least one special character.");
+                return;
+            }
             if (!IsValidPassword(password))
             {
-                ShowError("Password does not meet requirements.");
+                ShowError("Password must be at least 8 characters with uppercase, lowercase, number, and at least one special character.");
                 return;
             }
 
@@ -616,10 +627,12 @@ namespace x_phy_wpf_ui.Controls
 
         private bool IsValidPassword(string password)
         {
+            if (string.IsNullOrEmpty(password) || password.Length < 8 || password.Contains(" "))
+                return false;
             var hasUpper = new Regex(@"[A-Z]");
             var hasLower = new Regex(@"[a-z]");
             var hasNumber = new Regex(@"\d");
-            var hasSpecial = new Regex(@"[@$!%*?&]");
+            var hasSpecial = new Regex(@"[^a-zA-Z0-9\s]"); // at least one special character (no spaces)
 
             return hasUpper.IsMatch(password) &&
                    hasLower.IsMatch(password) &&

@@ -232,7 +232,7 @@
                                         <TextBlock Text="• One uppercase letter" FontSize="11" Foreground="#4ADE80" Margin="0,0,0,4"/>
                                         <TextBlock Text="• One lowercase letter" FontSize="11" Foreground="#4ADE80" Margin="0,0,0,4"/>
                                         <TextBlock Text="• One number" FontSize="11" Foreground="#4ADE80" Margin="0,0,0,4"/>
-                                        <TextBlock Text="• One special character (@$!%*?&amp;)" FontSize="11" Foreground="#4ADE80" Margin="0,0,0,0"/>
+                                        <TextBlock Text="• At least one special character (no spaces)" FontSize="11" Foreground="#4ADE80" Margin="0,0,0,0"/>
                                     </StackPanel>
                                 </Border>
                             </Popup>

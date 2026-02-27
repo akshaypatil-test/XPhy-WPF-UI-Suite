@@ -45,9 +45,9 @@ namespace x_phy_wpf_ui.Controls
 
         private static bool IsValidPassword(string password)
         {
-            if (string.IsNullOrEmpty(password) || password.Length < 8)
+            if (string.IsNullOrEmpty(password) || password.Length < 8 || password.Contains(" "))
                 return false;
-            var regex = new Regex(@"^(?=.*[a-z])(?=.*[A-Z])(?=.*\d)(?=.*[@$!%*?&])[A-Za-z\d@$!%*?&]{8,}$");
+            var regex = new Regex(@"^(?=.*[a-z])(?=.*[A-Z])(?=.*\d)(?=.*[^a-zA-Z0-9\s])[^\s]{8,}$");
             return regex.IsMatch(password);
         }
 
@@ -78,7 +78,7 @@ namespace x_phy_wpf_ui.Controls
 
             if (!IsValidPassword(newPwd))
             {
-                NewPasswordErrorText.Text = "Password must be at least 8 characters and contain uppercase, lowercase, number, and special character.";
+                NewPasswordErrorText.Text = "Password must be at least 8 characters with uppercase, lowercase, number, and at least one special character. Spaces are not allowed.";
                 NewPasswordErrorText.Visibility = Visibility.Visible;
                 return;
             }

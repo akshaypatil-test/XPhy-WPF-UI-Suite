@@ -326,6 +326,8 @@ namespace x_phy_wpf_ui.Controls
 
         private void Back_Click(object sender, RoutedEventArgs e) => BackRequested?.Invoke(this, EventArgs.Empty);
 
+        private void Close_Click(object sender, RoutedEventArgs e) => BackRequested?.Invoke(this, EventArgs.Empty);
+
         private void UpdatePassword_Click(object sender, RoutedEventArgs e) => UpdatePasswordRequested?.Invoke(this, EventArgs.Empty);
     }
 }

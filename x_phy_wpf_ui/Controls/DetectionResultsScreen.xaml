@@ -76,7 +76,7 @@
         </Grid.RowDefinitions>
 
         <!-- List view: DETECTION RESULTS table (scrollable; buttons are in row below) -->
-        <ScrollViewer x:Name="ResultsListView" Grid.Row="0" VerticalScrollBarVisibility="Hidden" HorizontalScrollBarVisibility="Disabled" PreviewMouseWheel="ResultsListView_PreviewMouseWheel">
+        <ScrollViewer x:Name="ResultsListView" Grid.Row="0" VerticalScrollBarVisibility="Hidden" HorizontalScrollBarVisibility="Disabled" PreviewMouseWheel="ResultsListView_PreviewMouseWheel" FocusVisualStyle="{x:Null}">
             <Grid Margin="0,0,0,0" HorizontalAlignment="Stretch">
                 <Grid.RowDefinitions>
                     <RowDefinition Height="Auto"/>
@@ -112,8 +112,8 @@
                         <TextBlock Text="No results to show" FontSize="15" Foreground="{StaticResource TextSecondaryBrush}"/>
                     </Border>
                     <!-- Results Table: cyan top border + glass look -->
-                    <Border x:Name="ResultsTablePanel" CornerRadius="8" Margin="0,0,0,0" BorderBrush="{StaticResource PanelGlowBorder}" BorderThickness="0,1,0,0" HorizontalAlignment="Stretch">
-                    <Border CornerRadius="8" Padding="0" UseLayoutRounding="True">
+                    <Border x:Name="ResultsTablePanel" CornerRadius="8" Margin="0,0,0,0" BorderBrush="{StaticResource PanelGlowBorder}" BorderThickness="0,1,0,0" HorizontalAlignment="Stretch" Focusable="False">
+                    <Border CornerRadius="8" Padding="0" UseLayoutRounding="True" Focusable="False">
                         <Border.Background>
                             <LinearGradientBrush StartPoint="0,0" EndPoint="0,1">
                                 <GradientStop Color="#1AFFFFFF" Offset="0"/>

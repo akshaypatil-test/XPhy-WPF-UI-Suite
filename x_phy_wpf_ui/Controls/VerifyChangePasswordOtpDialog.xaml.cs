@@ -9,6 +9,7 @@ namespace x_phy_wpf_ui.Controls
     {
         public event EventHandler? VerifyRequested;
         public event EventHandler? ResendRequested;
+        public event EventHandler? CloseRequested;
 
         private readonly TextBox[] _otpBoxes;
 
@@ -94,6 +95,8 @@ namespace x_phy_wpf_ui.Controls
         }
 
         private void Verify_Click(object sender, RoutedEventArgs e) => VerifyRequested?.Invoke(this, EventArgs.Empty);
+
+        private void Close_Click(object sender, RoutedEventArgs e) => CloseRequested?.Invoke(this, EventArgs.Empty);
 
         private void Resend_MouseDown(object sender, MouseButtonEventArgs e)
         {

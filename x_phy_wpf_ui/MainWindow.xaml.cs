@@ -190,6 +190,7 @@ namespace x_phy_wpf_ui
             _changePasswordDialog.UpdatePasswordRequested += ChangePasswordDialog_UpdatePasswordRequested;
             _verifyChangePasswordOtpDialog.VerifyRequested += VerifyChangePasswordOtpDialog_VerifyRequested;
             _verifyChangePasswordOtpDialog.ResendRequested += VerifyChangePasswordOtpDialog_ResendRequested;
+            _verifyChangePasswordOtpDialog.CloseRequested += (s, ev) => { ChangePasswordOverlay.Visibility = Visibility.Collapsed; };
 
             // Initial app start: Welcome → Get Started (Launch) → Sign In / Create Account / Corporate Sign In
             _welcomeComponent.NavigateToLaunch += (s, e) => { AuthPanel.SetContent(_launchComponent); };

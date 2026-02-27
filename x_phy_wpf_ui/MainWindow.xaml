@@ -251,7 +251,7 @@
             <Border HorizontalAlignment="Center" VerticalAlignment="Center" MinWidth="420" MaxWidth="480"
                     Background="{DynamicResource Brush.Card}" BorderBrush="{DynamicResource Brush.Secondary}"
                     BorderThickness="2" CornerRadius="12" Padding="32,28">
-                <ContentControl x:Name="ChangePasswordOverlayContent"/>
+                <ContentControl x:Name="ChangePasswordOverlayContent" FocusVisualStyle="{x:Null}"/>
             </Border>
         </Grid>
 
@@ -263,7 +263,7 @@
                 <Border.Effect>
                     <DropShadowEffect BlurRadius="24" ShadowDepth="0" Opacity="0.4" Color="Black"/>
                 </Border.Effect>
-                <ContentControl x:Name="PaymentSuccessOverlayContent"/>
+                <ContentControl x:Name="PaymentSuccessOverlayContent" FocusVisualStyle="{x:Null}"/>
             </Border>
         </Grid>
         </Grid>

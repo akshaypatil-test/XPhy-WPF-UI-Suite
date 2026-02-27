@@ -2152,9 +2152,10 @@ videoLiveFakeProportionThreshold = 0.7
                     var tokenStorage = new TokenStorage();
                     var tokens = tokenStorage.GetTokens();
                     if (tokens == null) return;
-                    // Do not show single/multiple source notifications when license is Expired
-                    var status = tokens.LicenseInfo?.Status ?? tokens.UserInfo?.LicenseStatus ?? "";
-                    if (status.Trim().Equals("Expired", StringComparison.OrdinalIgnoreCase)) return;
+                    // Do not show single/multiple source notifications when Start Detection card is disabled (Expired or Trial with 0 attempts)
+                    var status = (tokens.LicenseInfo?.Status ?? tokens.UserInfo?.LicenseStatus ?? "").Trim();
+                    if (status.Equals("Expired", StringComparison.OrdinalIgnoreCase)) return;
+                    if (status.Equals("Trial", StringComparison.OrdinalIgnoreCase) && (tokens.LicenseInfo?.TrialAttemptsRemaining ?? 0) == 0) return;
                 }
                 catch { return; }
                 // Do not show single/multiple process notifications when detection is already running
@@ -3060,7 +3061,13 @@ videoLiveFakeProportionThreshold = 0.7
                         BottomBar.Attempts = licenseInfo?.TrialAttemptsRemaining;
                         BottomBar.ShowSubscribeButton = true;
                         BottomBar.ShowContactAdminButton = false;
-                        if (StartDetectionCard != null) { StartDetectionCard.IsLicenseExpired = false; StartDetectionCard.StatusText = "Ready to start detection"; }
+                        // When trial attempts are zero, disable Start Detection card (grey overlay, "Subscribe To Start Detection")
+                        bool trialAttemptsExhausted = (licenseInfo?.TrialAttemptsRemaining ?? 0) == 0;
+                        if (StartDetectionCard != null)
+                        {
+                            StartDetectionCard.IsLicenseExpired = trialAttemptsExhausted;
+                            StartDetectionCard.StatusText = trialAttemptsExhausted ? "Subscribe To Start Detection" : "Ready to start detection";
+                        }
                     }
                     else if (licenseInfo != null && status.Equals("Active", StringComparison.OrdinalIgnoreCase))
                     {

@@ -52,8 +52,8 @@
                                Foreground="{StaticResource TealColor}" HorizontalAlignment="Center" VerticalAlignment="Center"/>
                 </StackPanel>
 
-                <!-- Remain: X Days -->
-                <StackPanel Orientation="Horizontal" Margin="0,0,20,0">
+                <!-- Remain: X Days (hidden when Status is Expired) -->
+                <StackPanel x:Name="RemainDaysPanel" Orientation="Horizontal" Margin="0,0,20,0">
                     <TextBlock Text="Remain: " 
                                FontSize="13" 
                                Foreground="{StaticResource TextSecondaryBrush}" VerticalAlignment="Center"/>

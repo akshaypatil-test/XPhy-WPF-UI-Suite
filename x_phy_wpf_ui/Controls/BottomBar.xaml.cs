@@ -179,6 +179,9 @@ namespace x_phy_wpf_ui.Controls
                     StatusText.Foreground = new SolidColorBrush(Color.FromRgb(27, 180, 204)); // Teal (default)
                     break;
             }
+            // When Expired: hide Remain days and Attempts; show only Status Expired and Subscribe Now
+            if (RemainDaysPanel != null)
+                RemainDaysPanel.Visibility = Status?.Equals("Expired", StringComparison.OrdinalIgnoreCase) == true ? Visibility.Collapsed : Visibility.Visible;
             UpdateAttemptsDisplay();
         }
 

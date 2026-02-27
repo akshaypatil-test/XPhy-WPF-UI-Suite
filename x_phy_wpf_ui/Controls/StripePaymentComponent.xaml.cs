@@ -218,12 +218,13 @@ namespace x_phy_wpf_ui.Controls
                             MainWindow.WriteLicenseKeyToExeConfig(confirmResponse.License.Key);
                     }
 
-                    PaymentSuccess?.Invoke(this, new PaymentSuccessEventArgs(
-                        _plan.Name,
-                        _plan.DurationDays,
-                        _plan.Price,
-                        _paymentIntentId
-                    ));
+                    // Show "Please wait..." on UI and defer raising PaymentSuccess so the status is visible before MainWindow starts setup.
+                    var args = new PaymentSuccessEventArgs(_plan.Name, _plan.DurationDays, _plan.Price, _paymentIntentId);
+                    Dispatcher.Invoke(() => StatusText.Text = "Please wait...");
+                    Dispatcher.BeginInvoke(new Action(() =>
+                    {
+                        PaymentSuccess?.Invoke(this, args);
+                    }), System.Windows.Threading.DispatcherPriority.ApplicationIdle);
                 }
                 else
                 {

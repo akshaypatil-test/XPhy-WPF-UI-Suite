@@ -323,6 +323,7 @@ namespace x_phy_wpf_ui
             // 2. When LMS says Expired: allow login without controller; save tokens and show app (expired UI). Otherwise run Keygen validation.
             Dispatcher.Invoke(() =>
             {
+                var tokenStorage = new TokenStorage();
                 if (!isExpiredFromLms)
                 {
                     try
@@ -350,6 +351,37 @@ namespace x_phy_wpf_ui
                     {
                         controller = null;
                         controllerInitializationAttempted = true;
+                        if (IsLicenseExpiredFailure(ex))
+                        {
+                            System.Diagnostics.Debug.WriteLine("Login: Keygen reported license expired; allowing login and showing expired UI.");
+                            var expiredLicenseInfo = licenseInfo != null
+                                ? new LicenseInfo
+                                {
+                                    Key = licenseInfo.Key,
+                                    Status = "Expired",
+                                    MaxDevices = licenseInfo.MaxDevices,
+                                    TrialAttemptsRemaining = 0,
+                                    TrialEndsAt = licenseInfo.TrialEndsAt,
+                                    PurchaseDate = licenseInfo.PurchaseDate,
+                                    ExpiryDate = licenseInfo.ExpiryDate,
+                                    PlanId = licenseInfo.PlanId,
+                                    PlanName = licenseInfo.PlanName
+                                }
+                                : new LicenseInfo { Key = args.LicenseKey?.Trim(), Status = "Expired" };
+                            var userExpired = response.User != null ? new UserInfo { Id = response.User.Id, Username = response.User.Username, LicenseStatus = "Expired", TrialEndsAt = response.User.TrialEndsAt, UserType = response.User.UserType } : response.User;
+                            tokenStorage.SaveTokens(
+                                response.AccessToken,
+                                response.RefreshToken,
+                                response.ExpiresIn,
+                                response.User.Id,
+                                response.User.Username,
+                                userExpired,
+                                expiredLicenseInfo,
+                                args.RememberMe
+                            );
+                            ShowAppView();
+                            return;
+                        }
                         string message = GetControllerInitFailureMessage(ex);
                         bool isLicenseError = IsLicenseValidationFailure(ex);
                         string title = isLicenseError ? "License Error" : "Validation Failed";
@@ -364,16 +396,19 @@ namespace x_phy_wpf_ui
                     System.Diagnostics.Debug.WriteLine("Login allowed with Expired license from LMS; app will show expired UI.");
                 }
 
-                // 3. Save tokens and complete login.
-                var tokenStorage = new TokenStorage();
+                // 3. Normalize license (Expired + 0 attempts if actually expired) so we never persist stale Trial from DB; save with user LicenseStatus in sync.
+                var licenseToSave = NormalizeLicenseFromApi(licenseInfo) ?? licenseInfo;
+                var userToSave = response.User != null
+                    ? new UserInfo { Id = response.User.Id, Username = response.User.Username, LicenseStatus = licenseToSave.Status, TrialEndsAt = response.User.TrialEndsAt, UserType = response.User.UserType }
+                    : response.User;
                 tokenStorage.SaveTokens(
                     response.AccessToken,
                     response.RefreshToken,
                     response.ExpiresIn,
                     response.User.Id,
                     response.User.Username,
-                    response.User,
-                    licenseInfo,
+                    userToSave,
+                    licenseToSave,
                     args.RememberMe
                 );
                 ShowAppView();
@@ -426,6 +461,29 @@ namespace x_phy_wpf_ui
             {
                 controller = null;
                 controllerInitializationAttempted = true;
+                if (IsLicenseExpiredFailure(ex))
+                {
+                    System.Diagnostics.Debug.WriteLine("TryValidateStoredTokens: Keygen reported license expired; showing app with expired UI.");
+                    var stored = tokenStorage.GetTokens();
+                    if (stored?.LicenseInfo != null)
+                    {
+                        var updated = new LicenseInfo
+                        {
+                            Key = stored.LicenseInfo.Key,
+                            Status = "Expired",
+                            MaxDevices = stored.LicenseInfo.MaxDevices,
+                            TrialAttemptsRemaining = stored.LicenseInfo.TrialAttemptsRemaining,
+                            TrialEndsAt = stored.LicenseInfo.TrialEndsAt,
+                            PurchaseDate = stored.LicenseInfo.PurchaseDate,
+                            ExpiryDate = stored.LicenseInfo.ExpiryDate,
+                            PlanId = stored.LicenseInfo.PlanId,
+                            PlanName = stored.LicenseInfo.PlanName
+                        };
+                        tokenStorage.UpdateUserAndLicense(stored.UserInfo, updated);
+                    }
+                    ShowAppView();
+                    return;
+                }
                 string message = GetControllerInitFailureMessage(ex);
                 bool isLicenseError = IsLicenseValidationFailure(ex);
                 string title = isLicenseError ? "License Error" : "Validation Failed";
@@ -1082,6 +1140,45 @@ videoLiveFakeProportionThreshold = 0.7
                 
                 System.Diagnostics.Debug.WriteLine("========================================");
                 
+                // Set controller to null so we can check for it later
+                controller = null;
+
+                if (IsLicenseExpiredFailure(ex))
+                {
+                    // Don't show pop-up: treat as expired and show Home with disabled detection + Expired status
+                    System.Diagnostics.Debug.WriteLine("Controller init failed with license expired; updating stored license to Expired and refreshing UI.");
+                    Dispatcher.BeginInvoke(new Action(() =>
+                    {
+                        try
+                        {
+                            var tokenStorage = new TokenStorage();
+                            var stored = tokenStorage.GetTokens();
+                            if (stored?.LicenseInfo != null)
+                            {
+                                var updated = new LicenseInfo
+                                {
+                                    Key = stored.LicenseInfo.Key,
+                                    Status = "Expired",
+                                    MaxDevices = stored.LicenseInfo.MaxDevices,
+                                    TrialAttemptsRemaining = stored.LicenseInfo.TrialAttemptsRemaining,
+                                    TrialEndsAt = stored.LicenseInfo.TrialEndsAt,
+                                    PurchaseDate = stored.LicenseInfo.PurchaseDate,
+                                    ExpiryDate = stored.LicenseInfo.ExpiryDate,
+                                    PlanId = stored.LicenseInfo.PlanId,
+                                    PlanName = stored.LicenseInfo.PlanName
+                                };
+                                tokenStorage.UpdateUserAndLicense(stored.UserInfo, updated);
+                            }
+                            UpdateLicenseDisplay();
+                        }
+                        catch (Exception updateEx)
+                        {
+                            System.Diagnostics.Debug.WriteLine($"Failed to update license to Expired: {updateEx.Message}");
+                        }
+                    }), DispatcherPriority.Normal);
+                    return;
+                }
+
                 // Show error (license) or warning (other); match old app title for license errors
                 string userMessage = GetControllerInitFailureMessage(ex);
                 bool isLicenseError = IsLicenseValidationFailure(ex);
@@ -1091,9 +1188,6 @@ videoLiveFakeProportionThreshold = 0.7
                 {
                     MessageBox.Show(userMessage, title, MessageBoxButton.OK, icon);
                 }), DispatcherPriority.Normal);
-                
-                // Set controller to null so we can check for it later
-                controller = null;
                 // Note: controllerInitializationAttempted is already set to true above,
                 // but if forceRetry was used, it will be reset on next call
             }
@@ -1112,6 +1206,15 @@ videoLiveFakeProportionThreshold = 0.7
                    lower.Contains("unable to validate license") ||
                    lower.Contains("server returned") ||
                    lower.Contains("could not verify");
+        }
+
+        /// <summary>True when the exception indicates the license has expired (Keygen). Use to show expired UI instead of blocking.</summary>
+        private static bool IsLicenseExpiredFailure(Exception ex)
+        {
+            string msg = ex?.Message ?? "";
+            string inner = ex?.InnerException?.Message ?? "";
+            string lower = (msg + " " + inner).ToLowerInvariant();
+            return lower.Contains("license") && lower.Contains("expired");
         }
 
         /// <summary>
@@ -2046,7 +2149,11 @@ videoLiveFakeProportionThreshold = 0.7
                 try
                 {
                     var tokenStorage = new TokenStorage();
-                    if (tokenStorage.GetTokens() == null) return;
+                    var tokens = tokenStorage.GetTokens();
+                    if (tokens == null) return;
+                    // Do not show single/multiple source notifications when license is Expired
+                    var status = tokens.LicenseInfo?.Status ?? tokens.UserInfo?.LicenseStatus ?? "";
+                    if (status.Trim().Equals("Expired", StringComparison.OrdinalIgnoreCase)) return;
                 }
                 catch { return; }
                 // Do not show single/multiple process notifications when detection is already running
@@ -2203,49 +2310,67 @@ videoLiveFakeProportionThreshold = 0.7
 
         private void StripePaymentComponent_PaymentSuccess(object sender, PaymentSuccessEventArgs e)
         {
-            // Refresh bottom bar immediately with new plan status (tokens were already updated by StripePaymentComponent)
-            UpdateLicenseDisplay();
-            // Deferred refresh in case token file wasn't flushed yet
-            Dispatcher.BeginInvoke(new Action(UpdateLicenseDisplay), DispatcherPriority.ApplicationIdle);
-            // If Profile is visible, refresh Subscription Summary so new plan is shown
-            if (ProfileComponent != null && ProfileComponent.Visibility == Visibility.Visible)
-                _ = ProfileComponent.LoadProfileAsync();
+            // Payment component is already showing "Please wait...". Run license refresh and controller re-init, then show the success popup.
+            _ = RunPostPurchaseSetupThenShowSuccessPopupAsync(e);
+        }
 
-            // Show payment success as in-app popup (no separate window)
-            var popup = PaymentSuccessOverlayContent.Content as Controls.PaymentSuccessPopup;
-            if (popup == null)
+        /// <summary>Runs license refresh and controller re-init, then shows the Payment Success popup. Payment component shows "Please wait..." until this completes.</summary>
+        private async System.Threading.Tasks.Task RunPostPurchaseSetupThenShowSuccessPopupAsync(PaymentSuccessEventArgs e)
+        {
+            try
             {
-                popup = new Controls.PaymentSuccessPopup();
-                popup.CloseRequested += PaymentSuccessPopup_CloseRequested;
-                PaymentSuccessOverlayContent.Content = popup;
+                await RefreshLicenseFromServerAfterActivationAsync();
+                await Dispatcher.InvokeAsync(() =>
+                {
+                    UpdateLicenseDisplay();
+                    try
+                    {
+                        if (controller != null)
+                        {
+                            controller.Dispose();
+                            controller = null;
+                        }
+                        controllerInitializationAttempted = false;
+                        InitializeController(forceRetry: true);
+                    }
+                    catch (Exception ex)
+                    {
+                        System.Diagnostics.Debug.WriteLine($"Post-purchase controller re-init: {ex.Message}");
+                    }
+                });
             }
-            popup.SetDetails(e.PlanName, e.DurationDays, e.Price, e.PaymentIntentId);
-            StripePaymentComponentContainer.Visibility = Visibility.Collapsed;
-            PaymentSuccessOverlay.Visibility = Visibility.Visible;
+            catch (Exception ex)
+            {
+                System.Diagnostics.Debug.WriteLine($"Post-purchase setup: {ex.Message}");
+            }
+            finally
+            {
+                await Dispatcher.InvokeAsync(() =>
+                {
+                    var popup = PaymentSuccessOverlayContent.Content as Controls.PaymentSuccessPopup;
+                    if (popup == null)
+                    {
+                        popup = new Controls.PaymentSuccessPopup();
+                        popup.CloseRequested += PaymentSuccessPopup_CloseRequested;
+                        PaymentSuccessOverlayContent.Content = popup;
+                    }
+                    popup.SetDetails(e.PlanName, e.DurationDays, e.Price, e.PaymentIntentId);
+                    StripePaymentComponentContainer.Visibility = Visibility.Collapsed;
+                    PaymentSuccessOverlay.Visibility = Visibility.Visible;
+                    if (ProfileComponent != null && ProfileComponent.Visibility == Visibility.Visible)
+                        _ = ProfileComponent.LoadProfileAsync();
+                });
+            }
         }
 
         private void PaymentSuccessPopup_CloseRequested(object sender, EventArgs e)
         {
             PaymentSuccessOverlay.Visibility = Visibility.Collapsed;
-            UpdateLicenseDisplay();
+            PaymentSuccessOverlayContent.Content = null;
             ShowDetectionContent();
-
-            // Re-initialize native controller with the new license key so Keygen validates/activates this machine.
-            // (Config was already updated by StripePaymentComponent on success; controller was created with the old key.)
-            try
-            {
-                if (controller != null)
-                {
-                    controller.Dispose();
-                    controller = null;
-                }
-                controllerInitializationAttempted = false;
-                Dispatcher.BeginInvoke(new Action(() => InitializeController(forceRetry: true)), DispatcherPriority.Loaded);
-            }
-            catch (Exception ex)
-            {
-                System.Diagnostics.Debug.WriteLine($"PaymentSuccessPopup_CloseRequested: re-init controller failed: {ex.Message}");
-            }
+            // Refresh display from current tokens and fetch latest license from server so remaining days update immediately (backend may have ExpiryDate now).
+            UpdateLicenseDisplay();
+            RefreshLicenseDisplayAfterDetectionAsync();
         }
 
         private void OpenResultsFolder_Click(object sender, RoutedEventArgs e)
@@ -2479,10 +2604,14 @@ videoLiveFakeProportionThreshold = 0.7
                 var result = await licenseService.ValidateLicenseAsync();
                 if (result != null && result.Valid && result.License != null)
                 {
+                    var normalized = NormalizeLicenseFromApi(result.License);
                     var tokenStorage = new TokenStorage();
                     var tokens = tokenStorage.GetTokens();
                     if (tokens != null)
-                        tokenStorage.UpdateUserAndLicense(tokens.UserInfo, result.License);
+                    {
+                        var userInfo = tokens.UserInfo != null ? new UserInfo { Id = tokens.UserInfo.Id, Username = tokens.UserInfo.Username, LicenseStatus = normalized.Status, TrialEndsAt = tokens.UserInfo.TrialEndsAt, UserType = tokens.UserInfo.UserType } : tokens.UserInfo;
+                        tokenStorage.UpdateUserAndLicense(userInfo, normalized);
+                    }
                     Dispatcher.Invoke(() => UpdateLicenseDisplay());
                 }
             }
@@ -2495,21 +2624,26 @@ videoLiveFakeProportionThreshold = 0.7
         /// <summary>
         /// Called after controller is created (license activated with Keygen). LMS sets expiry at activation time,
         /// so we retrieve the license from LMS again and update tokens/UI with the correct expiry.
+        /// Returns a task so callers can await completion.
         /// </summary>
-        private async void RefreshLicenseFromServerAfterActivationAsync()
+        private async Task RefreshLicenseFromServerAfterActivationAsync()
         {
             try
             {
-                await Task.Delay(800); // Give LMS time to record activation and set expiry
+                await Task.Delay(400); // Brief delay for backend to persist new license; we refresh again when user closes the success popup
                 var licenseService = new LicensePurchaseService();
                 var result = await licenseService.ValidateLicenseAsync();
                 if (result != null && result.Valid && result.License != null)
                 {
+                    var normalized = NormalizeLicenseFromApi(result.License);
                     var tokenStorage = new TokenStorage();
                     var tokens = tokenStorage.GetTokens();
                     if (tokens != null)
-                        tokenStorage.UpdateUserAndLicense(tokens.UserInfo, result.License);
-                    Dispatcher.Invoke(() => UpdateLicenseDisplay());
+                    {
+                        var userInfo = tokens.UserInfo != null ? new UserInfo { Id = tokens.UserInfo.Id, Username = tokens.UserInfo.Username, LicenseStatus = normalized.Status, TrialEndsAt = tokens.UserInfo.TrialEndsAt, UserType = tokens.UserInfo.UserType } : tokens.UserInfo;
+                        tokenStorage.UpdateUserAndLicense(userInfo, normalized);
+                    }
+                    await Dispatcher.InvokeAsync(() => UpdateLicenseDisplay());
                 }
             }
             catch (Exception ex)
@@ -2526,10 +2660,14 @@ videoLiveFakeProportionThreshold = 0.7
                 var result = await licenseService.ValidateLicenseAsync();
                 if (result != null && result.Valid && result.License != null)
                 {
+                    var normalized = NormalizeLicenseFromApi(result.License);
                     var tokenStorage = new TokenStorage();
                     var tokens = tokenStorage.GetTokens();
                     if (tokens != null)
-                        tokenStorage.UpdateUserAndLicense(tokens.UserInfo, result.License);
+                    {
+                        var userInfo = tokens.UserInfo != null ? new UserInfo { Id = tokens.UserInfo.Id, Username = tokens.UserInfo.Username, LicenseStatus = normalized.Status, TrialEndsAt = tokens.UserInfo.TrialEndsAt, UserType = tokens.UserInfo.UserType } : tokens.UserInfo;
+                        tokenStorage.UpdateUserAndLicense(userInfo, normalized);
+                    }
                     Dispatcher.Invoke(() => UpdateLicenseDisplay());
                 }
             }
@@ -2767,17 +2905,26 @@ videoLiveFakeProportionThreshold = 0.7
             }
         }
 
-        /// <summary>Derives license duration in days from plan name (e.g. "1 Month" -> 30, "12 Months" -> 365).</summary>
-        private static int GetDurationDaysFromPlanName(string planName)
+        /// <summary>When the backend returns Trial but the license has actually expired (by date or LMS says Expired), normalize to Expired and 0 attempts so we never overwrite correct state with stale DB values.</summary>
+        private static LicenseInfo? NormalizeLicenseFromApi(LicenseInfo? license)
         {
-            if (string.IsNullOrWhiteSpace(planName)) return 30;
-            var name = planName.ToLowerInvariant();
-            if (name.StartsWith("3") || name.Contains("3month") || name.Contains("three")) return 90;
-            if (name.StartsWith("6") || name.Contains("6month") || name.Contains("six") || name.Contains("semi")) return 180;
-            if (name.StartsWith("12") || name.Contains("12month") || name.Contains("year") || name.Contains("annual")) return 365;
-            var m = Regex.Match(name, @"\d+");
-            if (m.Success && int.TryParse(m.Value, out int months)) return months * 30;
-            return 30; // 1 month default
+            if (license == null) return null;
+            bool isExpired = license.Status?.Trim().Equals("Expired", StringComparison.OrdinalIgnoreCase) == true
+                || (license.ExpiryDate.HasValue && license.ExpiryDate.Value.ToUniversalTime() < DateTime.UtcNow)
+                || (license.TrialEndsAt.HasValue && license.TrialEndsAt.Value.ToUniversalTime() < DateTime.UtcNow);
+            if (!isExpired) return license;
+            return new LicenseInfo
+            {
+                Key = license.Key,
+                Status = "Expired",
+                MaxDevices = license.MaxDevices,
+                PlanId = license.PlanId,
+                PlanName = license.PlanName,
+                TrialEndsAt = license.TrialEndsAt,
+                PurchaseDate = license.PurchaseDate,
+                ExpiryDate = license.ExpiryDate,
+                TrialAttemptsRemaining = 0
+            };
         }
 
         /// <summary>Call after purchase or when returning to MainWindow so the bottom bar shows current license status.</summary>
@@ -2892,33 +3039,16 @@ videoLiveFakeProportionThreshold = 0.7
                 {
                     var userInfo = storedTokens.UserInfo;
                     var licenseInfo = storedTokens.LicenseInfo;
-                    // When LicenseInfo is null (e.g. old session), treat as Trial if User has TrialEndsAt
-                    string status = licenseInfo?.Status ?? (!string.IsNullOrEmpty(userInfo.LicenseStatus) ? userInfo.LicenseStatus : "Trial");
+                    // Prefer Expired when LMS says so (license or user); never show Trial when license is Expired.
+                    bool isExpiredFromLms = licenseInfo?.Status?.Trim().Equals("Expired", StringComparison.OrdinalIgnoreCase) == true
+                        || userInfo.LicenseStatus?.Trim().Equals("Expired", StringComparison.OrdinalIgnoreCase) == true;
+                    string status = isExpiredFromLms ? "Expired" : (licenseInfo?.Status ?? (!string.IsNullOrEmpty(userInfo.LicenseStatus) ? userInfo.LicenseStatus : "Trial"));
                     int daysRemaining = 0;
 
-                    // Prefer ExpiryDate from backend (stored on License table) for remaining-days calculation
+                    // Only show remaining days when we have ExpiryDate from backend; do not derive from plan name.
                     var expiryForDays = licenseInfo?.ExpiryDate ?? (status.Equals("Trial", StringComparison.OrdinalIgnoreCase) ? userInfo.TrialEndsAt : null) ?? licenseInfo?.TrialEndsAt;
                     if (expiryForDays.HasValue)
                         daysRemaining = Math.Max(0, (int)Math.Ceiling((expiryForDays.Value - DateTime.UtcNow).TotalDays));
-                    else if (licenseInfo?.PurchaseDate.HasValue == true && status.Equals("Active", StringComparison.OrdinalIgnoreCase))
-                    {
-                        // Fallback: no ExpiryDate from backend; derive from PurchaseDate + plan name (legacy)
-                        int durationDays = 365;
-                        if (!string.IsNullOrWhiteSpace(licenseInfo.PlanName))
-                            durationDays = GetDurationDaysFromPlanName(licenseInfo.PlanName);
-                        else if (licenseInfo.PlanId.HasValue)
-                        {
-                            try
-                            {
-                                var planService = new LicensePlanService();
-                                var plans = await planService.GetPlansAsync();
-                                var plan = plans.FirstOrDefault(p => p.EffectivePlanId == licenseInfo.PlanId.Value);
-                                if (plan != null) durationDays = GetDurationDaysFromPlanName(plan.Name);
-                            }
-                            catch (Exception ex) { System.Diagnostics.Debug.WriteLine($"Error fetching plan for duration: {ex.Message}"); }
-                        }
-                        daysRemaining = Math.Max(0, (int)Math.Ceiling((licenseInfo.PurchaseDate!.Value.AddDays(durationDays) - DateTime.UtcNow).TotalDays));
-                    }
 
                     bool isCorpUser = string.Equals(userInfo.UserType, "Corp", StringComparison.OrdinalIgnoreCase);
 

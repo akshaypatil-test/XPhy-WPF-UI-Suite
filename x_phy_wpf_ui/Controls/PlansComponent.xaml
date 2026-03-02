@@ -15,7 +15,6 @@
         <SolidColorBrush x:Key="BorderColor" Color="#2A2A2A"/>
         <SolidColorBrush x:Key="StripeButtonBg" Color="#FFFFFF"/>
         <SolidColorBrush x:Key="StripeButtonText" Color="#635BFF"/>
-        <SolidColorBrush x:Key="PayPalButtonBg" Color="#0070BA"/>
         
         <!-- Gradient Brushes for Cards -->
         <LinearGradientBrush x:Key="Card1Gradient" StartPoint="0,0" EndPoint="1,1">
@@ -41,7 +40,7 @@
             <Setter Property="CornerRadius" Value="12"/>
             <Setter Property="Padding" Value="20"/>
             <Setter Property="Margin" Value="10"/>
-            <Setter Property="MinHeight" Value="380"/>
+            <Setter Property="MinHeight" Value="340"/>
             <Setter Property="MinWidth" Value="260"/>
         </Style>
         
@@ -79,33 +78,6 @@
                     <Setter Property="Cursor" Value="Arrow"/>
                 </Trigger>
             </Style.Triggers>
-        </Style>
-        
-        <!-- PayPal Button Style (blue like reference; disabled until integration) -->
-        <Style x:Key="PayPalButtonStyle" TargetType="Button">
-            <Setter Property="Background" Value="#0070BA"/>
-            <Setter Property="Foreground" Value="White"/>
-            <Setter Property="BorderThickness" Value="0"/>
-            <Setter Property="Padding" Value="16,12"/>
-            <Setter Property="FontSize" Value="14"/>
-            <Setter Property="FontWeight" Value="SemiBold"/>
-            <Setter Property="HorizontalAlignment" Value="Stretch"/>
-            <Setter Property="Margin" Value="0,0,0,0"/>
-            <Setter Property="IsEnabled" Value="False"/>
-            <Setter Property="Opacity" Value="0.6"/>
-            <Setter Property="Cursor" Value="Arrow"/>
-            <Setter Property="Template">
-                <Setter.Value>
-                    <ControlTemplate TargetType="Button">
-                        <Border Background="{TemplateBinding Background}" 
-                                CornerRadius="8"
-                                Padding="{TemplateBinding Padding}"
-                                Opacity="{TemplateBinding Opacity}">
-                            <ContentPresenter HorizontalAlignment="Center" VerticalAlignment="Center"/>
-                        </Border>
-                    </ControlTemplate>
-                </Setter.Value>
-            </Setter>
         </Style>
         
         <!-- Back Button Style -->
@@ -193,15 +165,16 @@
                                 Loaded="PlanCard_Loaded">
                             <Grid>
                                 <Grid.RowDefinitions>
+                                    <!-- Fixed height so Stripe button aligns across all cards when one has Current Plan badge -->
+                                    <RowDefinition Height="32"/>
                                     <RowDefinition Height="Auto"/>
                                     <RowDefinition Height="Auto"/>
-                                    <RowDefinition Height="Auto"/>
-                                    <RowDefinition Height="Auto"/>
+                                    <RowDefinition Height="*"/>
                                     <RowDefinition Height="Auto"/>
                                 </Grid.RowDefinitions>
                                 
                                 <!-- Current Plan badge (visible only when this plan is the user's active paid plan) -->
-                                <Border x:Name="CurrentPlanBadge" Grid.Row="0" Background="{StaticResource PrimaryColor}" CornerRadius="4" Padding="8,4" HorizontalAlignment="Center" Margin="0,0,0,8">
+                                <Border x:Name="CurrentPlanBadge" Grid.Row="0" Background="{StaticResource PrimaryColor}" CornerRadius="4" Padding="8,4" HorizontalAlignment="Center" VerticalAlignment="Top" Margin="0,0,0,0">
                                     <Border.Style>
                                         <Style TargetType="Border">
                                             <Setter Property="Visibility" Value="Collapsed"/>
@@ -263,15 +236,13 @@
                                     </ItemsControl>
                                 </StackPanel>
                                 
-                                <!-- Payment Buttons - Stripe and PayPal (like reference) -->
+                                <!-- Payment Button - Stripe only -->
                                 <StackPanel Grid.Row="4">
                                     <Button Content="stripe"
                                             Style="{StaticResource StripeButtonStyle}"
                                             IsEnabled="{Binding IsStripeButtonEnabled}"
                                             Click="StripeButton_Click"
                                             Tag="{Binding}"/>
-                                    <Button Content="PayPal"
-                                            Style="{StaticResource PayPalButtonStyle}"/>
                                 </StackPanel>
                             </Grid>
                         </Border>

@@ -20,9 +20,38 @@ namespace x_phy_wpf_ui.Controls
             Loaded += SettingsComponent_Loaded;
         }
 
+        private bool _updatingAutoStart;
+
         private void SettingsComponent_Loaded(object sender, RoutedEventArgs e)
         {
             UpdateThemeSelection();
+            _updatingAutoStart = true;
+            try
+            {
+                AutoStartToggle.IsChecked = StartupHelper.IsAutoStartEnabled();
+            }
+            finally
+            {
+                _updatingAutoStart = false;
+            }
+        }
+
+        private void AutoStartToggle_Changed(object sender, RoutedEventArgs e)
+        {
+            if (_updatingAutoStart)
+                return;
+            try
+            {
+                StartupHelper.SetAutoStart(AutoStartToggle.IsChecked == true);
+            }
+            catch (Exception ex)
+            {
+                System.Diagnostics.Debug.WriteLine($"Auto start: {ex.Message}");
+                AppDialog.Show(Window.GetWindow(this), "Could not change startup setting. " + ex.Message, "Start with Windows", MessageBoxImage.Warning);
+                _updatingAutoStart = true;
+                try { AutoStartToggle.IsChecked = StartupHelper.IsAutoStartEnabled(); }
+                finally { _updatingAutoStart = false; }
+            }
         }
 
         private void UpdateThemeSelection()

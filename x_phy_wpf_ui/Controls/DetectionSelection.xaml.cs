@@ -367,8 +367,7 @@ namespace x_phy_wpf_ui.Controls
             }
             else
             {
-                MessageBox.Show("Please select a process and source before starting detection.", 
-                    "Selection Required", MessageBoxButton.OK, MessageBoxImage.Information);
+                AppDialog.Show(Window.GetWindow(this), "Please select a process and source before starting detection.", "Selection Required", MessageBoxImage.Information);
             }
         }
 

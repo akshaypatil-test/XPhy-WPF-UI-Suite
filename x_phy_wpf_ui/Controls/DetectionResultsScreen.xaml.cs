@@ -218,7 +218,7 @@ namespace x_phy_wpf_ui.Controls
             }
             if (!Directory.Exists(dir))
             {
-                MessageBox.Show("Results directory could not be created or found.", "Results", MessageBoxButton.OK, MessageBoxImage.Warning);
+                AppDialog.Show(Window.GetWindow(this), "Results directory could not be created or found.", "Results", MessageBoxImage.Warning);
                 return;
             }
             try
@@ -227,7 +227,7 @@ namespace x_phy_wpf_ui.Controls
             }
             catch (System.Exception ex)
             {
-                MessageBox.Show("Failed to open results folder: " + ex.Message, "Error", MessageBoxButton.OK, MessageBoxImage.Error);
+                AppDialog.Show(Window.GetWindow(this), "Failed to open results folder: " + ex.Message, "Error", MessageBoxImage.Error);
             }
         }
 
@@ -235,7 +235,7 @@ namespace x_phy_wpf_ui.Controls
         {
             if (_items == null || _items.Count == 0)
             {
-                MessageBox.Show("No results to export.", "Export", MessageBoxButton.OK, MessageBoxImage.Information);
+                AppDialog.Show(Window.GetWindow(this), "No results to export.", "Export", MessageBoxImage.Information);
                 return;
             }
             var saveDialog = new Microsoft.Win32.SaveFileDialog
@@ -275,7 +275,7 @@ namespace x_phy_wpf_ui.Controls
                     ExportToastCard.Visibility = Visibility.Collapsed;
                     _exportToastTimer?.Stop();
                     _exportToastTimer = null;
-                    MessageBox.Show("Export failed: " + ex.Message, "Error", MessageBoxButton.OK, MessageBoxImage.Error);
+                    AppDialog.Show(Window.GetWindow(this), "Export failed: " + ex.Message, "Error", MessageBoxImage.Error);
                 }
             }), System.Windows.Threading.DispatcherPriority.ApplicationIdle);
         }
@@ -336,7 +336,7 @@ namespace x_phy_wpf_ui.Controls
             }
             if (!Directory.Exists(dir))
             {
-                MessageBox.Show("Result directory could not be found or created.", "Audio Result", MessageBoxButton.OK, MessageBoxImage.Warning);
+                AppDialog.Show(Window.GetWindow(this), "Result directory could not be found or created.", "Audio Result", MessageBoxImage.Warning);
                 return;
             }
             try
@@ -345,7 +345,7 @@ namespace x_phy_wpf_ui.Controls
             }
             catch (Exception ex)
             {
-                MessageBox.Show("Failed to open result folder: " + ex.Message, "Error", MessageBoxButton.OK, MessageBoxImage.Error);
+                AppDialog.Show(Window.GetWindow(this), "Failed to open result folder: " + ex.Message, "Error", MessageBoxImage.Error);
             }
         }
 

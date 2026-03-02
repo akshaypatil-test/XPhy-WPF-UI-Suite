@@ -237,12 +237,12 @@ namespace x_phy_wpf_ui
                     string pathMessage = string.IsNullOrEmpty(_resultPath)
                         ? "Results folder opened."
                         : "Results folder opened.\n\nPath: " + _resultPath;
-                    MessageBox.Show(pathMessage, "Results", MessageBoxButton.OK, MessageBoxImage.Information);
+                    AppDialog.Show(this, pathMessage, "Results", MessageBoxImage.Information);
                 }
             }
             catch (Exception ex)
             {
-                MessageBox.Show("Failed: " + ex.Message, "Error", MessageBoxButton.OK, MessageBoxImage.Warning);
+                AppDialog.Show(this, "Failed: " + ex.Message, "Error", MessageBoxImage.Warning);
             }
             Close();
         }
@@ -303,14 +303,14 @@ namespace x_phy_wpf_ui
                     _openResultsFolder?.Invoke();
                     if (!string.IsNullOrEmpty(_resultPath))
                     {
-                        MessageBox.Show("Results folder opened.\n\nPath: " + _resultPath, "Results", MessageBoxButton.OK, MessageBoxImage.Information);
+                        AppDialog.Show(this, "Results folder opened.\n\nPath: " + _resultPath, "Results", MessageBoxImage.Information);
                     }
                     Close();
                 }
             }
             catch (Exception ex)
             {
-                MessageBox.Show("Failed: " + ex.Message, "Error", MessageBoxButton.OK, MessageBoxImage.Warning);
+                AppDialog.Show(this, "Failed: " + ex.Message, "Error", MessageBoxImage.Warning);
             }
         }
 

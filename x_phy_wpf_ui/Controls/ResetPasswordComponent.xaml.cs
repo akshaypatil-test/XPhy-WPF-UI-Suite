@@ -93,7 +93,7 @@ namespace x_phy_wpf_ui.Controls
             try
             {
                 await _authService.ResetPasswordAsync(_resetToken, newPwd);
-                MessageBox.Show("Your password has been reset successfully. You can now sign in.", "Password Reset", MessageBoxButton.OK, MessageBoxImage.Information);
+                AppDialog.Show(Window.GetWindow(this), "Your password has been reset successfully. You can now sign in.", "Password Reset", MessageBoxImage.Information);
                 NavigateToSignIn?.Invoke(this, EventArgs.Empty);
             }
             catch (Exception ex)

@@ -369,7 +369,7 @@ namespace x_phy_wpf_ui.Controls
             try
             {
                 await _authService.RegisterCorpUserAsync(email, password, firstName, lastName, maxDevices, policyNumber, organizationName, contactPersonName, countryCode, contactNumber, orderNumber, activationDate);
-                MessageBox.Show("Corp user created successfully.", "Success", MessageBoxButton.OK, MessageBoxImage.Information);
+                AppDialog.Show(Window.GetWindow(this), "Corp user created successfully.", "Success", MessageBoxImage.Information);
                 CorpAccountCreated?.Invoke(this, EventArgs.Empty);
             }
             catch (Exception ex)

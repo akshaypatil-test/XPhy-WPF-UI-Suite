@@ -141,11 +141,11 @@ namespace x_phy_wpf_ui.Controls
             try
             {
                 await _authService.ResendOtpAsync(_email);
-                MessageBox.Show("A new code has been sent to your email.", "Code resent", MessageBoxButton.OK, MessageBoxImage.Information);
+                AppDialog.Show(Window.GetWindow(this), "A new code has been sent to your email.", "Code resent", MessageBoxImage.Information);
             }
             catch (Exception ex)
             {
-                MessageBox.Show(ex.Message, "Resend failed", MessageBoxButton.OK, MessageBoxImage.Warning);
+                AppDialog.Show(Window.GetWindow(this), ex.Message, "Resend failed", MessageBoxImage.Warning);
             }
         }
     }

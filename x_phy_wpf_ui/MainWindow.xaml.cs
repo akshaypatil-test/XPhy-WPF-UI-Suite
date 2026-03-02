@@ -296,7 +296,7 @@ namespace x_phy_wpf_ui
             {
                 Dispatcher.Invoke(() =>
                 {
-                    MessageBox.Show("No license key received. Cannot validate license.", "License Error", MessageBoxButton.OK, MessageBoxImage.Error);
+                    AppDialog.Show(this, "No license key received. Cannot validate license.", "License Error", MessageBoxImage.Error);
                     AuthPanel.SetContent(signInComponentOnError);
                 });
                 return;
@@ -385,7 +385,7 @@ namespace x_phy_wpf_ui
                         string message = GetControllerInitFailureMessage(ex);
                         bool isLicenseError = IsLicenseValidationFailure(ex);
                         string title = isLicenseError ? "License Error" : "Validation Failed";
-                        MessageBox.Show(message, title, MessageBoxButton.OK, MessageBoxImage.Error);
+                        AppDialog.Show(this, message, title, MessageBoxImage.Error);
                         AuthPanel.SetContent(signInComponentOnError);
                         return;
                     }
@@ -487,7 +487,7 @@ namespace x_phy_wpf_ui
                 string message = GetControllerInitFailureMessage(ex);
                 bool isLicenseError = IsLicenseValidationFailure(ex);
                 string title = isLicenseError ? "License Error" : "Validation Failed";
-                MessageBox.Show(message, title, MessageBoxButton.OK, MessageBoxImage.Error);
+                AppDialog.Show(this, message, title, MessageBoxImage.Error);
                 AuthPanel.SetContent(_corporateSignInComponent);
             }
         }
@@ -1186,7 +1186,7 @@ videoLiveFakeProportionThreshold = 0.7
                 var icon = isLicenseError ? MessageBoxImage.Error : MessageBoxImage.Warning;
                 Dispatcher.BeginInvoke(new Action(() =>
                 {
-                    MessageBox.Show(userMessage, title, MessageBoxButton.OK, icon);
+                    AppDialog.Show(this, userMessage, title, icon);
                 }), DispatcherPriority.Normal);
                 // Note: controllerInitializationAttempted is already set to true above,
                 // but if forceRetry was used, it will be reset on next call
@@ -1357,11 +1357,10 @@ videoLiveFakeProportionThreshold = 0.7
                     var storedTokens = tokenStorage.GetTokens();
                     if (storedTokens?.LicenseInfo == null || string.IsNullOrEmpty(storedTokens.LicenseInfo.Key))
                     {
-                        MessageBox.Show(
+                        AppDialog.Show(this,
                             "Controller not initialized and no license key found.\n\n" +
                             "Please ensure you are logged in and have a valid license.",
                             "Controller Initialization Error", 
-                            MessageBoxButton.OK, 
                             MessageBoxImage.Error);
                         return;
                     }
@@ -1372,11 +1371,10 @@ videoLiveFakeProportionThreshold = 0.7
                     // Check again after initialization attempt
                     if (controller == null)
                     {
-                        MessageBox.Show(
+                        AppDialog.Show(this,
                             "Failed to initialize detection controller.\n\n" +
                             "Please check Debug output for more details.",
                             "Controller Initialization Failed", 
-                            MessageBoxButton.OK, 
                             MessageBoxImage.Error);
                         return;
                     }
@@ -1387,8 +1385,7 @@ videoLiveFakeProportionThreshold = 0.7
                     Dispatcher.Invoke(() =>
                     {
                         ShowAnalyzingScreenWhenDetectionRunning();
-                        MessageBox.Show("Detection is already running.", "Information", 
-                            MessageBoxButton.OK, MessageBoxImage.Information);
+                        AppDialog.Show(this, "Detection is already running.", "Information", MessageBoxImage.Information);
                     });
                     return;
                 }
@@ -1401,10 +1398,9 @@ videoLiveFakeProportionThreshold = 0.7
                 {
                     Dispatcher.Invoke(() =>
                     {
-                        MessageBox.Show(
+                        AppDialog.Show(this,
                             attemptResult.Message ?? "You have no detection attempts remaining. Please subscribe to continue.",
                             "Detection Not Allowed",
-                            MessageBoxButton.OK,
                             MessageBoxImage.Warning);
                     });
                     return;
@@ -1519,8 +1515,7 @@ videoLiveFakeProportionThreshold = 0.7
                                     }
                                     catch (Exception ex)
                                     {
-                                        MessageBox.Show($"Error handling result: {ex.Message}", "Error",
-                                            MessageBoxButton.OK, MessageBoxImage.Error);
+                                        AppDialog.Show(this, $"Error handling result: {ex.Message}", "Error", MessageBoxImage.Error);
                                     }
                                 });
                             },
@@ -1567,8 +1562,7 @@ videoLiveFakeProportionThreshold = 0.7
                                     }
                                     catch (Exception ex)
                                     {
-                                        MessageBox.Show($"Error handling result: {ex.Message}", "Error",
-                                            MessageBoxButton.OK, MessageBoxImage.Error);
+                                        AppDialog.Show(this, $"Error handling result: {ex.Message}", "Error", MessageBoxImage.Error);
                                     }
                                 });
                             },
@@ -1617,8 +1611,7 @@ videoLiveFakeProportionThreshold = 0.7
                                 }
                                 catch (Exception ex)
                                 {
-                                    MessageBox.Show($"Error handling result: {ex.Message}", "Error",
-                                        MessageBoxButton.OK, MessageBoxImage.Error);
+                                    AppDialog.Show(this, $"Error handling result: {ex.Message}", "Error", MessageBoxImage.Error);
                                 }
                             });
                         },
@@ -1663,8 +1656,7 @@ videoLiveFakeProportionThreshold = 0.7
                                 }
                                 catch (Exception ex)
                                 {
-                                    MessageBox.Show($"Error handling result: {ex.Message}", "Error",
-                                        MessageBoxButton.OK, MessageBoxImage.Error);
+                                    AppDialog.Show(this, $"Error handling result: {ex.Message}", "Error", MessageBoxImage.Error);
                                 }
                             });
                         },
@@ -1703,8 +1695,7 @@ videoLiveFakeProportionThreshold = 0.7
                     return;
                 }
 
-                MessageBox.Show($"Failed to start detection: {message}", "Error",
-                    MessageBoxButton.OK, MessageBoxImage.Error);
+                AppDialog.Show(this, $"Failed to start detection: {message}", "Error", MessageBoxImage.Error);
                 // Return to home so user is not stuck on detection screen
                 ResetAppContentToHome();
             }
@@ -1803,10 +1794,8 @@ videoLiveFakeProportionThreshold = 0.7
         
         private void Logout_Click(object sender, RoutedEventArgs e)
         {
-            var result = MessageBox.Show("Are you sure you want to log out?", "Logout", 
-                MessageBoxButton.YesNo, MessageBoxImage.Question);
-            
-            if (result == MessageBoxResult.Yes)
+            var result = AppDialog.ShowYesNo(this, "Are you sure you want to log out?", "Logout");
+            if (result == true)
                 DoLogout();
         }
 
@@ -1823,8 +1812,7 @@ videoLiveFakeProportionThreshold = 0.7
             }
             catch (Exception ex)
             {
-                MessageBox.Show($"Error during logout: {ex.Message}", "Error", 
-                    MessageBoxButton.OK, MessageBoxImage.Error);
+                AppDialog.Show(this, $"Error during logout: {ex.Message}", "Error", MessageBoxImage.Error);
             }
         }
         
@@ -2030,7 +2018,7 @@ videoLiveFakeProportionThreshold = 0.7
                     tokens.AccessToken);
                 _verifyChangePasswordOtpDialog.Clear();
                 _verifyChangePasswordOtpDialog.ShowError(""); // clear any previous error
-                MessageBox.Show("A new code has been sent to your email.", "Code resent", MessageBoxButton.OK, MessageBoxImage.Information);
+                AppDialog.Show(this, "A new code has been sent to your email.", "Code resent", MessageBoxImage.Information);
             }
             catch (Exception ex)
             {
@@ -2375,14 +2363,12 @@ videoLiveFakeProportionThreshold = 0.7
                 }
                 else
                 {
-                    MessageBox.Show("Controller is not initialized. Please restart the application.", "Error", 
-                        MessageBoxButton.OK, MessageBoxImage.Warning);
+                    AppDialog.Show(this, "Controller is not initialized. Please restart the application.", "Error", MessageBoxImage.Warning);
                 }
             }
             catch (Exception ex)
             {
-                MessageBox.Show($"Failed to open results folder: {ex.Message}", "Error", 
-                    MessageBoxButton.OK, MessageBoxImage.Error);
+                AppDialog.Show(this, $"Failed to open results folder: {ex.Message}", "Error", MessageBoxImage.Error);
             }
         }
 
@@ -2405,12 +2391,11 @@ videoLiveFakeProportionThreshold = 0.7
                     var storedTokens = tokenStorage.GetTokens();
                     if (storedTokens?.LicenseInfo == null || string.IsNullOrEmpty(storedTokens.LicenseInfo.Key))
                     {
-                        MessageBox.Show(
+                        AppDialog.Show(this,
                             "Controller not initialized and no license key found.\n\n" +
                             "Please ensure you are logged in and have a valid license.\n\n" +
                             "If you have a license, try logging out and logging back in.",
                             "Controller Initialization Error", 
-                            MessageBoxButton.OK, 
                             MessageBoxImage.Error);
                         return;
                     }
@@ -2422,7 +2407,7 @@ videoLiveFakeProportionThreshold = 0.7
                     // Check again after initialization attempt
                     if (controller == null)
                     {
-                        MessageBox.Show(
+                        AppDialog.Show(this,
                             "Failed to initialize detection controller.\n\n" +
                             "Please check:\n" +
                             "1. You are logged in with a valid license\n" +
@@ -2430,7 +2415,6 @@ videoLiveFakeProportionThreshold = 0.7
                             "3. config.toml file exists and is accessible\n\n" +
                             "Check Debug output for more details.",
                             "Controller Initialization Failed", 
-                            MessageBoxButton.OK, 
                             MessageBoxImage.Error);
                         return;
                     }
@@ -2441,8 +2425,7 @@ videoLiveFakeProportionThreshold = 0.7
                 if (controller.IsDetectionRunning())
                 {
                     ShowAnalyzingScreenWhenDetectionRunning();
-                    MessageBox.Show("Detection is already running.", "Information", 
-                        MessageBoxButton.OK, MessageBoxImage.Information);
+                    AppDialog.Show(this, "Detection is already running.", "Information", MessageBoxImage.Information);
                     return;
                 }
 
@@ -2455,8 +2438,7 @@ videoLiveFakeProportionThreshold = 0.7
             }
             catch (Exception ex)
             {
-                MessageBox.Show($"Failed to start detection selection: {ex.Message}", "Error", 
-                    MessageBoxButton.OK, MessageBoxImage.Error);
+                AppDialog.Show(this, $"Failed to start detection selection: {ex.Message}", "Error", MessageBoxImage.Error);
             }
         }
 
@@ -2468,16 +2450,14 @@ videoLiveFakeProportionThreshold = 0.7
                     return;
                 if (controller == null)
                 {
-                    MessageBox.Show("Controller is not initialized.", "Error", 
-                        MessageBoxButton.OK, MessageBoxImage.Error);
+                    AppDialog.Show(this, "Controller is not initialized.", "Error", MessageBoxImage.Error);
                     return;
                 }
 
                 if (controller.IsDetectionRunning())
                 {
                     ShowAnalyzingScreenWhenDetectionRunning();
-                    MessageBox.Show("Detection is already running.", "Information", 
-                        MessageBoxButton.OK, MessageBoxImage.Information);
+                    AppDialog.Show(this, "Detection is already running.", "Information", MessageBoxImage.Information);
                     return;
                 }
 
@@ -2497,8 +2477,7 @@ videoLiveFakeProportionThreshold = 0.7
             }
             catch (Exception ex)
             {
-                MessageBox.Show($"Failed to start detection: {ex.Message}", "Error",
-                    MessageBoxButton.OK, MessageBoxImage.Error);
+                AppDialog.Show(this, $"Failed to start detection: {ex.Message}", "Error", MessageBoxImage.Error);
             }
         }
 
@@ -2566,8 +2545,7 @@ videoLiveFakeProportionThreshold = 0.7
             }
             catch (Exception ex)
             {
-                MessageBox.Show($"Failed to stop detection: {ex.Message}", "Error",
-                    MessageBoxButton.OK, MessageBoxImage.Error);
+                AppDialog.Show(this, $"Failed to stop detection: {ex.Message}", "Error", MessageBoxImage.Error);
             }
             finally
             {
@@ -2678,8 +2656,7 @@ videoLiveFakeProportionThreshold = 0.7
             }
             catch (Exception ex)
             {
-                MessageBox.Show($"Failed to return to home: {ex.Message}", "Error",
-                    MessageBoxButton.OK, MessageBoxImage.Error);
+                AppDialog.Show(this, $"Failed to return to home: {ex.Message}", "Error", MessageBoxImage.Error);
             }
         }
 
@@ -2930,10 +2907,9 @@ videoLiveFakeProportionThreshold = 0.7
         {
             try
             {
-                MessageBox.Show(
+                AppDialog.Show(this,
                     "The detection result could not be saved to the server. It will not appear in the Results table.\n\nPlease check that you are logged in and your connection is working, then try again.",
                     "Result Not Saved",
-                    MessageBoxButton.OK,
                     MessageBoxImage.Warning);
             }
             catch { }
@@ -3273,11 +3249,11 @@ videoLiveFakeProportionThreshold = 0.7
                 if (!string.IsNullOrEmpty(path) && Directory.Exists(path))
                     Process.Start("explorer.exe", path);
                 else
-                    MessageBox.Show("Results folder not found.", "X-PHY", MessageBoxButton.OK, MessageBoxImage.Information);
+                    AppDialog.Show(this, "Results folder not found.", "X-PHY", MessageBoxImage.Information);
             }
             catch (Exception ex)
             {
-                MessageBox.Show($"Failed to open results folder: {ex.Message}", "Error", MessageBoxButton.OK, MessageBoxImage.Error);
+                AppDialog.Show(this, $"Failed to open results folder: {ex.Message}", "Error", MessageBoxImage.Error);
             }
         }
 
@@ -3336,7 +3312,7 @@ videoLiveFakeProportionThreshold = 0.7
                     openResultsFolder: () =>
                     {
                         try { if (controller != null) controller.OpenResultsFolder(); }
-                        catch (Exception ex) { MessageBox.Show($"Failed to open results folder: {ex.Message}", "Error", MessageBoxButton.OK, MessageBoxImage.Error); }
+                        catch (Exception ex) { AppDialog.Show(this, $"Failed to open results folder: {ex.Message}", "Error", MessageBoxImage.Error); }
                     },
                     stopDetectionAndOpenResults: () =>
                     {
@@ -3377,8 +3353,7 @@ videoLiveFakeProportionThreshold = 0.7
                         }
                         catch (Exception ex)
                         {
-                            MessageBox.Show($"Failed to open results folder: {ex.Message}", "Error",
-                                MessageBoxButton.OK, MessageBoxImage.Error);
+                            AppDialog.Show(this, $"Failed to open results folder: {ex.Message}", "Error", MessageBoxImage.Error);
                         }
                     },
                     navigateToResultsPage: () => NavigateToResultsAndShowSessionDetail(resultPath),
@@ -3403,8 +3378,7 @@ videoLiveFakeProportionThreshold = 0.7
                         }
                         catch (Exception ex)
                         {
-                            MessageBox.Show($"Failed to open results folder: {ex.Message}", "Error",
-                                MessageBoxButton.OK, MessageBoxImage.Error);
+                            AppDialog.Show(this, $"Failed to open results folder: {ex.Message}", "Error", MessageBoxImage.Error);
                         }
                     },
                     evidenceImageLeft: evidenceImage,
@@ -3428,8 +3402,7 @@ videoLiveFakeProportionThreshold = 0.7
             catch (Exception ex)
             {
                 System.Diagnostics.Debug.WriteLine($"Error minimizing window: {ex.Message}");
-                MessageBox.Show($"Error minimizing window: {ex.Message}", "Error", 
-                    MessageBoxButton.OK, MessageBoxImage.Error);
+                AppDialog.Show(this, $"Error minimizing window: {ex.Message}", "Error", MessageBoxImage.Error);
             }
         }
 

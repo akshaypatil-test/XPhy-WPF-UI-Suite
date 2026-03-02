@@ -169,8 +169,8 @@ namespace x_phy_wpf_ui
             }
             catch (Exception ex)
             {
-                MessageBox.Show($"Failed to open main window: {ex.Message}\n\nPlease try again or contact support.",
-                    "Error", MessageBoxButton.OK, MessageBoxImage.Error);
+                AppDialog.Show(this, $"Failed to open main window: {ex.Message}\n\nPlease try again or contact support.",
+                    "Error", MessageBoxImage.Error);
             }
         }
 

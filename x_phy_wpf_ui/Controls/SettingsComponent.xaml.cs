@@ -85,8 +85,7 @@ namespace x_phy_wpf_ui.Controls
         private void CheckUpdates_Click(object sender, RoutedEventArgs e)
         {
             LastCheckedText.Text = "Just Now";
-            MessageBox.Show("You are running the latest version!", "Update Check", 
-                MessageBoxButton.OK, MessageBoxImage.Information);
+            AppDialog.Show(Window.GetWindow(this), "You are running the latest version!", "Update Check", MessageBoxImage.Information);
         }
     }
 }

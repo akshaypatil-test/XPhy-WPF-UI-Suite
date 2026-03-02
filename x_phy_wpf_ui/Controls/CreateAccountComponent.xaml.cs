@@ -574,12 +574,10 @@ namespace x_phy_wpf_ui.Controls
                 }
 
                 // Legacy path if API does not require verification
-                MessageBox.Show(
+                AppDialog.Show(Window.GetWindow(this),
                     $"Account created successfully!\n\nYour 30-day free trial ends on: {response.TrialEndsAt:MMMM dd, yyyy}\n\nYou can now sign in with your credentials.",
                     "Registration Successful",
-                    MessageBoxButton.OK,
-                    MessageBoxImage.Information
-                );
+                    MessageBoxImage.Information);
                 AccountCreated?.Invoke(this, EventArgs.Empty);
             }
             catch (Exception ex)

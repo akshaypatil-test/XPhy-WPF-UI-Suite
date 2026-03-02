@@ -40,7 +40,7 @@ namespace x_phy_wpf_ui.Controls
             OpenUrl(SupportUrl);
         }
 
-        private static void OpenUrl(string url)
+        private void OpenUrl(string url)
         {
             try
             {
@@ -52,8 +52,7 @@ namespace x_phy_wpf_ui.Controls
             }
             catch (Exception ex)
             {
-                MessageBox.Show($"Could not open link: {ex.Message}", "Error",
-                    MessageBoxButton.OK, MessageBoxImage.Warning);
+                AppDialog.Show(Window.GetWindow(this), $"Could not open link: {ex.Message}", "Error", MessageBoxImage.Warning);
             }
         }
 
@@ -72,15 +71,14 @@ namespace x_phy_wpf_ui.Controls
             OpenOrDownloadResource(UserGuideVideoFileName, "User Guide Video");
         }
 
-        private static void OpenOrDownloadResource(string fileName, string displayName)
+        private void OpenOrDownloadResource(string fileName, string displayName)
         {
             var path = Path.Combine(ResourcesFolder, fileName);
             if (!File.Exists(path))
             {
-                MessageBox.Show(
+                AppDialog.Show(Window.GetWindow(this),
                     $"The file '{displayName}' was not found. Please ensure Resources are installed.",
                     "File not found",
-                    MessageBoxButton.OK,
                     MessageBoxImage.Information);
                 return;
             }
@@ -94,8 +92,7 @@ namespace x_phy_wpf_ui.Controls
             }
             catch (Exception ex)
             {
-                MessageBox.Show($"Could not open file: {ex.Message}", "Error",
-                    MessageBoxButton.OK, MessageBoxImage.Warning);
+                AppDialog.Show(Window.GetWindow(this), $"Could not open file: {ex.Message}", "Error", MessageBoxImage.Warning);
             }
         }
     }

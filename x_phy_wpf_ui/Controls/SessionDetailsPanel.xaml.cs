@@ -251,7 +251,7 @@ namespace x_phy_wpf_ui.Controls
                 try { if (!string.IsNullOrEmpty(dir)) Directory.CreateDirectory(dir); } catch { }
                 if (string.IsNullOrEmpty(dir) || !Directory.Exists(dir))
                 {
-                    MessageBox.Show("Result directory could not be found or created.", "Media Directory", MessageBoxButton.OK, MessageBoxImage.Warning);
+                    AppDialog.Show(Window.GetWindow(this), "Result directory could not be found or created.", "Media Directory", MessageBoxImage.Warning);
                     return;
                 }
             }
@@ -261,7 +261,7 @@ namespace x_phy_wpf_ui.Controls
             }
             catch (Exception ex)
             {
-                MessageBox.Show("Failed to open folder: " + ex.Message, "Error", MessageBoxButton.OK, MessageBoxImage.Error);
+                AppDialog.Show(Window.GetWindow(this), "Failed to open folder: " + ex.Message, "Error", MessageBoxImage.Error);
             }
         }
 

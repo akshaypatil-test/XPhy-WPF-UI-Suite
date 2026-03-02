@@ -72,7 +72,7 @@ namespace x_phy_wpf_ui.Controls
 
             var isAudio = string.Equals(result.Type, "Audio", StringComparison.OrdinalIgnoreCase)
                 || (result.Type != null && result.Type.IndexOf("Audio", StringComparison.OrdinalIgnoreCase) >= 0)
-                || string.Equals(result.DetectionTypeDisplay, "Audio", StringComparison.OrdinalIgnoreCase);
+                || (result.DetectionTypeDisplay != null && result.DetectionTypeDisplay.IndexOf("Audio", StringComparison.OrdinalIgnoreCase) >= 0);
             if (isAudio)
             {
                 MediaEvidenceNoManipulationPanel.Visibility = Visibility.Collapsed;

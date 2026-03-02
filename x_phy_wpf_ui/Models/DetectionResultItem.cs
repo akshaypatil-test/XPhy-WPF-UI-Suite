@@ -1,4 +1,5 @@
 using System;
+using System.Collections.Generic;
 
 namespace x_phy_wpf_ui.Models
 {
@@ -26,11 +27,29 @@ namespace x_phy_wpf_ui.Models
         /// <summary>Max detection length in seconds; duration display is capped at this.</summary>
         private const int MaxDurationDisplaySeconds = 60;
 
+        /// <summary>Conference/calling apps: show "Conference Video" / "Conference Audio". All others (Chrome, VLC, etc.): "Web Stream Video" / "Web Stream Audio".</summary>
+        private static readonly HashSet<string> ConferenceSourceNames = new HashSet<string>(StringComparer.OrdinalIgnoreCase)
+        {
+            "Zoom", "Microsoft Teams", "Microsoft Teams Chat", "Google Chat", "Google Meet",
+            "Skype", "Cisco Webex", "Slack", "Discord", "BlueJeans", "GoTo Meeting", "JioMeet"
+        };
+
         public string ResultText => IsAiManipulationDetected ? "AI Manipulation Detected" : "No AI Manipulation detected";
         public string ConfidenceText => ConfidencePercent + "%";
         public string DurationDisplay => DurationSeconds.HasValue && DurationSeconds.Value > 0
             ? $"{(int)Math.Min((decimal)MaxDurationDisplaySeconds, DurationSeconds.Value)} Seconds"
             : "—";
-        public string DetectionTypeDisplay => Type == "Audio" ? "Audio" : (Type == "Video" ? "Conference Video" : Type);
+        public string DetectionTypeDisplay => GetDetectionTypeDisplay(Type, MediaSourceDisplay);
+
+        private static string GetDetectionTypeDisplay(string type, string mediaSourceDisplay)
+        {
+            if (string.IsNullOrEmpty(type)) return type ?? "";
+            bool isConference = !string.IsNullOrEmpty(mediaSourceDisplay) && ConferenceSourceNames.Contains(mediaSourceDisplay.Trim());
+            if (type.Equals("Video", StringComparison.OrdinalIgnoreCase))
+                return isConference ? "Conference Video" : "Web Stream Video";
+            if (type.Equals("Audio", StringComparison.OrdinalIgnoreCase))
+                return isConference ? "Conference Audio" : "Web Stream Audio";
+            return type;
+        }
     }
 }

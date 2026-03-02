@@ -80,13 +80,12 @@ namespace x_phy_wpf_ui
         /// <summary>True when user chose Exit from tray menu; allows actual close instead of minimize-to-tray.</summary>
         private bool _isExitingFromTray = false;
 
-        /// <summary>When minimized to tray, run process detection periodically; show single-process popup when exactly one app is detected.</summary>
+        /// <summary>When minimized to tray, run process detection periodically; show single/multiple source notification every 1 minute when detected.</summary>
         private DispatcherTimer _backgroundProcessCheckTimer;
         private DateTime _lastMediaSourcePopupShownAt = DateTime.MinValue;
-        private const int MediaSourcePopupCooldownSeconds = 30 * 60; // 30 minutes
-        /// <summary>True when we've seen 0 listed processes since last popup; allows showing again when user closes app and reopens it.</summary>
-        private bool _hasSeenZeroProcessesSinceLastPopup = true;
-        /// <summary>Last time we showed the "Multiple Media Source Detected" popup; 30-min cooldown.</summary>
+        /// <summary>Cooldown between showing single/multiple source notifications (1 minute).</summary>
+        private const int MediaSourcePopupCooldownSeconds = 60;
+        /// <summary>Last time we showed the "Multiple Media Source Detected" popup.</summary>
         private DateTime _lastMultipleSourcesPopupShownAt = DateTime.MinValue;
 
         // Helper method to get color resources
@@ -2106,11 +2105,9 @@ videoLiveFakeProportionThreshold = 0.7
         private void StartBackgroundProcessCheck()
         {
             if (_backgroundProcessCheckTimer != null) return;
-            // When user minimizes again, allow the next single-process detection to show the notification (reset cooldown for this session)
-            _hasSeenZeroProcessesSinceLastPopup = true;
             _backgroundProcessCheckTimer = new DispatcherTimer(DispatcherPriority.Background)
             {
-                Interval = TimeSpan.FromSeconds(15)
+                Interval = TimeSpan.FromMinutes(1)
             };
             _backgroundProcessCheckTimer.Tick += BackgroundProcessCheckTimer_Tick;
             _backgroundProcessCheckTimer.Start();
@@ -2163,13 +2160,7 @@ videoLiveFakeProportionThreshold = 0.7
                 // Do not show when user just chose "Stop & View Results" from floating widget (we're about to restore and open results)
                 if (openResultsFolderAfterStop) return;
 
-                // When 0 listed processes are running, user closed the app – allow showing popup again when they open one
-                if (list.Count == 0)
-                {
-                    _hasSeenZeroProcessesSinceLastPopup = true;
-                    return;
-                }
-                // Multiple sources: show "Open App To Choose One" notification with 30-min cooldown
+                // Multiple sources: show "Multiple Source Detection" notification (every 1 minute when detected)
                 if (list.Count > 1)
                 {
                     double elapsed = (DateTime.UtcNow - _lastMultipleSourcesPopupShownAt).TotalSeconds;
@@ -2191,11 +2182,10 @@ videoLiveFakeProportionThreshold = 0.7
                 if (list.Count != 1 || single == null) return;
                 // Do not show if a single-process notification is already open (avoids duplicate popups)
                 if (MediaSourceDetectedPopup.IsAnyOpen) return;
-                // Show only if: we saw 0 since last popup (close-and-reopen), or 30-min cooldown has passed
+                // Show "Single Source Detected" notification every 1 minute when one source is detected
                 bool cooldownPassed = (DateTime.UtcNow - _lastMediaSourcePopupShownAt).TotalSeconds >= MediaSourcePopupCooldownSeconds;
-                if (!_hasSeenZeroProcessesSinceLastPopup && !cooldownPassed) return;
+                if (!cooldownPassed) return;
                 _lastMediaSourcePopupShownAt = DateTime.UtcNow;
-                _hasSeenZeroProcessesSinceLastPopup = false;
                 var popup = new MediaSourceDetectedPopup();
                 popup.StartDetectionChosen += (s, ev) =>
                 {

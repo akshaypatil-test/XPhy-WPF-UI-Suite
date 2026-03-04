@@ -40,7 +40,16 @@ namespace x_phy_wpf_ui.Services
         [DllImport("user32.dll")]
         private static extern bool ShowWindow(IntPtr hWnd, int nCmdShow);
 
+        [DllImport("user32.dll", SetLastError = true)]
+        private static extern bool SetWindowPos(IntPtr hWnd, IntPtr hWndInsertAfter, int x, int y, int cx, int cy, uint uFlags);
+
         private const int SW_RESTORE = 9;
+        private const int SW_SHOW = 5;
+        private static readonly IntPtr HWND_TOPMOST = new IntPtr(-1);
+        private static readonly IntPtr HWND_NOTOPMOST = new IntPtr(-2);
+        private const uint SWP_NOMOVE = 0x0002;
+        private const uint SWP_NOSIZE = 0x0001;
+        private const uint SWP_SHOWWINDOW = 0x0040;
 
         private delegate bool EnumWindowsProc(IntPtr hWnd, IntPtr lParam);
 
@@ -228,7 +237,7 @@ namespace x_phy_wpf_ui.Services
                             WindowTitle = GetMainWindowTitle(process, processWindows)
                         };
                     }
-                    // Check for browsers with YouTube tabs
+                    // Check for browsers with streaming tabs (YouTube, Twitch, Netflix, Prime Video)
                     else if (BrowserProcesses.Contains(processName))
                     {
                         // Skip if we've already checked this browser type
@@ -237,7 +246,7 @@ namespace x_phy_wpf_ui.Services
                             continue;
                         }
 
-                        // For browsers, check all processes of the same type for YouTube tabs
+                        // For browsers, check all processes of the same type for streaming tabs
                         // This is especially important for Chrome which uses multiple processes
                         var allBrowserProcesses = processes
                             .Where(p => (p.ProcessName + ".exe").Equals(processName, StringComparison.OrdinalIgnoreCase))
@@ -265,7 +274,7 @@ namespace x_phy_wpf_ui.Services
                             }
                         }
 
-                        // YouTube is present if it appears in any tab (active or inactive). We use window titles from EnumWindows
+                        // Streaming (YouTube, Twitch, Netflix, Prime Video) is present if it appears in any tab. We use window titles from EnumWindows
                         // plus UI Automation to read all tab titles from each browser window, so background tabs are detected.
                         DetectedProcess? browserDetected = null;
                         foreach (var browserProcess in allBrowserProcesses)
@@ -281,23 +290,29 @@ namespace x_phy_wpf_ui.Services
                                         allTitles.Add(tabTitle);
                                 }
                             }
-                            if (allTitles.Count > 0 && HasYouTubeTab(allTitles))
+                            if (allTitles.Count > 0 && HasStreamingTab(allTitles))
                             {
                                 string displayName = GetDisplayName(processName);
-                                browserDetected = new DetectedProcess
+                                var candidate = new DetectedProcess
                                 {
                                     ProcessId = browserProcess.Id,
                                     ProcessName = processName,
                                     DisplayName = displayName,
                                     ProcessType = "Browser",
                                     HasYouTubeTab = true,
-                                    WindowTitle = GetYouTubeWindowTitle(allTitles)
+                                    WindowTitle = GetStreamingWindowTitle(allTitles)
                                 };
-                                break;
+                                if (HasYouTubeTab(allTitles))
+                                {
+                                    browserDetected = candidate;
+                                    break;
+                                }
+                                if (browserDetected == null)
+                                    browserDetected = candidate;
                             }
                         }
 
-                        // Only add browser when it has YouTube; add directly so we get both Google Chat and Google Chrome when same process has both
+                        // Only add browser when it has a streaming tab (YouTube, Twitch, Netflix, Prime Video); add directly so we get both Google Chat and Google Chrome when same process has both
                         if (browserDetected != null)
                         {
                             detectedProcesses.Add(browserDetected);
@@ -358,9 +373,7 @@ namespace x_phy_wpf_ui.Services
                         ProcessName = procName,
                         DisplayName = match.Value.DisplayName,
                         ProcessType = match.Value.ProcessType,
-                        HasYouTubeTab = match.Value.ProcessType == "Browser" && windowTitles.Any(t =>
-                            t.IndexOf("YouTube", StringComparison.OrdinalIgnoreCase) >= 0 ||
-                            t.IndexOf("youtube.com", StringComparison.OrdinalIgnoreCase) >= 0),
+                        HasYouTubeTab = match.Value.ProcessType == "Browser" && windowTitles.Any(t => IsStreamingTabTitle(t)),
                         WindowTitle = windowTitles[0]
                     };
                     addedProcessIds.Add((int)processId);
@@ -379,12 +392,12 @@ namespace x_phy_wpf_ui.Services
                 .Select(g => g.First())
                 .ToList();
 
-            // Show all browsers that have YouTube (e.g. both Chrome and Edge when both have YouTube)
+            // Show all browsers that have a streaming tab (e.g. both Chrome and Edge when both have YouTube/Twitch/Netflix/Prime)
             var browsers = uniqueByDisplayName.Where(p => p.ProcessType == "Browser").ToList();
             var nonBrowsers = uniqueByDisplayName.Where(p => p.ProcessType != "Browser").ToList();
             var selectedBrowsers = browsers;
 
-            // Combine non-browsers with all detected browsers (call apps, media players, streaming, browsers with YouTube)
+            // Combine non-browsers with all detected browsers (call apps, media players, streaming, browsers with YouTube/Twitch/Netflix/Prime)
             var combined = nonBrowsers.Concat(selectedBrowsers).ToList();
 
             // Choose only 3 processes: those with highest memory usage (working set)
@@ -399,8 +412,7 @@ namespace x_phy_wpf_ui.Services
         /// <summary>Match app by window title for UWP/host processes (e.g. ApplicationFrameHost) where Task Manager shows no process name.</summary>
         private static (string DisplayName, string ProcessType)? TryMatchAppByWindowTitle(List<string> windowTitles)
         {
-            bool hasYouTube = windowTitles.Any(t =>
-                (t != null && (t.IndexOf("YouTube", StringComparison.OrdinalIgnoreCase) >= 0 || t.IndexOf("youtube.com", StringComparison.OrdinalIgnoreCase) >= 0)));
+            bool hasStreaming = windowTitles.Any(t => t != null && IsStreamingTabTitle(t));
             foreach (var title in windowTitles)
             {
                 if (string.IsNullOrWhiteSpace(title)) continue;
@@ -408,19 +420,19 @@ namespace x_phy_wpf_ui.Services
 
                 if (t.IndexOf("Media Player", StringComparison.OrdinalIgnoreCase) >= 0)
                     return ("Media Player", "MediaPlayer");
-                if (t.IndexOf("Microsoft Edge", StringComparison.OrdinalIgnoreCase) >= 0 && hasYouTube)
+                if (t.IndexOf("Microsoft Edge", StringComparison.OrdinalIgnoreCase) >= 0 && hasStreaming)
                     return ("Microsoft Edge", "Browser");
                 // Google Chat (PWA/app) must be checked before "Google Chrome" so it's not misidentified
                 if (t.IndexOf("Google Chat", StringComparison.OrdinalIgnoreCase) >= 0 ||
                     (t.IndexOf("Chat", StringComparison.OrdinalIgnoreCase) >= 0 && t.IndexOf("chat.google.com", StringComparison.OrdinalIgnoreCase) >= 0))
                     return ("Google Chat", "VideoCalling");
-                if (t.IndexOf("Google Chrome", StringComparison.OrdinalIgnoreCase) >= 0 && hasYouTube)
+                if (t.IndexOf("Google Chrome", StringComparison.OrdinalIgnoreCase) >= 0 && hasStreaming)
                     return ("Google Chrome", "Browser");
-                if ((t.IndexOf("Mozilla Firefox", StringComparison.OrdinalIgnoreCase) >= 0 || (t.IndexOf("Firefox", StringComparison.OrdinalIgnoreCase) >= 0 && t.Length < 50)) && hasYouTube)
+                if ((t.IndexOf("Mozilla Firefox", StringComparison.OrdinalIgnoreCase) >= 0 || (t.IndexOf("Firefox", StringComparison.OrdinalIgnoreCase) >= 0 && t.Length < 50)) && hasStreaming)
                     return ("Mozilla Firefox", "Browser");
-                if (t.IndexOf("Opera", StringComparison.OrdinalIgnoreCase) >= 0 && hasYouTube)
+                if (t.IndexOf("Opera", StringComparison.OrdinalIgnoreCase) >= 0 && hasStreaming)
                     return ("Opera", "Browser");
-                if (t.IndexOf("Brave", StringComparison.OrdinalIgnoreCase) >= 0 && hasYouTube)
+                if (t.IndexOf("Brave", StringComparison.OrdinalIgnoreCase) >= 0 && hasStreaming)
                     return ("Brave", "Browser");
                 if (t.IndexOf("Microsoft Teams", StringComparison.OrdinalIgnoreCase) >= 0 || t.IndexOf("Teams", StringComparison.OrdinalIgnoreCase) >= 0)
                     return ("Microsoft Teams", "VideoCalling");
@@ -512,32 +524,67 @@ namespace x_phy_wpf_ui.Services
             return false;
         }
 
-        /// <summary>True if YouTube appears in any of the given titles. For browsers we pass window titles plus all tab titles
-        /// from UI Automation (active and inactive tabs), so YouTube is detected when present in any tab.</summary>
-        private bool HasYouTubeTab(List<string> windowTitles)
+        /// <summary>True if the title indicates a supported streaming tab (YouTube, Twitch, Netflix, Prime Video).</summary>
+        private static bool IsStreamingTabTitle(string title)
+        {
+            if (string.IsNullOrWhiteSpace(title)) return false;
+            return title.IndexOf("YouTube", StringComparison.OrdinalIgnoreCase) >= 0 ||
+                   title.IndexOf("youtube.com", StringComparison.OrdinalIgnoreCase) >= 0 ||
+                   title.IndexOf("Twitch", StringComparison.OrdinalIgnoreCase) >= 0 ||
+                   title.IndexOf("twitch.tv", StringComparison.OrdinalIgnoreCase) >= 0 ||
+                   title.IndexOf("Netflix", StringComparison.OrdinalIgnoreCase) >= 0 ||
+                   title.IndexOf("netflix.com", StringComparison.OrdinalIgnoreCase) >= 0 ||
+                   title.IndexOf("Prime Video", StringComparison.OrdinalIgnoreCase) >= 0 ||
+                   title.IndexOf("primevideo.com", StringComparison.OrdinalIgnoreCase) >= 0;
+        }
+
+        /// <summary>Streaming priority for window/process preference: 4 = YouTube (highest), 3 = Twitch, 2 = Netflix, 1 = Prime Video, 0 = none.</summary>
+        private static int GetStreamingPriority(string title)
+        {
+            if (string.IsNullOrWhiteSpace(title)) return 0;
+            if (title.IndexOf("YouTube", StringComparison.OrdinalIgnoreCase) >= 0 || title.IndexOf("youtube.com", StringComparison.OrdinalIgnoreCase) >= 0)
+                return 4;
+            if (title.IndexOf("Twitch", StringComparison.OrdinalIgnoreCase) >= 0 || title.IndexOf("twitch.tv", StringComparison.OrdinalIgnoreCase) >= 0)
+                return 3;
+            if (title.IndexOf("Netflix", StringComparison.OrdinalIgnoreCase) >= 0 || title.IndexOf("netflix.com", StringComparison.OrdinalIgnoreCase) >= 0)
+                return 2;
+            if (title.IndexOf("Prime Video", StringComparison.OrdinalIgnoreCase) >= 0 || title.IndexOf("primevideo.com", StringComparison.OrdinalIgnoreCase) >= 0)
+                return 1;
+            return 0;
+        }
+
+        /// <summary>True if any supported streaming tab (YouTube, Twitch, Netflix, Prime Video) appears in the given titles.</summary>
+        private bool HasStreamingTab(List<string> windowTitles)
         {
             foreach (var title in windowTitles)
             {
-                if (title.IndexOf("YouTube", StringComparison.OrdinalIgnoreCase) >= 0 ||
-                    title.IndexOf("youtube.com", StringComparison.OrdinalIgnoreCase) >= 0)
-                {
-                    return true;
-                }
+                if (IsStreamingTabTitle(title)) return true;
             }
             return false;
         }
 
-        private string GetYouTubeWindowTitle(List<string> windowTitles)
+        /// <summary>True if YouTube appears in any of the given titles. Used to prefer YouTube when multiple streaming tabs exist.</summary>
+        private static bool HasYouTubeTab(List<string> windowTitles)
         {
             foreach (var title in windowTitles)
             {
-                if (title.IndexOf("YouTube", StringComparison.OrdinalIgnoreCase) >= 0 ||
-                    title.IndexOf("youtube.com", StringComparison.OrdinalIgnoreCase) >= 0)
-                {
-                    return title;
-                }
+                if (string.IsNullOrWhiteSpace(title)) continue;
+                if (title.IndexOf("YouTube", StringComparison.OrdinalIgnoreCase) >= 0 || title.IndexOf("youtube.com", StringComparison.OrdinalIgnoreCase) >= 0)
+                    return true;
             }
-            return windowTitles.Count > 0 ? windowTitles[0] : string.Empty;
+            return false;
+        }
+
+        private string GetStreamingWindowTitle(List<string> windowTitles)
+        {
+            string best = string.Empty;
+            int bestPriority = 0;
+            foreach (var title in windowTitles)
+            {
+                int p = GetStreamingPriority(title);
+                if (p > bestPriority) { bestPriority = p; best = title; }
+            }
+            return bestPriority > 0 ? best : (windowTitles.Count > 0 ? windowTitles[0] : string.Empty);
         }
 
         /// <summary>Gets the working set (physical memory) of the process in bytes. Returns 0 if process is not found or inaccessible.</summary>
@@ -634,14 +681,126 @@ namespace x_phy_wpf_ui.Services
         }
 
         /// <summary>
+        /// Gets the window handle for a process that matches the given display name.
+        /// Used when one process has multiple windows (e.g. Chrome with both "Google Chrome" and "Google Chat").
+        /// Prefers a non-minimized matching window so we don't restore a different window that was minimized to a small size.
+        /// </summary>
+        public static IntPtr GetWindowHandleForProcessByDisplayName(int processId, string displayName)
+        {
+            if (string.IsNullOrWhiteSpace(displayName))
+                return GetWindowHandleForProcess(processId);
+
+            var handles = GetAllWindowHandlesForProcess(processId);
+            var sb = new StringBuilder(512);
+            bool wantChrome = displayName.IndexOf("Google Chrome", StringComparison.OrdinalIgnoreCase) >= 0;
+            bool wantEdge = displayName.IndexOf("Microsoft Edge", StringComparison.OrdinalIgnoreCase) >= 0;
+            bool wantChat = displayName.IndexOf("Google Chat", StringComparison.OrdinalIgnoreCase) >= 0;
+
+            IntPtr fallback = IntPtr.Zero;
+            IntPtr fallbackBrowserNoStreaming = IntPtr.Zero;
+            int bestStreamingPriority = -1;
+            IntPtr bestStreamingHwnd = IntPtr.Zero;
+
+            foreach (IntPtr hWnd in handles)
+            {
+                int len = GetWindowTextLength(hWnd);
+                if (len <= 0) continue;
+                sb.Clear();
+                sb.EnsureCapacity(len + 1);
+                if (GetWindowText(hWnd, sb, sb.Capacity) == 0) continue;
+                string title = sb.ToString().Trim();
+                bool isMinimized = IsIconic(hWnd);
+
+                if (wantChat)
+                {
+                    if (title.IndexOf("Google Chat", StringComparison.OrdinalIgnoreCase) >= 0 ||
+                        title.IndexOf("chat.google.com", StringComparison.OrdinalIgnoreCase) >= 0)
+                    {
+                        if (!isMinimized) return hWnd;
+                        if (fallback == IntPtr.Zero) fallback = hWnd;
+                    }
+                }
+                else if (wantChrome)
+                {
+                    bool isChat = title.IndexOf("Google Chat", StringComparison.OrdinalIgnoreCase) >= 0 ||
+                                 title.IndexOf("chat.google.com", StringComparison.OrdinalIgnoreCase) >= 0;
+                    if (isChat) continue;
+                    int priority = GetStreamingPriority(title);
+                    bool hasChrome = title.IndexOf("Google Chrome", StringComparison.OrdinalIgnoreCase) >= 0;
+                    if (!hasChrome && priority == 0) continue;
+                    if (priority > 0)
+                    {
+                        bool take = priority > bestStreamingPriority ||
+                                   (priority == bestStreamingPriority && !isMinimized && (bestStreamingHwnd == IntPtr.Zero || IsIconic(bestStreamingHwnd)));
+                        if (take) { bestStreamingPriority = priority; bestStreamingHwnd = hWnd; }
+                    }
+                    else
+                    {
+                        if (!isMinimized && fallbackBrowserNoStreaming == IntPtr.Zero) fallbackBrowserNoStreaming = hWnd;
+                        else if (fallbackBrowserNoStreaming == IntPtr.Zero) fallbackBrowserNoStreaming = hWnd;
+                    }
+                }
+                else if (wantEdge)
+                {
+                    int priority = GetStreamingPriority(title);
+                    bool hasEdge = title.IndexOf("Microsoft Edge", StringComparison.OrdinalIgnoreCase) >= 0;
+                    if (!hasEdge && priority == 0) continue;
+                    if (priority > 0)
+                    {
+                        bool take = priority > bestStreamingPriority ||
+                                   (priority == bestStreamingPriority && !isMinimized && (bestStreamingHwnd == IntPtr.Zero || IsIconic(bestStreamingHwnd)));
+                        if (take) { bestStreamingPriority = priority; bestStreamingHwnd = hWnd; }
+                    }
+                    else
+                    {
+                        if (!isMinimized && fallbackBrowserNoStreaming == IntPtr.Zero) fallbackBrowserNoStreaming = hWnd;
+                        else if (fallbackBrowserNoStreaming == IntPtr.Zero) fallbackBrowserNoStreaming = hWnd;
+                    }
+                }
+            }
+
+            if (bestStreamingHwnd != IntPtr.Zero) return bestStreamingHwnd;
+            if (fallbackBrowserNoStreaming != IntPtr.Zero) return fallbackBrowserNoStreaming;
+            if (fallback != IntPtr.Zero) return fallback;
+            return GetWindowHandleForProcess(processId);
+        }
+
+        /// <summary>
+        /// Brings the window to the foreground, preserving its current size/state. If the window is minimized,
+        /// restores it to its previous size (e.g. full/maximized stays full). If not minimized, only activates
+        /// and shows it without changing size (so a maximized window stays maximized).
+        /// </summary>
+        private static void RestoreAndBringToForeground(IntPtr hWnd)
+        {
+            if (hWnd == IntPtr.Zero || !IsWindow(hWnd)) return;
+            if (IsIconic(hWnd))
+                ShowWindow(hWnd, SW_RESTORE);
+            else
+                ShowWindow(hWnd, SW_SHOW);
+            System.Threading.Thread.Sleep(80);
+            SetWindowPos(hWnd, HWND_TOPMOST, 0, 0, 0, 0, SWP_NOMOVE | SWP_NOSIZE);
+            SetWindowPos(hWnd, HWND_NOTOPMOST, 0, 0, 0, 0, SWP_NOMOVE | SWP_NOSIZE | SWP_SHOWWINDOW);
+            SetForegroundWindow(hWnd);
+        }
+
+        /// <summary>
         /// Brings the main window of the given process to the foreground. Restores if minimized.
         /// </summary>
         public static void BringProcessWindowToForeground(int processId)
         {
             IntPtr hWnd = GetWindowHandleForProcess(processId);
-            if (hWnd == IntPtr.Zero) return;
-            ShowWindow(hWnd, SW_RESTORE);
-            SetForegroundWindow(hWnd);
+            RestoreAndBringToForeground(hWnd);
+        }
+
+        /// <summary>
+        /// Brings the window of the selected process to the foreground, using display name to pick the correct
+        /// window when the process has multiple (e.g. Chrome vs Google Chat in the same chrome.exe process).
+        /// </summary>
+        public static void BringProcessWindowToForeground(DetectedProcess process)
+        {
+            if (process == null) return;
+            IntPtr hWnd = GetWindowHandleForProcessByDisplayName(process.ProcessId, process.DisplayName);
+            RestoreAndBringToForeground(hWnd);
         }
 
         /// <summary>
@@ -740,10 +899,7 @@ namespace x_phy_wpf_ui.Services
             if (hWnd == IntPtr.Zero && isWin11MediaPlayer)
                 hWnd = FindWindowByTitleContains("Media Player");
             if (hWnd != IntPtr.Zero)
-            {
-                ShowWindow(hWnd, SW_RESTORE);
-                SetForegroundWindow(hWnd);
-            }
+                RestoreAndBringToForeground(hWnd);
         }
     }
 }

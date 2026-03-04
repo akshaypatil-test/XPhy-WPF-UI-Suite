@@ -2181,8 +2181,14 @@ videoLiveFakeProportionThreshold = 0.7
                     ShowDetectionContent();
                     DetectionSelectionContainer.Visibility = Visibility.Collapsed;
                     DetectionResultsPanel.Visibility = Visibility.Visible;
-                    WindowState = WindowState.Minimized;
-                    try { ProcessDetectionService.BringProcessWindowToForeground(single.ProcessId); } catch { }
+                    // Minimize our window first so we're not the foreground process (avoids SetForegroundWindow being blocked when user switches quickly).
+                    try
+                    {
+                        WindowState = WindowState.Minimized;
+                        System.Threading.Thread.Sleep(200);
+                        ProcessDetectionService.BringProcessWindowToForeground(single);
+                    }
+                    catch { }
                 };
                 popup.ShowForProcess(single);
                 _floatingWidget?.BringAboveNotifications();
@@ -2468,12 +2474,14 @@ videoLiveFakeProportionThreshold = 0.7
                 DetectionSelectionContainer.Visibility = Visibility.Collapsed;
                 DetectionResultsPanel.Visibility = Visibility.Visible;
 
-                // Bring the selected app to the foreground first (so it stays visible when we minimize), then minimize our app
+                // Minimize our window first so we're not the foreground process (avoids SetForegroundWindow being blocked when user switches quickly, e.g. Chrome -> stop -> Edge).
+                this.WindowState = WindowState.Minimized;
+                System.Threading.Thread.Sleep(200);
+                // Now bring the selected app to the foreground; it will restore and activate correctly.
                 if (e.SelectedProcess.ProcessType == "MediaPlayer")
                     ProcessDetectionService.EnsureMediaPlayerOpenAndForeground(e.SelectedProcess);
                 else
-                    ProcessDetectionService.BringProcessWindowToForeground(e.SelectedProcess.ProcessId);
-                this.WindowState = WindowState.Minimized;
+                    ProcessDetectionService.BringProcessWindowToForeground(e.SelectedProcess);
             }
             catch (Exception ex)
             {

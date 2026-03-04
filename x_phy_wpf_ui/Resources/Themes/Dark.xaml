@@ -11,7 +11,7 @@
     <Color x:Key="Color.SecondaryHover">#152E33</Color>
     
     <!-- Background Colors (Dark Theme) - Matching original dark mode -->
-    <Color x:Key="Color.Background">#0A0E14</Color>
+    <Color x:Key="Color.Background">#000000</Color>
     <Color x:Key="Color.Surface">#1A1F2E</Color>
     <Color x:Key="Color.SurfaceHover">#2A2F3E</Color>
     <Color x:Key="Color.ResultsRowHover">#2A2F3E</Color>

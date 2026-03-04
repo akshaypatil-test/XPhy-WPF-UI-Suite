@@ -47,7 +47,7 @@ namespace x_phy_wpf_ui.Controls
             catch (Exception ex)
             {
                 System.Diagnostics.Debug.WriteLine($"Auto start: {ex.Message}");
-                AppDialog.Show(Window.GetWindow(this), "Could not change startup setting. " + ex.Message, "Start with Windows", MessageBoxImage.Warning);
+                AppDialog.Show(Window.GetWindow(this), "Could not change startup setting. " + ex.Message, "Auto Start Application", MessageBoxImage.Warning);
                 _updatingAutoStart = true;
                 try { AutoStartToggle.IsChecked = StartupHelper.IsAutoStartEnabled(); }
                 finally { _updatingAutoStart = false; }

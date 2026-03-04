@@ -340,7 +340,7 @@
                     <!-- Auto start on startup -->
                     <Border Style="{StaticResource FieldRowStyle}" Margin="0,6,0,0">
                         <Grid>
-                            <TextBlock Text="Start with Windows" 
+                            <TextBlock Text="Auto Start Application" 
                                        FontSize="13" 
                                        Foreground="{DynamicResource Brush.TextSecondary}"/>
                             <ToggleButton x:Name="AutoStartToggle" 

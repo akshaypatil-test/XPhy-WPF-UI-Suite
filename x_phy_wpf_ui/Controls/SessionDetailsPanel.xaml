@@ -129,32 +129,24 @@
                     <Border Grid.Row="2" x:Name="MediaEvidenceNoManipulationPanel" Background="{DynamicResource Brush.Card}" CornerRadius="8" MinHeight="140" Visibility="Collapsed">
                         <TextBlock x:Name="MediaEvidenceNoManipulationText" Text="No AI Manipulation Found" FontSize="15" FontWeight="SemiBold" Foreground="{StaticResource TealBrush}" HorizontalAlignment="Center" VerticalAlignment="Center"/>
                     </Border>
-                    <!-- When audio: folder card opens result directory in Explorer (no outer border; inner border has cyan-to-transparent gradient) -->
+                    <!-- When audio: waveform image (400x200) + info + Open Result Folder -->
                     <Border Grid.Row="2" x:Name="MediaEvidenceAudioPanel" Background="Transparent" CornerRadius="8" MinHeight="160"
                             BorderThickness="0" Visibility="Collapsed"
                             VerticalAlignment="Top" HorizontalAlignment="Stretch">
-                        <Button x:Name="OpenMediaDirectoryButton" Background="Transparent" BorderThickness="0" Cursor="Hand" Click="OpenMediaDirectory_Click"
-                                VerticalAlignment="Stretch" HorizontalAlignment="Stretch" Padding="0" MinHeight="160">
-                            <Button.Template>
-                                <ControlTemplate TargetType="Button">
-                                    <Border x:Name="Bd" Background="{DynamicResource Brush.Surface}" BorderBrush="{StaticResource CardBorderBrush}" BorderThickness="1" CornerRadius="8"
-                                            MinWidth="220" MinHeight="140" Padding="24,20"
-                                            VerticalAlignment="Center" HorizontalAlignment="Center">
-                                        <StackPanel VerticalAlignment="Center" HorizontalAlignment="Center">
-                                            <Viewbox Width="48" Height="48" Margin="0,0,0,12">
-                                                <Path Fill="{DynamicResource Brush.Secondary}" Data="M10 4H4c-1.1 0-1.99.9-1.99 2L2 18c0 1.1.9 2 2 2h16c1.1 0 2-.9 2-2V8c0-1.1-.9-2-2-2h-8l-2-2z"/>
-                                            </Viewbox>
-                                            <TextBlock Text="Open Result Folder" FontSize="15" FontWeight="SemiBold" Foreground="{DynamicResource Brush.Secondary}" HorizontalAlignment="Center" TextDecorations="Underline"/>
-                                        </StackPanel>
-                                    </Border>
-                                    <ControlTemplate.Triggers>
-                                        <Trigger Property="IsMouseOver" Value="True">
-                                            <Setter TargetName="Bd" Property="Background" Value="{DynamicResource Brush.SurfaceHover}"/>
-                                        </Trigger>
-                                    </ControlTemplate.Triggers>
-                                </ControlTemplate>
-                            </Button.Template>
-                        </Button>
+                        <Border Background="{DynamicResource Brush.Surface}" BorderBrush="{StaticResource CardBorderBrush}" BorderThickness="1" CornerRadius="8"
+                                MinWidth="220" MinHeight="140" Padding="24,20" VerticalAlignment="Top">
+                            <StackPanel VerticalAlignment="Center" HorizontalAlignment="Center">
+                                <!-- Audio waveform image: 400x200, no box or border -->
+                                <Image x:Name="AudioWaveImage" Width="400" Height="200" Stretch="Uniform"
+                                       Margin="0,0,0,10" HorizontalAlignment="Center" VerticalAlignment="Center"
+                                       RenderOptions.BitmapScalingMode="HighQuality"/>
+                                <TextBlock Text="Please refer to the result directory to view the results." FontSize="12" Foreground="{DynamicResource Brush.TextSecondary}" TextWrapping="Wrap" TextAlignment="Center" Margin="0,0,0,10"/>
+                                <Button x:Name="OpenMediaDirectoryButton" Background="Transparent" BorderThickness="0" Cursor="Hand" Click="OpenMediaDirectory_Click"
+                                        HorizontalAlignment="Center" Padding="4">
+                                    <TextBlock Text="Open Result Folder" FontSize="15" FontWeight="SemiBold" Foreground="{DynamicResource Brush.Secondary}" TextDecorations="Underline"/>
+                                </Button>
+                            </StackPanel>
+                        </Border>
                     </Border>
                     <!-- When AI manipulation detected: single-image carousel with smooth transition -->
                     <Grid Grid.Row="2" x:Name="MediaEvidenceImagesGrid" VerticalAlignment="Stretch" ClipToBounds="True">

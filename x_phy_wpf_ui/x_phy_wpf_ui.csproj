@@ -110,7 +110,30 @@
     <Resource Include="..\X-PHY Resource Files\profile.jpg">
       <Link>profile.jpg</Link>
     </Resource>
+    <!-- Audio evidence: waveform image - place in X-PHY Resource Files or x_phy_wpf_ui\Resources (any of these names: audio-wave.jpg, AudioWave.jpg) -->
+    <Resource Include="..\X-PHY Resource Files\audio-wave.jpg" Condition="Exists('..\X-PHY Resource Files\audio-wave.jpg')">
+      <Link>audio-wave.jpg</Link>
+    </Resource>
+    <Resource Include="..\X-PHY Resource Files\AudioWave.jpg" Condition="Exists('..\X-PHY Resource Files\AudioWave.jpg')">
+      <Link>AudioWave.jpg</Link>
+    </Resource>
+    <Resource Include="Resources\audio-wave.jpg" Condition="Exists('Resources\audio-wave.jpg')">
+      <Link>audio-wave.jpg</Link>
+    </Resource>
+    <Resource Include="Resources\AudioWave.jpg" Condition="Exists('Resources\AudioWave.jpg')">
+      <Link>AudioWave.jpg</Link>
+    </Resource>
     <!-- Embedded Roboto font (extract zip into Fonts folder; include .ttf files) -->
     <Resource Include="Fonts\*.ttf" />
+  </ItemGroup>
+  <ItemGroup>
+    <None Include="Resources\audio-wave.jpg" Condition="Exists('Resources\audio-wave.jpg')">
+      <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
+      <Link>Resources\audio-wave.jpg</Link>
+    </None>
+    <None Include="Resources\AudioWave.jpg" Condition="Exists('Resources\AudioWave.jpg')">
+      <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
+      <Link>Resources\AudioWave.jpg</Link>
+    </None>
   </ItemGroup>
 </Project>

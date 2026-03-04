@@ -78,6 +78,7 @@ namespace x_phy_wpf_ui.Controls
                 MediaEvidenceNoManipulationPanel.Visibility = Visibility.Collapsed;
                 MediaEvidenceImagesGrid.Visibility = Visibility.Collapsed;
                 MediaEvidenceAudioPanel.Visibility = Visibility.Visible;
+                LoadAudioWaveGraphic();
             }
             else if (result.IsAiManipulationDetected)
             {
@@ -263,6 +264,43 @@ namespace x_phy_wpf_ui.Controls
             {
                 AppDialog.Show(Window.GetWindow(this), "Failed to open folder: " + ex.Message, "Error", MessageBoxImage.Error);
             }
+        }
+
+        private void LoadAudioWaveGraphic()
+        {
+            AudioWaveImage.Source = GetAudioWaveImageSource();
+        }
+
+        /// <summary>Returns the audio wave image (audio-wave.jpg) from Resources for evidence display (Session Details and notifications). Returns null if not found.</summary>
+        public static ImageSource GetAudioWaveImageSource()
+        {
+            string[] names = { "audio-wave.jpg", "AudioWave.jpg", "audio-wave.jpeg" };
+            foreach (string name in names)
+            {
+                try
+                {
+                    var uri = new Uri("pack://application:,,,/x_phy_wpf_ui;component/" + name, UriKind.Absolute);
+                    var img = new BitmapImage(uri);
+                    return img;
+                }
+                catch { }
+            }
+            string baseDir = AppDomain.CurrentDomain.BaseDirectory;
+            string resourcesDir = Path.Combine(baseDir, "Resources");
+            foreach (string name in names)
+            {
+                try
+                {
+                    string path = Path.Combine(resourcesDir, name);
+                    if (File.Exists(path))
+                    {
+                        var uri = new Uri(path, UriKind.Absolute);
+                        return new BitmapImage(uri);
+                    }
+                }
+                catch { }
+            }
+            return null;
         }
 
         private static string ResolveAudioResultDirectory(DetectionResultItem result, string resultsDirectory)

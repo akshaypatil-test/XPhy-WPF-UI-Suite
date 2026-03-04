@@ -2724,7 +2724,7 @@ videoLiveFakeProportionThreshold = 0.7
             {
                 int rawConfidence = DetectionResultsComponent?.LastConfidencePercent ?? 0;
                 int confidence = GetDisplayConfidence(rawConfidence, true);
-                var evidenceImage = isAudioDetection ? null : DetectionResultsComponent?.LatestEvidenceImage;
+                var evidenceImage = isAudioDetection ? Controls.SessionDetailsPanel.GetAudioWaveImageSource() : DetectionResultsComponent?.LatestEvidenceImage;
                 ShowDetectionCompletedWithThreatNotification(displayPath ?? "", confidence, evidenceImage, isAudioDetection);
             }
             else
@@ -3311,7 +3311,7 @@ videoLiveFakeProportionThreshold = 0.7
                 try { resultPath = controller?.GetResultsDir() ?? ""; } catch { }
                 int rawConfidence = DetectionResultsComponent?.LastConfidencePercent ?? 0;
                 int confidence = GetDisplayConfidence(rawConfidence, true);
-                var evidenceImage = isAudioDetection ? null : DetectionResultsComponent?.LatestEvidenceImage;
+                var evidenceImage = isAudioDetection ? Controls.SessionDetailsPanel.GetAudioWaveImageSource() : DetectionResultsComponent?.LatestEvidenceImage;
 
                 var popup = new DetectionNotificationWindow();
                 popup.SetDeepfakeContent(
@@ -3371,7 +3371,7 @@ videoLiveFakeProportionThreshold = 0.7
             }));
         }
 
-        private void ShowDetectionCompletedWithThreatNotification(string resultPath, int confidencePercent, System.Windows.Media.Imaging.BitmapSource evidenceImage, bool isAudio = false)
+        private void ShowDetectionCompletedWithThreatNotification(string resultPath, int confidencePercent, System.Windows.Media.ImageSource evidenceImage, bool isAudio = false)
         {
             Dispatcher.BeginInvoke(new Action(() =>
             {

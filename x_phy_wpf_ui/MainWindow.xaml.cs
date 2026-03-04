@@ -12,6 +12,7 @@ using System.Windows.Controls;
 using System.Windows.Input;
 using System.Windows.Interop;
 using System.Windows.Media;
+using System.Windows.Media.Effects;
 using System.Windows.Media.Imaging;
 using System.Windows.Threading;
 using Forms = System.Windows.Forms;
@@ -87,6 +88,40 @@ namespace x_phy_wpf_ui
         private const int MediaSourcePopupCooldownSeconds = 60;
         /// <summary>Last time we showed the "Multiple Media Source Detected" popup.</summary>
         private DateTime _lastMultipleSourcesPopupShownAt = DateTime.MinValue;
+
+        /// <summary>Ref count for background blur when in-app popups/overlays are visible. Blur is applied when > 0.</summary>
+        private int _blurRefCount = 0;
+
+        /// <summary>Apply blur to main content (behind overlays/dialogs). Call when showing any in-app popup.</summary>
+        private void EnterBlur()
+        {
+            _blurRefCount++;
+            if (_blurRefCount == 1 && MainContentToBlur != null)
+                MainContentToBlur.Effect = new BlurEffect { Radius = 12 };
+        }
+
+        /// <summary>Remove blur when popup/overlay is closed. Call when hiding any in-app popup.</summary>
+        private void ExitBlur()
+        {
+            if (_blurRefCount > 0) _blurRefCount--;
+            if (_blurRefCount == 0 && MainContentToBlur != null)
+                MainContentToBlur.Effect = null;
+        }
+
+        /// <summary>Show or hide the dim overlay and blur when AppDialog is shown. Called by AppDialog so dialog stays within app.</summary>
+        public void SetDialogOverlayVisible(bool visible)
+        {
+            if (visible)
+            {
+                EnterBlur();
+                if (AppDialogOverlay != null) AppDialogOverlay.Visibility = Visibility.Visible;
+            }
+            else
+            {
+                if (AppDialogOverlay != null) AppDialogOverlay.Visibility = Visibility.Collapsed;
+                ExitBlur();
+            }
+        }
 
         // Helper method to get color resources
         private SolidColorBrush GetResourceBrush(string resourceKey)
@@ -185,11 +220,11 @@ namespace x_phy_wpf_ui
             _passwordChangedSuccessDialog = new PasswordChangedSuccessDialog();
             _authServiceForChangePassword = new AuthService();
             ChangePasswordOverlayContent.Content = _changePasswordDialog;
-            _changePasswordDialog.BackRequested += (s, ev) => { ChangePasswordOverlay.Visibility = Visibility.Collapsed; };
+            _changePasswordDialog.BackRequested += (s, ev) => { ChangePasswordOverlay.Visibility = Visibility.Collapsed; ExitBlur(); };
             _changePasswordDialog.UpdatePasswordRequested += ChangePasswordDialog_UpdatePasswordRequested;
             _verifyChangePasswordOtpDialog.VerifyRequested += VerifyChangePasswordOtpDialog_VerifyRequested;
             _verifyChangePasswordOtpDialog.ResendRequested += VerifyChangePasswordOtpDialog_ResendRequested;
-            _verifyChangePasswordOtpDialog.CloseRequested += (s, ev) => { ChangePasswordOverlay.Visibility = Visibility.Collapsed; };
+            _verifyChangePasswordOtpDialog.CloseRequested += (s, ev) => { ChangePasswordOverlay.Visibility = Visibility.Collapsed; ExitBlur(); };
 
             // Initial app start: Welcome → Get Started (Launch) → Sign In / Create Account / Corporate Sign In
             _welcomeComponent.NavigateToLaunch += (s, e) => { AuthPanel.SetContent(_launchComponent); };
@@ -1919,6 +1954,7 @@ videoLiveFakeProportionThreshold = 0.7
         {
             _changePasswordDialog.Clear();
             ChangePasswordOverlayContent.Content = _changePasswordDialog;
+            EnterBlur();
             ChangePasswordOverlay.Visibility = Visibility.Visible;
         }
 
@@ -1982,6 +2018,7 @@ videoLiveFakeProportionThreshold = 0.7
                     Dispatcher.Invoke(() =>
                     {
                         ChangePasswordOverlay.Visibility = Visibility.Collapsed;
+                        ExitBlur();
                         DoLogout();
                     });
                 });
@@ -2342,6 +2379,7 @@ videoLiveFakeProportionThreshold = 0.7
                     }
                     popup.SetDetails(e.PlanName, e.DurationDays, e.Price, e.PaymentIntentId);
                     StripePaymentComponentContainer.Visibility = Visibility.Collapsed;
+                    EnterBlur();
                     PaymentSuccessOverlay.Visibility = Visibility.Visible;
                     if (ProfileComponent != null && ProfileComponent.Visibility == Visibility.Visible)
                         _ = ProfileComponent.LoadProfileAsync();
@@ -2352,6 +2390,7 @@ videoLiveFakeProportionThreshold = 0.7
         private void PaymentSuccessPopup_CloseRequested(object sender, EventArgs e)
         {
             PaymentSuccessOverlay.Visibility = Visibility.Collapsed;
+            ExitBlur();
             PaymentSuccessOverlayContent.Content = null;
             ShowDetectionContent();
             // Refresh display from current tokens and fetch latest license from server so remaining days update immediately (backend may have ExpiryDate now).
@@ -3314,6 +3353,7 @@ videoLiveFakeProportionThreshold = 0.7
                 var evidenceImage = isAudioDetection ? Controls.SessionDetailsPanel.GetAudioWaveImageSource() : DetectionResultsComponent?.LatestEvidenceImage;
 
                 var popup = new DetectionNotificationWindow();
+                popup.Owner = this;
                 popup.SetDeepfakeContent(
                     confidence,
                     resultPath,

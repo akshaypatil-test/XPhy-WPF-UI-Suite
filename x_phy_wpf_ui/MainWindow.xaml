@@ -27,6 +27,8 @@
             CornerRadius="12"
             ClipToBounds="True">
         <Grid>
+        <!-- Content that gets blurred when any in-app popup/overlay is visible -->
+        <Grid x:Name="MainContentToBlur">
         <!-- Auth view (Login/Signup) - shown when not logged in. Background image only here, not in App. -->
         <controls:AuthHostView x:Name="AuthPanel"
                                Visibility="Visible"
@@ -245,8 +247,12 @@
                                LogoutClicked="BottomBar_LogoutClicked"/>
         </Grid>
         </Grid>
+        </Grid>
 
-        <!-- Change Password overlay: semi-transparent backdrop, themed dialog -->
+        <!-- Dim overlay when AppDialog is shown (blur is applied to MainContentToBlur from code-behind) -->
+        <Border x:Name="AppDialogOverlay" Visibility="Collapsed" Background="#40000000" IsHitTestVisible="True"/>
+
+        <!-- Change Password overlay: semi-transparent backdrop + blur behind -->
         <Grid x:Name="ChangePasswordOverlay" Visibility="Collapsed" Background="#80000000" IsHitTestVisible="True">
             <Border HorizontalAlignment="Center" VerticalAlignment="Center" MinWidth="420" MaxWidth="480"
                     Background="{DynamicResource Brush.Card}" BorderBrush="{DynamicResource Brush.Secondary}"
@@ -255,7 +261,7 @@
             </Border>
         </Grid>
 
-        <!-- Payment Success overlay: glass-style transparent popup -->
+        <!-- Payment Success overlay: glass-style transparent popup + blur behind -->
         <Grid x:Name="PaymentSuccessOverlay" Visibility="Collapsed" Background="#80000000" IsHitTestVisible="True">
             <Border HorizontalAlignment="Center" VerticalAlignment="Center" MinWidth="420" MaxWidth="480"
                     Background="#CC1C1E23" BorderBrush="#60E0E6F1" BorderThickness="1.5"

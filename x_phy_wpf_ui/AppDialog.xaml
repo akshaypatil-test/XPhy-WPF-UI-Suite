@@ -8,7 +8,6 @@
         WindowStyle="None"
         AllowsTransparency="True"
         Background="Transparent"
-        Topmost="True"
         ShowInTaskbar="False"
         ResizeMode="NoResize">
     <Border Background="{DynamicResource Brush.Card}" CornerRadius="8" Padding="0" BorderThickness="1" BorderBrush="{DynamicResource Brush.Border}">

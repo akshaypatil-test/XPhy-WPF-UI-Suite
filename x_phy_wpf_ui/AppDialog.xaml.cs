@@ -27,16 +27,22 @@ namespace x_phy_wpf_ui
         }
 
         /// <summary>
-        /// Show an OK-only dialog with explicit owner.
+        /// Show an OK-only dialog with explicit owner. Uses blur overlay and keeps dialog within app when owner is MainWindow.
         /// </summary>
         public static void Show(Window? owner, string message, string title = "X-PHY", MessageBoxImage icon = MessageBoxImage.Information)
         {
             var dialog = new AppDialog();
             dialog.Configure(title, message, icon, showYesNo: false);
+            owner = owner ?? Application.Current.MainWindow;
             if (owner != null)
             {
                 dialog.Owner = owner;
                 dialog.WindowStartupLocation = WindowStartupLocation.CenterOwner;
+                if (owner is MainWindow mw)
+                {
+                    mw.SetDialogOverlayVisible(true);
+                    dialog.Closed += (s, e) => mw.SetDialogOverlayVisible(false);
+                }
             }
             else
             {
@@ -55,16 +61,22 @@ namespace x_phy_wpf_ui
         }
 
         /// <summary>
-        /// Show a Yes/No dialog with explicit owner. Returns true if user clicked Yes, false if No.
+        /// Show a Yes/No dialog with explicit owner. Returns true if user clicked Yes, false if No. Uses blur overlay when owner is MainWindow.
         /// </summary>
         public static bool? ShowYesNo(Window? owner, string message, string title = "X-PHY")
         {
             var dialog = new AppDialog();
             dialog.Configure(title, message, MessageBoxImage.Question, showYesNo: true);
+            owner = owner ?? Application.Current.MainWindow;
             if (owner != null)
             {
                 dialog.Owner = owner;
                 dialog.WindowStartupLocation = WindowStartupLocation.CenterOwner;
+                if (owner is MainWindow mw)
+                {
+                    mw.SetDialogOverlayVisible(true);
+                    dialog.Closed += (s, e) => mw.SetDialogOverlayVisible(false);
+                }
             }
             else
             {

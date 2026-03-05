@@ -124,8 +124,10 @@ namespace x_phy_wpf_ui.Controls
             }
         }
 
-        private void Back_Click(object sender, RoutedEventArgs e)
+        private async void Back_Click(object sender, RoutedEventArgs e)
         {
+            if (!string.IsNullOrWhiteSpace(_email))
+                await _authService.CancelRegistrationAsync(_email);
             NavigateBack?.Invoke(this, EventArgs.Empty);
         }
 

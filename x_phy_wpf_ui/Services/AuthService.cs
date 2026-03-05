@@ -255,6 +255,21 @@ namespace x_phy_wpf_ui.Services
             }
         }
 
+        public async Task CancelRegistrationAsync(string email)
+        {
+            try
+            {
+                var request = new { email };
+                var json = JsonConvert.SerializeObject(request);
+                var content = new StringContent(json, Encoding.UTF8, "application/json");
+                await _httpClient.PostAsync("/api/auth/cancel-registration", content);
+            }
+            catch
+            {
+                // Best effort: ignore errors (user may already be deleted or offline)
+            }
+        }
+
         public async Task<ResendOtpResponse> ResendOtpAsync(string email)
         {
             try

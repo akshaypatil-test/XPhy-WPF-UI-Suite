@@ -43,6 +43,10 @@ namespace x_phy_wpf_ui
         private bool isAudioDetection = false; // Track if current detection is Audio mode (vs Video mode)
         /// <summary>Display name for current detection source (e.g. "Zoom", "Google Chrome") for CreateResult MediaSource.</summary>
         private string _currentMediaSourceDisplayName = "Local";
+        /// <summary>Evidence image counter for this run; each 15s fake notification saves evidence_N.png so Evidence UI shows all.</summary>
+        private int _evidenceSaveCounter = 0;
+        /// <summary>Result folder for current run; evidence images and final CreateResult use this path.</summary>
+        private string _currentRunArtifactPath = null;
         /// <summary>When set by floating launcher "Stop & View Results", use this path for opening results so they match the saved result.</summary>
         private string _pathForResultsAfterStop;
         private LicenseManager licenseManager;
@@ -1478,6 +1482,14 @@ videoLiveFakeProportionThreshold = 0.7
                 {
                     overallClassification = null;
                     _deepfakeDetectedDuringRun = false;
+                    _evidenceSaveCounter = 0;
+                    string baseResultsDir = "";
+                    try { baseResultsDir = controller?.GetResultsDir() ?? ""; } catch { }
+                    _currentRunArtifactPath = string.IsNullOrEmpty(baseResultsDir) ? null : Path.Combine(baseResultsDir, isAudioMode ? "audio" : "video", DateTime.Now.ToString("dd-MM-yyyy"), DateTime.Now.ToString("HH-mm"));
+                    if (!string.IsNullOrEmpty(_currentRunArtifactPath))
+                    {
+                        try { if (!Directory.Exists(_currentRunArtifactPath)) Directory.CreateDirectory(_currentRunArtifactPath); } catch { }
+                    }
                     StartDetectionCard.StatusText = $"Identifying Active Media Sources";
                     DetectionResultsComponent.StartDetection(isAudioMode);
                     string detectionType = isAudioMode ? "Audio" : "Video";
@@ -1752,6 +1764,8 @@ videoLiveFakeProportionThreshold = 0.7
             isAudioDetection = false;
             overallClassification = null;
             _deepfakeDetectedDuringRun = false;
+            _evidenceSaveCounter = 0;
+            _currentRunArtifactPath = null;
         }
 
         /// <summary>
@@ -2752,18 +2766,21 @@ videoLiveFakeProportionThreshold = 0.7
             {
                 try { displayPath = controller?.GetResultsDir() ?? ""; } catch { }
             }
-            // When path is the base results dir (e.g. .../Deepfake - results), resolve to full run folder (.../video/DD-MM-YYYY/HH-mm) so DB and images use correct path.
-            displayPath = DetectionResultsLoader.ResolveFullArtifactPath(displayPath ?? "", isAudioDetection) ?? displayPath;
+            // Use current run folder so Evidence UI (all saved images) and CreateResult use same path.
+            if (!string.IsNullOrEmpty(_currentRunArtifactPath))
+                displayPath = _currentRunArtifactPath;
+            else
+                displayPath = DetectionResultsLoader.ResolveFullArtifactPath(displayPath ?? "", isAudioDetection) ?? displayPath;
             DetectionResultsComponent?.ShowFinalResult(displayPath ?? resultPath);
 
             int faceCount = DetectionResultsComponent?.DetectedFacesCount ?? 0;
-            // Single source of truth for notification, result view, and DB (no mismatch)
             bool hadDeepfake = _deepfakeDetectedDuringRun;
+            // Final Detection Complete: show max fake confidence from all 15s notifications (same value shown in one of them).
             if (hadDeepfake)
             {
-                int rawConfidence = DetectionResultsComponent?.LastConfidencePercent ?? 0;
+                int rawConfidence = DetectionResultsComponent?.RunMaxConfidencePercent ?? DetectionResultsComponent?.LastConfidencePercent ?? 0;
                 int confidence = GetDisplayConfidence(rawConfidence, true);
-                var evidenceImage = isAudioDetection ? Controls.SessionDetailsPanel.GetAudioWaveImageSource() : DetectionResultsComponent?.LatestEvidenceImage;
+                var evidenceImage = isAudioDetection ? Controls.SessionDetailsPanel.GetAudioWaveImageSource() : (DetectionResultsComponent?.RunMaxEvidenceImage ?? DetectionResultsComponent?.LatestEvidenceImage);
                 ShowDetectionCompletedWithThreatNotification(displayPath ?? "", confidence, evidenceImage, isAudioDetection);
             }
             else
@@ -2794,16 +2811,39 @@ videoLiveFakeProportionThreshold = 0.7
             return hadDeepfake ? 97 : 0;
         }
 
+        /// <summary>Save evidence image to run folder so Evidence UI shows all deepfake detections (evidence_1.png, evidence_2.png, ...).</summary>
+        private void SaveEvidenceImageToResultFolder(string artifactFolderPath, System.Windows.Media.Imaging.BitmapSource bitmap)
+        {
+            if (bitmap == null || string.IsNullOrEmpty(artifactFolderPath)) return;
+            try
+            {
+                if (!Directory.Exists(artifactFolderPath))
+                    Directory.CreateDirectory(artifactFolderPath);
+                _evidenceSaveCounter++;
+                string fileName = $"evidence_{_evidenceSaveCounter}.png";
+                string filePath = Path.Combine(artifactFolderPath, fileName);
+                var encoder = new PngBitmapEncoder();
+                encoder.Frames.Add(BitmapFrame.Create(bitmap));
+                using (var stream = new FileStream(filePath, FileMode.Create, FileAccess.Write, FileShare.None))
+                    encoder.Save(stream);
+            }
+            catch (Exception ex)
+            {
+                System.Diagnostics.Debug.WriteLine($"SaveEvidenceImageToResultFolder: {ex.Message}");
+            }
+        }
+
         /// <summary>Navigate to Results tab, show Session Details for the given result path, and bring main window to front. Used by "Stop & View Results" and by "View Results" on detection completion.</summary>
         private void NavigateToResultsAndShowSessionDetail(string resultPath)
         {
             string resultsDir = null;
             try { resultsDir = controller?.GetResultsDir(); } catch { }
             resultsDir = resultsDir ?? DetectionResultsLoader.GetDefaultResultsDir();
-            // When path is the base results dir, resolve to full run folder (.../video/DD-MM-YYYY/HH-mm) so Session Details can load images.
-            string artifactPath = DetectionResultsLoader.ResolveFullArtifactPath(resultPath ?? resultsDir ?? "", isAudioDetection);
+            string artifactPath = !string.IsNullOrEmpty(_currentRunArtifactPath) ? _currentRunArtifactPath : (DetectionResultsLoader.ResolveFullArtifactPath(resultPath ?? resultsDir ?? "", isAudioDetection) ?? resultPath ?? resultsDir ?? "");
             if (string.IsNullOrEmpty(artifactPath)) artifactPath = resultPath ?? resultsDir ?? "";
-            int rawConfidence = DetectionResultsComponent?.LastConfidencePercent ?? 0;
+            int rawConfidence = _deepfakeDetectedDuringRun
+                ? (DetectionResultsComponent?.RunMaxConfidencePercent ?? DetectionResultsComponent?.LastConfidencePercent ?? 0)
+                : (DetectionResultsComponent?.LastConfidencePercent ?? 0);
             var item = new DetectionResultItem
             {
                 Timestamp = DateTime.Now,
@@ -2842,7 +2882,9 @@ videoLiveFakeProportionThreshold = 0.7
         {
             try
             {
-                int rawConfidence = DetectionResultsComponent?.LastConfidencePercent ?? 0;
+                int rawConfidence = aiManipulationDetected
+                    ? (DetectionResultsComponent?.RunMaxConfidencePercent ?? DetectionResultsComponent?.LastConfidencePercent ?? 0)
+                    : (DetectionResultsComponent?.LastConfidencePercent ?? 0);
                 int confidence = GetDisplayConfidence(rawConfidence, aiManipulationDetected);
                 double durationSec = DetectionResultsComponent?.GetDetectionDurationSeconds() ?? 60;
                 string machineFingerprint = null;
@@ -3348,6 +3390,12 @@ videoLiveFakeProportionThreshold = 0.7
                 DetectionNotificationWindow.CloseAllOpen();
                 string resultPath = "";
                 try { resultPath = controller?.GetResultsDir() ?? ""; } catch { }
+                string artifactPath = !string.IsNullOrEmpty(_currentRunArtifactPath) ? _currentRunArtifactPath : (DetectionResultsLoader.ResolveFullArtifactPath(resultPath ?? "", isAudioDetection) ?? resultPath ?? "");
+                if (!string.IsNullOrEmpty(artifactPath))
+                    _currentRunArtifactPath = artifactPath;
+                // 1. Save this 15s fake detection to evidence so Evidence UI shows all deepfake images.
+                if (!isAudioDetection && DetectionResultsComponent?.LatestEvidenceImage != null && !string.IsNullOrEmpty(artifactPath))
+                    SaveEvidenceImageToResultFolder(artifactPath, DetectionResultsComponent.LatestEvidenceImage);
                 int rawConfidence = DetectionResultsComponent?.LastConfidencePercent ?? 0;
                 int confidence = GetDisplayConfidence(rawConfidence, true);
                 var evidenceImage = isAudioDetection ? Controls.SessionDetailsPanel.GetAudioWaveImageSource() : DetectionResultsComponent?.LatestEvidenceImage;
@@ -3364,17 +3412,13 @@ videoLiveFakeProportionThreshold = 0.7
                     },
                     stopDetectionAndOpenResults: () =>
                     {
-                        // Same as floating launcher: resolve path, push to DB, set path for results view. Only push once per run (avoid duplicate if user also used floater).
-                        string baseDir = resultPath;
-                        if (string.IsNullOrEmpty(baseDir)) try { baseDir = controller?.GetResultsDir() ?? ""; } catch { }
-                        string artifactPath = DetectionResultsLoader.ResolveFullArtifactPath(baseDir ?? "", isAudioDetection);
-                        if (string.IsNullOrEmpty(artifactPath)) artifactPath = baseDir ?? "Local";
+                        string pathToPush = !string.IsNullOrEmpty(_currentRunArtifactPath) ? _currentRunArtifactPath : (DetectionResultsLoader.ResolveFullArtifactPath(resultPath ?? "", isAudioDetection) ?? resultPath ?? "Local");
                         if (!_resultPushedForStopAndViewResults)
                         {
                             _resultPushedForStopAndViewResults = true;
-                            PushDetectionResultToBackend(artifactPath, true);
+                            PushDetectionResultToBackend(pathToPush, true);
                         }
-                        _pathForResultsAfterStop = artifactPath;
+                        _pathForResultsAfterStop = pathToPush;
                         openResultsFolderAfterStop = true;
                         StopDetection_Click(null, EventArgs.Empty);
                     },

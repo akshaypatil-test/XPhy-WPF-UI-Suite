@@ -49,10 +49,14 @@ namespace x_phy_wpf_ui.Controls
         private bool _windowHadFake;
         private System.Windows.Media.Imaging.BitmapSource _windowEvidenceImage;  // image from the batch where _windowMaxScore occurred
 
-        /// <summary>Last max fake percentage (0-100) when deepfake was detected. Used by deepfake notification.</summary>
+        /// <summary>Last max fake percentage (0-100) when deepfake was detected. Used by 15s deepfake notification.</summary>
         public int LastConfidencePercent { get; private set; }
-        /// <summary>Latest evidence frame image for notification. Used by deepfake notification.</summary>
+        /// <summary>Latest evidence frame image for notification. Used by 15s deepfake notification.</summary>
         public System.Windows.Media.Imaging.BitmapSource LatestEvidenceImage { get; private set; }
+        /// <summary>Max confidence across all 15s windows this run. Used for final Detection Complete notification.</summary>
+        public int RunMaxConfidencePercent { get; private set; }
+        /// <summary>Evidence image from the 15s window that had highest confidence. Used for final notification.</summary>
+        public System.Windows.Media.Imaging.BitmapSource RunMaxEvidenceImage { get; private set; }
 
         public DetectionResultsComponent()
         {
@@ -117,6 +121,8 @@ namespace x_phy_wpf_ui.Controls
             _windowMaxScore = 0;
             _windowHadFake = false;
             _windowEvidenceImage = null;
+            RunMaxConfidencePercent = 0;
+            RunMaxEvidenceImage = null;
 
             DuringDetectionPanel.Visibility = Visibility.Visible;
             if (ClassificationIndicator != null) ClassificationIndicator.Visibility = Visibility.Collapsed;
@@ -178,8 +184,14 @@ namespace x_phy_wpf_ui.Controls
             {
                 if (_windowHadFake && _windowMaxScore >= 0)
                 {
-                    LastConfidencePercent = (int)Math.Round(Math.Min(100, Math.Max(0, _windowMaxScore * 100)));
+                    int windowConfidence = (int)Math.Round(Math.Min(100, Math.Max(0, _windowMaxScore * 100)));
+                    LastConfidencePercent = windowConfidence;
                     LatestEvidenceImage = _windowEvidenceImage;
+                    if (windowConfidence > RunMaxConfidencePercent)
+                    {
+                        RunMaxConfidencePercent = windowConfidence;
+                        RunMaxEvidenceImage = _windowEvidenceImage;
+                    }
                     DeepfakeDetected?.Invoke(this, EventArgs.Empty);
                 }
                 _windowMaxScore = 0;
@@ -313,8 +325,14 @@ namespace x_phy_wpf_ui.Controls
         {
             if (_windowHadFake && _windowMaxScore >= 0)
             {
-                LastConfidencePercent = (int)Math.Round(Math.Min(100, Math.Max(0, _windowMaxScore * 100)));
+                int windowConfidence = (int)Math.Round(Math.Min(100, Math.Max(0, _windowMaxScore * 100)));
+                LastConfidencePercent = windowConfidence;
                 LatestEvidenceImage = _windowEvidenceImage;
+                if (windowConfidence > RunMaxConfidencePercent)
+                {
+                    RunMaxConfidencePercent = windowConfidence;
+                    RunMaxEvidenceImage = _windowEvidenceImage;
+                }
                 DeepfakeDetected?.Invoke(this, EventArgs.Empty);
             }
         }

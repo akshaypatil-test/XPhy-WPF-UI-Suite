@@ -249,7 +249,11 @@ namespace x_phy_wpf_ui
             {
                 AuthPanel.SetContent(_signInComponent);
                 if (e != null && !string.IsNullOrEmpty(e.Message))
+                {
                     _signInComponent.SetError(e.Message);
+                    if (e.Message.IndexOf("maximum", StringComparison.OrdinalIgnoreCase) >= 0 && e.Message.IndexOf("machines", StringComparison.OrdinalIgnoreCase) >= 0)
+                        AppDialog.Show(this, e.Message, "License Error", MessageBoxImage.Error);
+                }
             };
             _signInComponent.NavigateBack += (s, e) => { AuthPanel.SetContent(_launchComponent); };
             
@@ -307,7 +311,11 @@ namespace x_phy_wpf_ui
             {
                 AuthPanel.SetContent(_corporateSignInComponent);
                 if (e != null && !string.IsNullOrEmpty(e.Message))
+                {
                     _corporateSignInComponent.SetError(e.Message);
+                    if (e.Message.IndexOf("maximum", StringComparison.OrdinalIgnoreCase) >= 0 && e.Message.IndexOf("machines", StringComparison.OrdinalIgnoreCase) >= 0)
+                        AppDialog.Show(this, e.Message, "License Error", MessageBoxImage.Error);
+                }
             };
 
             _updatePasswordComponent.PasswordUpdated += (s, e) => SignInComponent_SignInSuccessful(s, e);
@@ -359,80 +367,80 @@ namespace x_phy_wpf_ui
                 await Task.Delay(delayMs);
             }
 
-            // 2. When LMS says Expired: allow login without controller; save tokens and show app (expired UI). Otherwise run Keygen validation.
+            // 2. Always run Keygen validation (native) for both Active and Expired licenses so machine limit is enforced in both cases.
             Dispatcher.Invoke(() =>
             {
                 var tokenStorage = new TokenStorage();
-                if (!isExpiredFromLms)
+                try
                 {
-                    try
+                    string appData = Environment.GetFolderPath(Environment.SpecialFolder.ApplicationData);
+                    string outputDir = Path.Combine(appData, "X-PHY", "X-PHY Deepfake Detector");
+                    Directory.CreateDirectory(outputDir);
+                    string configPath = GetAppDataConfigPath();
+                    controller = new ApplicationControllerWrapper(outputDir, configPath);
+                    controllerInitializationAttempted = true;
+                    System.Diagnostics.Debug.WriteLine("License validation (Keygen) succeeded at sign-in.");
+                    var ctrl = controller;
+                    _inferenceWarmUpTask = Task.Run(() =>
                     {
-                        string appData = Environment.GetFolderPath(Environment.SpecialFolder.ApplicationData);
-                        string outputDir = Path.Combine(appData, "X-PHY", "X-PHY Deepfake Detector");
-                        Directory.CreateDirectory(outputDir);
-                        string configPath = GetAppDataConfigPath();
-                        controller = new ApplicationControllerWrapper(outputDir, configPath);
-                        controllerInitializationAttempted = true;
-                        System.Diagnostics.Debug.WriteLine("License validation (Keygen) succeeded at sign-in.");
-                        var ctrl = controller;
-                        _inferenceWarmUpTask = Task.Run(() =>
+                        try
                         {
-                            try
-                            {
-                                System.Threading.Thread.Sleep(3000);
-                                var method = ctrl?.GetType().GetMethod("PrepareInferenceEnvironment", Type.EmptyTypes);
-                                if (method != null) method.Invoke(ctrl, null);
-                            }
-                            catch (Exception ex) { System.Diagnostics.Debug.WriteLine($"Warm-up: {ex.Message}"); }
-                        });
-                    }
-                    catch (Exception ex)
-                    {
-                        controller = null;
-                        controllerInitializationAttempted = true;
-                        if (IsLicenseExpiredFailure(ex))
-                        {
-                            System.Diagnostics.Debug.WriteLine("Login: Keygen reported license expired; allowing login and showing expired UI.");
-                            var expiredLicenseInfo = licenseInfo != null
-                                ? new LicenseInfo
-                                {
-                                    Key = licenseInfo.Key,
-                                    Status = "Expired",
-                                    MaxDevices = licenseInfo.MaxDevices,
-                                    TrialAttemptsRemaining = 0,
-                                    TrialEndsAt = licenseInfo.TrialEndsAt,
-                                    PurchaseDate = licenseInfo.PurchaseDate,
-                                    ExpiryDate = licenseInfo.ExpiryDate,
-                                    PlanId = licenseInfo.PlanId,
-                                    PlanName = licenseInfo.PlanName
-                                }
-                                : new LicenseInfo { Key = args.LicenseKey?.Trim(), Status = "Expired" };
-                            var userExpired = response.User != null ? new UserInfo { Id = response.User.Id, Username = response.User.Username, LicenseStatus = "Expired", TrialEndsAt = response.User.TrialEndsAt, UserType = response.User.UserType } : response.User;
-                            tokenStorage.SaveTokens(
-                                response.AccessToken,
-                                response.RefreshToken,
-                                response.ExpiresIn,
-                                response.User.Id,
-                                response.User.Username,
-                                userExpired,
-                                expiredLicenseInfo,
-                                args.RememberMe
-                            );
-                            ShowAppView();
-                            return;
+                            System.Threading.Thread.Sleep(3000);
+                            var method = ctrl?.GetType().GetMethod("PrepareInferenceEnvironment", Type.EmptyTypes);
+                            if (method != null) method.Invoke(ctrl, null);
                         }
-                        string message = GetControllerInitFailureMessage(ex);
-                        bool isLicenseError = IsLicenseValidationFailure(ex);
-                        string title = isLicenseError ? "License Error" : "Validation Failed";
-                        AppDialog.Show(this, message, title, MessageBoxImage.Error);
+                        catch (Exception ex) { System.Diagnostics.Debug.WriteLine($"Warm-up: {ex.Message}"); }
+                    });
+                }
+                catch (Exception ex)
+                {
+                    controller = null;
+                    controllerInitializationAttempted = true;
+                    // Machine limit exceeded: block login for both Active and Expired (same pop-up as native).
+                    if (IsMachineLimitExceededFailure(ex))
+                    {
+                        string msg = GetControllerInitFailureMessage(ex);
+                        AppDialog.Show(this, msg, "License Error", MessageBoxImage.Error);
                         AuthPanel.SetContent(signInComponentOnError);
                         return;
                     }
-                }
-                else
-                {
-                    controllerInitializationAttempted = true;
-                    System.Diagnostics.Debug.WriteLine("Login allowed with Expired license from LMS; app will show expired UI.");
+                    if (IsLicenseExpiredFailure(ex))
+                    {
+                        System.Diagnostics.Debug.WriteLine("Login: Keygen reported license expired; allowing login and showing expired UI.");
+                        var expiredLicenseInfo = licenseInfo != null
+                            ? new LicenseInfo
+                            {
+                                Key = licenseInfo.Key,
+                                Status = "Expired",
+                                MaxDevices = licenseInfo.MaxDevices,
+                                TrialAttemptsRemaining = 0,
+                                TrialEndsAt = licenseInfo.TrialEndsAt,
+                                PurchaseDate = licenseInfo.PurchaseDate,
+                                ExpiryDate = licenseInfo.ExpiryDate,
+                                PlanId = licenseInfo.PlanId,
+                                PlanName = licenseInfo.PlanName
+                            }
+                            : new LicenseInfo { Key = args.LicenseKey?.Trim(), Status = "Expired" };
+                        var userExpired = response.User != null ? new UserInfo { Id = response.User.Id, Username = response.User.Username, LicenseStatus = "Expired", TrialEndsAt = response.User.TrialEndsAt, UserType = response.User.UserType } : response.User;
+                        tokenStorage.SaveTokens(
+                            response.AccessToken,
+                            response.RefreshToken,
+                            response.ExpiresIn,
+                            response.User.Id,
+                            response.User.Username,
+                            userExpired,
+                            expiredLicenseInfo,
+                            args.RememberMe
+                        );
+                        ShowAppView();
+                        return;
+                    }
+                    string errorMessage = GetControllerInitFailureMessage(ex);
+                    bool isLicenseError = IsLicenseValidationFailure(ex);
+                    string title = isLicenseError ? "License Error" : "Validation Failed";
+                    AppDialog.Show(this, errorMessage, title, MessageBoxImage.Error);
+                    AuthPanel.SetContent(signInComponentOnError);
+                    return;
                 }
 
                 // 3. Normalize license (Expired + 0 attempts if actually expired) so we never persist stale Trial from DB; save with user LicenseStatus in sync.
@@ -1245,6 +1253,14 @@ videoLiveFakeProportionThreshold = 0.7
                    lower.Contains("unable to validate license") ||
                    lower.Contains("server returned") ||
                    lower.Contains("could not verify");
+        }
+
+        /// <summary>True when the exception indicates machine limit exceeded (Keygen). Enforced for both Active and Expired licenses.</summary>
+        private static bool IsMachineLimitExceededFailure(Exception ex)
+        {
+            string msg = ex?.Message ?? "";
+            string lower = msg.ToLowerInvariant();
+            return lower.Contains("maximum") && lower.Contains("machines");
         }
 
         /// <summary>True when the exception indicates the license has expired (Keygen). Use to show expired UI instead of blocking.</summary>

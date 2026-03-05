@@ -147,8 +147,7 @@ namespace x_phy_wpf_ui.Controls
         {
             ValidateActivationDate();
             UpdateCreateButtonState();
-            // Refresh the date text display so it doesn't appear black until clicking elsewhere
-            Dispatcher.BeginInvoke(new Action(RefreshActivationDateDisplay), System.Windows.Threading.DispatcherPriority.Loaded);
+            Dispatcher.BeginInvoke(new Action(RefreshActivationDateDisplay), DispatcherPriority.Loaded);
         }
 
         private void RefreshActivationDateDisplay()

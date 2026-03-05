@@ -31,7 +31,9 @@
             <Setter Property="Template">
                 <Setter.Value>
                     <ControlTemplate TargetType="TextBox">
-                        <ScrollViewer x:Name="PART_ContentHost" VerticalAlignment="Center" Margin="0"/>
+                        <Border Padding="12,8" Background="{TemplateBinding Background}">
+                            <ScrollViewer x:Name="PART_ContentHost" VerticalAlignment="Center" Margin="0"/>
+                        </Border>
                     </ControlTemplate>
                 </Setter.Value>
             </Setter>
@@ -46,7 +48,9 @@
             <Setter Property="Template">
                 <Setter.Value>
                     <ControlTemplate TargetType="PasswordBox">
-                        <ScrollViewer x:Name="PART_ContentHost" VerticalAlignment="Center" Margin="0"/>
+                        <Border Padding="12,8,40,8" Background="{TemplateBinding Background}">
+                            <ScrollViewer x:Name="PART_ContentHost" VerticalAlignment="Center" Margin="0"/>
+                        </Border>
                     </ControlTemplate>
                 </Setter.Value>
             </Setter>
@@ -61,7 +65,9 @@
             <Setter Property="Template">
                 <Setter.Value>
                     <ControlTemplate TargetType="TextBox">
-                        <ScrollViewer x:Name="PART_ContentHost" VerticalAlignment="Center" Margin="0"/>
+                        <Border Padding="12,8,40,8" Background="{TemplateBinding Background}">
+                            <ScrollViewer x:Name="PART_ContentHost" VerticalAlignment="Center" Margin="0"/>
+                        </Border>
                     </ControlTemplate>
                 </Setter.Value>
             </Setter>
@@ -380,11 +386,17 @@
                                         VerticalAlignment="Center">
                                 <DatePicker.Resources>
                                     <Style TargetType="{x:Type primitives:DatePickerTextBox}">
-                                        <Setter Property="Background" Value="{DynamicResource Brush.InputBackground}"/>
+                                        <Setter Property="Background" Value="Transparent"/>
                                         <Setter Property="Foreground" Value="{DynamicResource Brush.TextPrimary}"/>
                                         <Setter Property="CaretBrush" Value="{DynamicResource Brush.TextPrimary}"/>
                                         <Setter Property="BorderThickness" Value="0"/>
-                                        <Setter Property="Padding" Value="0"/>
+                                        <Setter Property="Padding" Value="12,8"/>
+                                    </Style>
+                                    <Style TargetType="{x:Type Calendar}">
+                                        <Setter Property="Background" Value="{DynamicResource Brush.Card}"/>
+                                        <Setter Property="Foreground" Value="{DynamicResource Brush.TextPrimary}"/>
+                                        <Setter Property="BorderBrush" Value="{DynamicResource Brush.Border}"/>
+                                        <Setter Property="BorderThickness" Value="1"/>
                                     </Style>
                                 </DatePicker.Resources>
                             </DatePicker>
@@ -395,8 +407,8 @@
         </Grid>
         </ScrollViewer>
 
-        <!-- Buttons: same 360px width as input area, height 40 to match input boxes; spacing matches gap between form fields -->
-        <Grid Grid.Row="4" Panel.ZIndex="10" Width="360" HorizontalAlignment="Center" Margin="0,12,0,0">
+        <!-- Buttons: same 360px width as input area, height 40 to match input boxes; spacing matches gap between form fields. No ZIndex so DatePicker calendar popup can draw on top when open. -->
+        <Grid Grid.Row="4" Width="360" HorizontalAlignment="Center" Margin="0,12,0,0">
             <Grid.ColumnDefinitions>
                 <ColumnDefinition Width="*"/>
                 <ColumnDefinition Width="8"/>

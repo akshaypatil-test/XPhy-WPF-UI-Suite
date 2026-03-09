@@ -58,7 +58,7 @@
         
         <!-- Version -->
         <TextBlock Grid.Row="2"
-                   Text="Version: 1.0.10" 
+                   Text="Version: 2.0" 
                    FontSize="12" 
                    Foreground="{StaticResource TextSecondary}" 
                    HorizontalAlignment="Center"

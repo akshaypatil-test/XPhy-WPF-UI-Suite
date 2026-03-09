@@ -42,11 +42,11 @@ namespace x_phy_wpf_ui
             try
             {
                 var v = Assembly.GetExecutingAssembly().GetName().Version;
-                return v != null ? $"{v.Major}.{v.Minor}.{v.Build}" : "1.0.10";
+                return v != null ? $"{v.Major}.{v.Minor}.{v.Build}" : "2.0";
             }
             catch
             {
-                return "1.0.10";
+                return "2.0";
             }
         }
 

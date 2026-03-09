@@ -3332,7 +3332,7 @@ videoLiveFakeProportionThreshold = 0.7
                 if (ver != null) return $"{ver.Major}.{ver.Minor}.{ver.Build}";
             }
             catch { }
-            return "1.0.10";
+            return "2.0";
         }
 
         /// <summary>Start detection from tray menu; invokes native controller on UI thread.</summary>

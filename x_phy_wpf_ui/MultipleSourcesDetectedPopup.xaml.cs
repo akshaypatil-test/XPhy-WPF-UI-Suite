@@ -12,6 +12,12 @@ namespace x_phy_wpf_ui
     /// </summary>
     public partial class MultipleSourcesDetectedPopup : Window
     {
+        private static int _openCount;
+        private bool _closeCounted;
+
+        /// <summary>True if at least one multiple-sources popup is currently open. Used to avoid showing duplicates.</summary>
+        public static bool IsAnyOpen => _openCount > 0;
+
         /// <summary>Fired when user clicks "Open Application" to restore the minimized app.</summary>
         public event EventHandler? OpenApplicationRequested;
 
@@ -19,6 +25,12 @@ namespace x_phy_wpf_ui
         {
             InitializeComponent();
             VersionText.Text = "Version: " + GetAppVersion();
+            Closed += (s, _) =>
+            {
+                if (_closeCounted) return;
+                _closeCounted = true;
+                if (_openCount > 0) _openCount--;
+            };
         }
 
         private static string GetAppVersion()
@@ -39,6 +51,7 @@ namespace x_phy_wpf_ui
         /// </summary>
         public void ShowAtBottomRight()
         {
+            _openCount++;
             Loaded += OnLoadedPosition;
             SizeChanged += OnSizeChangedPosition;
             Show();

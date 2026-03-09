@@ -2218,6 +2218,7 @@ videoLiveFakeProportionThreshold = 0.7
                 // Multiple sources: show "Multiple Source Detection" notification (every 1 minute when detected)
                 if (list.Count > 1)
                 {
+                    if (MultipleSourcesDetectedPopup.IsAnyOpen) return;
                     double elapsed = (DateTime.UtcNow - _lastMultipleSourcesPopupShownAt).TotalSeconds;
                     if (elapsed >= MediaSourcePopupCooldownSeconds)
                     {
@@ -2235,6 +2236,7 @@ videoLiveFakeProportionThreshold = 0.7
                     return;
                 }
                 if (list.Count != 1 || single == null) return;
+                if (MultipleSourcesDetectedPopup.IsAnyOpen) return;
                 // Do not show if a single-process notification is already open (avoids duplicate popups)
                 if (MediaSourceDetectedPopup.IsAnyOpen) return;
                 // Show "Single Source Detected" notification every 1 minute when one source is detected

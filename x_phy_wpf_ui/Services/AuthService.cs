@@ -274,7 +274,7 @@ namespace x_phy_wpf_ui.Services
         {
             try
             {
-                var request = new ResendOtpRequest { Email = email };
+                var request = new ResendOtpRequest { Email = email?.Trim() ?? "" };
                 var json = JsonConvert.SerializeObject(request);
                 var content = new StringContent(json, Encoding.UTF8, "application/json");
                 var response = await _httpClient.PostAsync("/api/auth/resend-otp", content);

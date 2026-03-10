@@ -9,7 +9,7 @@
         <Style x:Key="OtpBoxStyle" TargetType="TextBox">
             <Setter Property="Background" Value="{DynamicResource Brush.InputBackground}"/>
             <Setter Property="Foreground" Value="{DynamicResource Brush.TextPrimary}"/>
-            <Setter Property="CaretBrush" Value="{DynamicResource Brush.White}"/>
+            <Setter Property="CaretBrush" Value="{DynamicResource Brush.TextPrimary}"/>
             <Setter Property="BorderBrush" Value="{DynamicResource Brush.Border}"/>
             <Setter Property="BorderThickness" Value="1"/>
             <Setter Property="FontSize" Value="20"/>
@@ -122,12 +122,17 @@
                             Style="{StaticResource LaunchButtonStyle}" Click="CreateAccount_Click" IsEnabled="False"/>
                     <Button Grid.Column="2" Content="Back" Style="{StaticResource BackButtonStyle}" Click="Back_Click"/>
                 </Grid>
-                <TextBlock FontSize="14" Foreground="{DynamicResource Brush.TextSecondary}" HorizontalAlignment="Center" Margin="0,16,0,0" TextWrapping="NoWrap">
-                    <Run Text="Didn't receive the code? "/>
-                    <Hyperlink Foreground="{DynamicResource Brush.Primary}" RequestNavigate="ResendCode_RequestNavigate" Cursor="Hand">
-                        <Run Text="Resend code"/>
-                    </Hyperlink>
-                </TextBlock>
+                <StackPanel Orientation="Horizontal" HorizontalAlignment="Center" Margin="0,16,0,0">
+                    <TextBlock Text="Didn't receive the code? " FontSize="14" Foreground="{DynamicResource Brush.TextSecondary}" VerticalAlignment="Center"/>
+                    <Button x:Name="ResendCodeButton" Content="Resend code" Background="Transparent" Foreground="{DynamicResource Brush.Primary}" BorderThickness="0"
+                            FontSize="14" Cursor="Hand" Padding="2,0" VerticalAlignment="Center" Click="ResendCode_Click">
+                        <Button.ContentTemplate>
+                            <DataTemplate>
+                                <TextBlock Text="{Binding}" TextDecorations="Underline" Foreground="{DynamicResource Brush.Primary}" Cursor="Hand"/>
+                            </DataTemplate>
+                        </Button.ContentTemplate>
+                    </Button>
+                </StackPanel>
             </StackPanel>
         </ScrollViewer>
     </Grid>

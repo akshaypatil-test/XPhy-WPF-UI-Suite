@@ -131,23 +131,36 @@ namespace x_phy_wpf_ui.Controls
             NavigateBack?.Invoke(this, EventArgs.Empty);
         }
 
-        private void ResendCode_RequestNavigate(object sender, System.Windows.Navigation.RequestNavigateEventArgs e)
-        {
-            e.Handled = true;
-            ResendCode_Click(sender, e);
-        }
-
         private async void ResendCode_Click(object sender, RoutedEventArgs e)
         {
-            if (string.IsNullOrWhiteSpace(_email)) return;
+            var email = _email?.Trim() ?? "";
+            if (string.IsNullOrEmpty(email))
+            {
+                AppDialog.Show(Window.GetWindow(this), "Email is missing. Please go back and try again.", "Resend code", MessageBoxImage.Warning);
+                return;
+            }
+            var btn = sender as System.Windows.Controls.Button;
+            if (btn != null)
+            {
+                btn.IsEnabled = false;
+                btn.Content = "Sending...";
+            }
             try
             {
-                await _authService.ResendOtpAsync(_email);
-                AppDialog.Show(Window.GetWindow(this), "A new code has been sent to your email.", "Code resent", MessageBoxImage.Information);
+                var response = await _authService.ResendOtpAsync(email);
+                AppDialog.Show(Window.GetWindow(this), response?.Message ?? "A new code has been sent to your email.", "Code resent", MessageBoxImage.Information);
             }
             catch (Exception ex)
             {
                 AppDialog.Show(Window.GetWindow(this), ex.Message, "Resend failed", MessageBoxImage.Warning);
+            }
+            finally
+            {
+                if (btn != null)
+                {
+                    btn.IsEnabled = true;
+                    btn.Content = "Resend code";
+                }
             }
         }
     }

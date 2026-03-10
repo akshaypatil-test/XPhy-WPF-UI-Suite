@@ -12,7 +12,7 @@
     <Style x:Key="TextBox.Standard" TargetType="TextBox">
         <Setter Property="Background" Value="{DynamicResource Brush.InputBackground}"/>
         <Setter Property="Foreground" Value="{DynamicResource Brush.TextPrimary}"/>
-        <Setter Property="CaretBrush" Value="{DynamicResource Brush.White}"/>
+        <Setter Property="CaretBrush" Value="{DynamicResource Brush.TextPrimary}"/>
         <Setter Property="BorderBrush" Value="{DynamicResource Brush.Border}"/>
         <Setter Property="BorderThickness" Value="1"/>
         <Setter Property="Padding" Value="{StaticResource Padding.Input}"/>
@@ -48,7 +48,7 @@
     <Style x:Key="TextBox.Inner" TargetType="TextBox">
         <Setter Property="Background" Value="{DynamicResource Brush.Transparent}"/>
         <Setter Property="Foreground" Value="{DynamicResource Brush.TextPrimary}"/>
-        <Setter Property="CaretBrush" Value="{DynamicResource Brush.White}"/>
+        <Setter Property="CaretBrush" Value="{DynamicResource Brush.TextPrimary}"/>
         <Setter Property="BorderThickness" Value="0"/>
         <Setter Property="Padding" Value="{StaticResource Padding.Input}"/>
         <Setter Property="FontSize" Value="14"/>
@@ -72,7 +72,7 @@
     <Style x:Key="PasswordBox.Standard" TargetType="PasswordBox">
         <Setter Property="Background" Value="{DynamicResource Brush.InputBackground}"/>
         <Setter Property="Foreground" Value="{DynamicResource Brush.TextPrimary}"/>
-        <Setter Property="CaretBrush" Value="{DynamicResource Brush.White}"/>
+        <Setter Property="CaretBrush" Value="{DynamicResource Brush.TextPrimary}"/>
         <Setter Property="BorderBrush" Value="{DynamicResource Brush.Border}"/>
         <Setter Property="BorderThickness" Value="1"/>
         <Setter Property="Padding" Value="{StaticResource Padding.Input}"/>
@@ -108,7 +108,7 @@
     <Style x:Key="PasswordBox.Inner" TargetType="PasswordBox">
         <Setter Property="Background" Value="{DynamicResource Brush.Transparent}"/>
         <Setter Property="Foreground" Value="{DynamicResource Brush.TextPrimary}"/>
-        <Setter Property="CaretBrush" Value="{DynamicResource Brush.White}"/>
+        <Setter Property="CaretBrush" Value="{DynamicResource Brush.TextPrimary}"/>
         <Setter Property="BorderThickness" Value="0"/>
         <Setter Property="Padding" Value="{StaticResource Padding.InputWithIcon}"/>
         <Setter Property="FontSize" Value="14"/>

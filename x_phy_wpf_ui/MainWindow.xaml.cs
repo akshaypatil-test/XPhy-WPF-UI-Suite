@@ -3211,6 +3211,11 @@ videoLiveFakeProportionThreshold = 0.7
             PlansComponent.Visibility = Visibility.Collapsed;
             StripePaymentComponentContainer.Visibility = Visibility.Collapsed;
             SettingsComponent.Visibility = Visibility.Collapsed;
+            SupportComponent.Visibility = Visibility.Collapsed;
+            if (ProfileComponent != null)
+                ProfileComponent.Visibility = Visibility.Collapsed;
+            if (LicenseSubscriptionComponent != null)
+                LicenseSubscriptionComponent.Visibility = Visibility.Collapsed;
             if (DetectionResultsScreen != null)
                 DetectionResultsScreen.Visibility = Visibility.Collapsed;
             CorpRegisterComponent.ClearInputs();

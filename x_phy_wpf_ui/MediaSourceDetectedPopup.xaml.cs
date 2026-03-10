@@ -42,7 +42,7 @@ namespace x_phy_wpf_ui
             try
             {
                 var v = Assembly.GetExecutingAssembly().GetName().Version;
-                return v != null ? $"{v.Major}.{v.Minor}.{v.Build}" : "2.0";
+                return v != null ? $"{v.Major}.{v.Minor}" : "2.0";
             }
             catch
             {

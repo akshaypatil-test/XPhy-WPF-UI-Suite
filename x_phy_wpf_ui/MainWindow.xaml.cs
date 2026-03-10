@@ -3329,7 +3329,7 @@ videoLiveFakeProportionThreshold = 0.7
             try
             {
                 var ver = System.Reflection.Assembly.GetExecutingAssembly().GetName().Version;
-                if (ver != null) return $"{ver.Major}.{ver.Minor}.{ver.Build}";
+                if (ver != null) return $"{ver.Major}.{ver.Minor}";
             }
             catch { }
             return "2.0";

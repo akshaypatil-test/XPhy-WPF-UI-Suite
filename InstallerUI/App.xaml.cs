@@ -42,6 +42,15 @@ namespace InstallerUI
             => value is Visibility v && v == Visibility.Collapsed;
     }
 
+    /// <summary>Returns Visible when value is a non-null, non-empty string; otherwise Collapsed.</summary>
+    public sealed class StringToVisibilityConverter : IValueConverter
+    {
+        public object Convert(object value, Type targetType, object parameter, CultureInfo culture)
+            => value is string s && !string.IsNullOrWhiteSpace(s) ? Visibility.Visible : Visibility.Collapsed;
+        public object ConvertBack(object value, Type targetType, object parameter, CultureInfo culture)
+            => throw new NotImplementedException();
+    }
+
     /// <summary>Converts CheckBox IsChecked (bool?) to ViewModel bool for TwoWay binding.</summary>
     public sealed class NullableBoolToBoolConverter : IValueConverter
     {

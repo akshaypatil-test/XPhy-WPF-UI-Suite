@@ -1,11 +1,22 @@
 using System.Windows;
 using System.Windows.Controls;
+using InstallerUI;
 
 namespace InstallerUI.Views
 {
     public partial class InstallPathView : UserControl
     {
-        public InstallPathView() => InitializeComponent();
+        public InstallPathView()
+        {
+            InitializeComponent();
+            Loaded += OnLoaded;
+        }
+
+        private void OnLoaded(object sender, RoutedEventArgs e)
+        {
+            if (DataContext is InstallerViewModel vm)
+                vm.CommitInstallPathFromView = () => PathTextBox.GetBindingExpression(TextBox.TextProperty)?.UpdateSource();
+        }
 
         private void Browse_Click(object sender, RoutedEventArgs e)
         {

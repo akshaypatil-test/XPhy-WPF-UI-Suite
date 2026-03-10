@@ -26,7 +26,7 @@
                 <TextBlock Text="Advanced users can customize the installation location."
                            FontSize="12" Foreground="{StaticResource TextSecondary}" Margin="24,0,0,4"/>
                 <!-- Fixed-height row so Quick vs Custom does not change total height -->
-                <Grid Height="40" Margin="0,0,0,10">
+                <Grid Height="40" Margin="0,0,0,4">
                     <Grid x:Name="PathPanel" Visibility="{Binding IsQuickInstall, Converter={StaticResource BoolToVisInverse}, FallbackValue=Collapsed}">
                         <Grid.ColumnDefinitions>
                             <ColumnDefinition Width="*"/>
@@ -39,6 +39,11 @@
                                 Click="Browse_Click"/>
                     </Grid>
                 </Grid>
+                <!-- Fixed height so error message does not add scrollbar when it appears -->
+                <Border Height="32" Margin="0,0,0,10">
+                    <TextBlock Text="{Binding InstallPathError}" FontSize="12" Foreground="#C42B1C" TextWrapping="Wrap" VerticalAlignment="Top"
+                               Visibility="{Binding InstallPathError, Converter={StaticResource StringToVis}}"/>
+                </Border>
             </StackPanel>
         </ScrollViewer>
         <!-- Checkbox anchored at bottom of content area, above footer -->

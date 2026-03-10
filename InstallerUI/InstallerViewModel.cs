@@ -35,6 +35,7 @@ namespace InstallerUI
         private string _failureMessage;
         private bool _canGoNext = true;
         private bool _canGoBack = true;
+        private string _installPathError;
         private bool _msiComplete;
         private int _msiExitCode = -1;
 
@@ -43,7 +44,7 @@ namespace InstallerUI
             _installPath = GetDefaultInstallPath();
             NextCommand = new RelayCommand(OnNext, () => CanGoNext);
             BackCommand = new RelayCommand(OnBack, () => CanGoBack);
-            CancelCommand = new RelayCommand(OnCancel);
+            CancelCommand = new RelayCommand(OnCancel, () => !IsInstalling);
         }
 
         public InstallerStep CurrentStep
@@ -55,7 +56,23 @@ namespace InstallerUI
         public string InstallPath
         {
             get => _installPath;
-            set { _installPath = value; OnPropertyChanged(); }
+            set
+            {
+                var changed = _installPath != value;
+                if (changed)
+                {
+                    _installPath = value;
+                    OnPropertyChanged();
+                }
+                InstallPathError = null;
+            }
+        }
+
+        /// <summary>Validation error for install path (e.g. path does not exist). Shown on Install Path step.</summary>
+        public string InstallPathError
+        {
+            get => _installPathError;
+            set { _installPathError = value; OnPropertyChanged(); }
         }
 
         public bool LicenseAccepted
@@ -77,7 +94,11 @@ namespace InstallerUI
             set
             {
                 _isQuickInstall = value;
-                if (value) InstallPath = GetDefaultInstallPath();
+                if (value)
+                {
+                    InstallPath = GetDefaultInstallPath();
+                    InstallPathError = null;
+                }
                 OnPropertyChanged(); UpdateButtonStates();
             }
         }
@@ -97,7 +118,7 @@ namespace InstallerUI
         public bool IsInstalling
         {
             get => _isInstalling;
-            set { _isInstalling = value; OnPropertyChanged(); UpdateButtonStates(); }
+            set { _isInstalling = value; OnPropertyChanged(); UpdateButtonStates(); ((RelayCommand)CancelCommand).RaiseCanExecuteChanged(); }
         }
 
         public string ProgressStage
@@ -153,6 +174,9 @@ namespace InstallerUI
 
         public Action<object> OnNavigate { get; set; }
         public Action OnRequestClose { get; set; }
+
+        /// <summary>Optional: called before validating install path so the view can commit the path TextBox binding (avoids stale value when user edits then clicks Next before focus leaves the box).</summary>
+        public Action CommitInstallPathFromView { get; set; }
 
         /// <summary>Get 64-bit Program Files root (e.g. C:\Program Files) even when running as 32-bit process.</summary>
         private static string GetProgramFilesRoot64()
@@ -422,6 +446,19 @@ namespace InstallerUI
 
             if (CurrentStep == InstallerStep.InstallPath)
             {
+                CommitInstallPathFromView?.Invoke();
+                var path = (InstallPath ?? "").Trim();
+                if (string.IsNullOrEmpty(path))
+                {
+                    InstallPathError = null;
+                    return;
+                }
+                if (!IsQuickInstall && !Directory.Exists(path))
+                {
+                    InstallPathError = "The selected folder does not exist. Please choose an existing folder or create it first.";
+                    return;
+                }
+                InstallPathError = null;
                 // Do not allow install if app is already installed at the selected path (or default)
                 if (IsAlreadyInstalledAt(InstallPath))
                 {

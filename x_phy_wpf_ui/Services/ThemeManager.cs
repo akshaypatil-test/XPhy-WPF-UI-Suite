@@ -88,59 +88,82 @@ namespace x_phy_wpf_ui.Services
         }
 
         /// <summary>
-        /// Loads and applies the saved theme preference from settings.
-        /// Call this on application startup.
+        /// Loads and applies the saved theme preference. Same install: restores last selected theme. Fresh install or reinstall: defaults to Dark.
+        /// Reinstall is detected by comparing install directory creation time (reinstall = new folder = new creation time).
         /// </summary>
         public static void LoadSavedTheme()
         {
             try
             {
-                // Try to load from a simple text file in AppData
+                var appDataDir = GetAppDataFolder();
+                var installMarkerPath = System.IO.Path.Combine(appDataDir, "install_marker.txt");
+                var currentInstallDir = (AppDomain.CurrentDomain.BaseDirectory ?? "").TrimEnd('\\', '/');
+                long currentDirCreationTimeTicks = 0;
+                try
+                {
+                    currentDirCreationTimeTicks = System.IO.Directory.GetCreationTimeUtc(currentInstallDir).Ticks;
+                }
+                catch { }
+
+                bool isSameInstall = false;
+                if (System.IO.File.Exists(installMarkerPath))
+                {
+                    var lines = System.IO.File.ReadAllLines(installMarkerPath);
+                    var storedPath = lines.Length > 0 ? (lines[0] ?? "").Trim() : "";
+                    var storedTicks = lines.Length > 1 && long.TryParse(lines[1].Trim(), out var t) ? t : 0L;
+                    if (!string.IsNullOrEmpty(storedPath) && storedPath.Equals(currentInstallDir, StringComparison.OrdinalIgnoreCase) && storedTicks == currentDirCreationTimeTicks)
+                        isSameInstall = true;
+                }
+
+                if (!isSameInstall)
+                {
+                    System.Diagnostics.Debug.WriteLine("ThemeManager.LoadSavedTheme: Fresh install or reinstall, defaulting to Dark");
+                    ApplyTheme(Theme.Dark);
+                    try
+                    {
+                        if (!System.IO.Directory.Exists(appDataDir))
+                            System.IO.Directory.CreateDirectory(appDataDir);
+                        System.IO.File.WriteAllLines(installMarkerPath, new[] { currentInstallDir, currentDirCreationTimeTicks.ToString() });
+                    }
+                    catch { }
+                    return;
+                }
+
                 var themeFile = GetThemePreferenceFilePath();
-                System.Diagnostics.Debug.WriteLine($"ThemeManager.LoadSavedTheme: Looking for theme file at: {themeFile}");
-                
                 if (System.IO.File.Exists(themeFile))
                 {
                     var savedTheme = System.IO.File.ReadAllText(themeFile).Trim();
-                    System.Diagnostics.Debug.WriteLine($"ThemeManager.LoadSavedTheme: Found saved theme: {savedTheme}");
-                    
                     if (Enum.TryParse<Theme>(savedTheme, out var theme))
                     {
-                        System.Diagnostics.Debug.WriteLine($"ThemeManager.LoadSavedTheme: Applying saved theme: {theme}");
                         ApplyTheme(theme);
                         return;
                     }
                 }
-                
-                // Default to Dark theme
-                System.Diagnostics.Debug.WriteLine("ThemeManager.LoadSavedTheme: No saved theme found, defaulting to Dark");
+
                 ApplyTheme(Theme.Dark);
             }
             catch (Exception ex)
             {
-                System.Diagnostics.Debug.WriteLine($"ThemeManager: Error loading theme preference - {ex.Message}");
-                // If error occurs, default to Dark
+                System.Diagnostics.Debug.WriteLine($"ThemeManager: Error loading theme - {ex.Message}");
                 ApplyTheme(Theme.Dark);
             }
         }
 
-        /// <summary>
-        /// Saves the theme preference to a file.
-        /// </summary>
+        /// <summary>Saves the theme preference and updates install marker (path + dir creation time) so same install is detected correctly.</summary>
         private static void SaveThemePreference(Theme theme)
         {
             try
             {
-                var themeFile = GetThemePreferenceFilePath();
-                var directory = System.IO.Path.GetDirectoryName(themeFile);
-                
-                // Ensure directory exists
-                if (!string.IsNullOrEmpty(directory) && !System.IO.Directory.Exists(directory))
-                {
-                    System.IO.Directory.CreateDirectory(directory);
-                }
-                
-                System.IO.File.WriteAllText(themeFile, theme.ToString());
+                var appDataDir = GetAppDataFolder();
+                if (!System.IO.Directory.Exists(appDataDir))
+                    System.IO.Directory.CreateDirectory(appDataDir);
+                System.IO.File.WriteAllText(GetThemePreferenceFilePath(), theme.ToString());
+                var currentInstallDir = (AppDomain.CurrentDomain.BaseDirectory ?? "").TrimEnd('\\', '/');
+                long ticks = 0;
+                try { ticks = System.IO.Directory.GetCreationTimeUtc(currentInstallDir).Ticks; }
+                catch { }
+                var installMarkerPath = System.IO.Path.Combine(appDataDir, "install_marker.txt");
+                System.IO.File.WriteAllLines(installMarkerPath, new[] { currentInstallDir, ticks.ToString() });
             }
             catch (Exception ex)
             {
@@ -148,14 +171,15 @@ namespace x_phy_wpf_ui.Services
             }
         }
 
-        /// <summary>
-        /// Gets the path to the theme preference file.
-        /// </summary>
-        private static string GetThemePreferenceFilePath()
+        private static string GetAppDataFolder()
         {
             var appData = Environment.GetFolderPath(Environment.SpecialFolder.LocalApplicationData);
-            var appFolder = System.IO.Path.Combine(appData, "XPhyWpfUi");
-            return System.IO.Path.Combine(appFolder, "theme.txt");
+            return System.IO.Path.Combine(appData, "XPhyWpfUi");
+        }
+
+        private static string GetThemePreferenceFilePath()
+        {
+            return System.IO.Path.Combine(GetAppDataFolder(), "theme.txt");
         }
 
     }

@@ -2252,6 +2252,7 @@ videoLiveFakeProportionThreshold = 0.7
                     };
                     multiPopup.OpenApplicationRequested += (s, _) =>
                     {
+                        ShowDetectionContent();
                         Show();
                         WindowState = WindowState.Normal;
                         Activate();
@@ -2358,6 +2359,7 @@ videoLiveFakeProportionThreshold = 0.7
                     };
                     multiPopup.OpenApplicationRequested += (s, _) =>
                     {
+                        ShowDetectionContent();
                         Show();
                         WindowState = WindowState.Normal;
                         Activate();

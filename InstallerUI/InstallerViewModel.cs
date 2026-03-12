@@ -226,13 +226,34 @@ namespace InstallerUI
             return Path.Combine(root, "X-PHY", "X-PHY Deepfake Detector");
         }
 
+        /// <summary>For custom install, ensures the path ends with an X-PHY folder so all files are contained. Returns path unchanged if it already ends with \X-PHY.</summary>
+        private static string EnsureXphyFolder(string path)
+        {
+            if (string.IsNullOrWhiteSpace(path)) return path;
+            var normalized = path.TrimEnd('\\', '/');
+            if (normalized.EndsWith("X-PHY", StringComparison.OrdinalIgnoreCase))
+                return normalized;
+            return Path.Combine(normalized, "X-PHY");
+        }
+
+        /// <summary>Path to pass to MSI as INSTALLDIR: for Quick Install the default path; for Custom the selected path with \X-PHY appended if needed.</summary>
+        private string GetInstallDirectoryForMsi()
+        {
+            if (IsQuickInstall) return InstallPath?.TrimEnd('\\') ?? "";
+            return EnsureXphyFolder(InstallPath ?? "")?.TrimEnd('\\') ?? "";
+        }
+
         /// <summary>Returns candidate install directories to try when launching (InstallPath first, then Program Files variants, then parent dir).</summary>
         public static string[] GetCandidateInstallDirectories(string installPath)
         {
             if (string.IsNullOrWhiteSpace(installPath))
                 return Array.Empty<string>();
             var normalized = installPath.TrimEnd('\\', '/');
-            var list = new List<string> { normalized };
+            var list = new List<string>();
+            // For custom install we store the parent (e.g. C:\); actual install is in parent\X-PHY — add that first
+            if (!normalized.EndsWith("X-PHY", StringComparison.OrdinalIgnoreCase))
+                list.Add(Path.Combine(normalized, "X-PHY"));
+            list.Add(normalized);
             var pf64 = GetProgramFilesRoot64();
             var pf86 = GetProgramFilesRootX86();
             void AddIfNew(string path)
@@ -460,7 +481,8 @@ namespace InstallerUI
                 }
                 InstallPathError = null;
                 // Do not allow install if app is already installed at the selected path (or default)
-                if (IsAlreadyInstalledAt(InstallPath))
+                var pathToCheck = IsQuickInstall ? InstallPath : EnsureXphyFolder(InstallPath);
+                if (IsAlreadyInstalledAt(pathToCheck))
                 {
                     FailureMessage = "X-PHY Deepfake Detector is already installed at the selected location. Please uninstall the existing version from Settings > Apps before running setup again, or choose a different folder.";
                     InstallSucceeded = false;
@@ -542,7 +564,8 @@ namespace InstallerUI
                 return;
             }
 
-            var args = $"/i \"{msiPath}\" /quiet /norestart INSTALLDIR=\"{InstallPath.TrimEnd('\\')}\"";
+            var installDir = GetInstallDirectoryForMsi();
+            var args = $"/i \"{msiPath}\" /quiet /norestart INSTALLDIR=\"{installDir}\"";
 
             var psi = new ProcessStartInfo("msiexec.exe")
             {

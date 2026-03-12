@@ -2273,6 +2273,7 @@ videoLiveFakeProportionThreshold = 0.7
         {
             DetectionContentGrid.Visibility = Visibility.Collapsed;
             StatisticsCardsGrid.Visibility = Visibility.Collapsed;
+            CorpRegisterComponent.Visibility = Visibility.Collapsed;
             SupportComponent.Visibility = Visibility.Collapsed;
             SettingsComponent.Visibility = Visibility.Collapsed;
             if (DetectionResultsScreen != null)

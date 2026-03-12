@@ -16,8 +16,8 @@
         <SolidColorBrush x:Key="SecondaryTextColor" Color="#999999"/>
         <SolidColorBrush x:Key="HoverBackground" Color="#2A2A2A"/>
         <Style x:Key="SecondaryButtonStyle" TargetType="Button">
-            <Setter Property="Background" Value="{StaticResource CardBackground}"/>
-            <Setter Property="Foreground" Value="{StaticResource TextPrimary}"/>
+            <Setter Property="Background" Value="{DynamicResource Brush.SurfaceHover}"/>
+            <Setter Property="Foreground" Value="{DynamicResource Brush.TextPrimary}"/>
             <Setter Property="FontSize" Value="13"/>
             <Setter Property="FontWeight" Value="Medium"/>
             <Setter Property="Padding" Value="16,8"/>
@@ -34,7 +34,7 @@
             </Setter>
             <Style.Triggers>
                 <Trigger Property="IsMouseOver" Value="True">
-                    <Setter Property="Background" Value="{StaticResource HoverBackground}"/>
+                    <Setter Property="Background" Value="{DynamicResource Brush.SurfaceHover}"/>
                 </Trigger>
             </Style.Triggers>
         </Style>
@@ -49,7 +49,7 @@
         </Grid.RowDefinitions>
 
         <!-- During detection: lock icon + arc loader (same style as LoaderComponent) -->
-        <Border Grid.Row="0" x:Name="DuringDetectionPanel" Background="{StaticResource CardBackground}"
+        <Border Grid.Row="0" x:Name="DuringDetectionPanel" Background="{DynamicResource Brush.Card}"
                 CornerRadius="8" Padding="24" Margin="0,0,0,8">
             <StackPanel VerticalAlignment="Center" HorizontalAlignment="Center">
                 <Grid Width="120" Height="120" Margin="0,0,0,24" HorizontalAlignment="Center">
@@ -71,9 +71,9 @@
                     </Grid>
                 </Grid>
                 <TextBlock Text="Detection in progress (60s)"
-                           Foreground="{StaticResource TextPrimary}" FontSize="16" HorizontalAlignment="Center"/>
+                           Foreground="{DynamicResource Brush.TextPrimary}" FontSize="16" HorizontalAlignment="Center"/>
                 <TextBlock Text="Analyzing..."
-                           Foreground="{StaticResource TextSecondary}" FontSize="14" HorizontalAlignment="Center" Margin="0,4,0,0"/>
+                           Foreground="{DynamicResource Brush.TextSecondary}" FontSize="14" HorizontalAlignment="Center" Margin="0,4,0,0"/>
             </StackPanel>
         </Border>
 

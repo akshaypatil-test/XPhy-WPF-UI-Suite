@@ -85,13 +85,18 @@ namespace x_phy_wpf_ui
         /// <summary>True when user chose Exit from tray menu; allows actual close instead of minimize-to-tray.</summary>
         private bool _isExitingFromTray = false;
 
-        /// <summary>When minimized to tray, run process detection periodically; show single/multiple source notification every 1 minute when detected.</summary>
+        /// <summary>When minimized to tray, run process detection periodically; show single/multiple source notification after 1 minute (from minimize or from when user closed last notification).</summary>
         private DispatcherTimer _backgroundProcessCheckTimer;
-        private DateTime _lastMediaSourcePopupShownAt = DateTime.MinValue;
+        /// <summary>When we entered minimized/tray state; first notification is shown only after 1 minute from this time.</summary>
+        private DateTime _minimizedOrTraySince = DateTime.MinValue;
         /// <summary>Cooldown between showing single/multiple source notifications (1 minute).</summary>
         private const int MediaSourcePopupCooldownSeconds = 60;
-        /// <summary>Last time we showed the "Multiple Media Source Detected" popup.</summary>
-        private DateTime _lastMultipleSourcesPopupShownAt = DateTime.MinValue;
+        /// <summary>Last time the user closed the single-source (media) popup; next single notification only after 1 minute from this.</summary>
+        private DateTime _lastMediaSourcePopupClosedAt = DateTime.MinValue;
+        /// <summary>Last time the user closed the multiple-sources popup; next multiple notification only after 1 minute from this.</summary>
+        private DateTime _lastMultipleSourcesPopupClosedAt = DateTime.MinValue;
+        /// <summary>One-shot timer: fire exactly 1 minute after user closed a notification, then show again if still minimized and sources detected (avoids waiting for next periodic tick which can add an extra minute).</summary>
+        private DispatcherTimer _oneShotAfterNotificationClosedTimer;
 
         /// <summary>Ref count for background blur when in-app popups/overlays are visible. Blur is applied when > 0.</summary>
         private int _blurRefCount = 0;
@@ -2159,6 +2164,8 @@ videoLiveFakeProportionThreshold = 0.7
 
         private void StartBackgroundProcessCheck()
         {
+            // Always refresh "since" when entering minimized/tray so first notification is never before 1 minute
+            _minimizedOrTraySince = DateTime.UtcNow;
             if (_backgroundProcessCheckTimer != null) return;
             _backgroundProcessCheckTimer = new DispatcherTimer(DispatcherPriority.Background)
             {
@@ -2172,11 +2179,126 @@ videoLiveFakeProportionThreshold = 0.7
         {
             _backgroundProcessCheckTimer?.Stop();
             _backgroundProcessCheckTimer = null;
+            _oneShotAfterNotificationClosedTimer?.Stop();
+            _oneShotAfterNotificationClosedTimer = null;
+            // Reset "closed at" so next time user minimizes, the 1-minute timer restarts from that minimize (rule 5: app opened then minimized again = timer restarts)
+            _lastMediaSourcePopupClosedAt = DateTime.MinValue;
+            _lastMultipleSourcesPopupClosedAt = DateTime.MinValue;
         }
 
+        /// <summary>Start a one-shot 1-minute timer so we show the notification again exactly 1 minute after the user closed it (instead of waiting for the next periodic tick which can add an extra minute).</summary>
+        private void StartOneShotNotificationTimer(bool forMultiple)
+        {
+            _oneShotAfterNotificationClosedTimer?.Stop();
+            _oneShotAfterNotificationClosedTimer = new DispatcherTimer(DispatcherPriority.Background)
+            {
+                Interval = TimeSpan.FromMinutes(1)
+            };
+            _oneShotAfterNotificationClosedTimer.Tick += OneShotNotificationTimer_Tick;
+            _oneShotAfterNotificationClosedTimer.Start();
+        }
+
+        private async void OneShotNotificationTimer_Tick(object sender, EventArgs e)
+        {
+            var timer = _oneShotAfterNotificationClosedTimer;
+            _oneShotAfterNotificationClosedTimer = null;
+            if (timer == null) return;
+            timer.Stop();
+            timer.Tick -= OneShotNotificationTimer_Tick;
+            if (notifyIcon == null) return;
+            if (IsVisible && WindowState != WindowState.Minimized) return;
+            List<DetectedProcess> list = null;
+            await Task.Run(() =>
+            {
+                try
+                {
+                    var svc = new ProcessDetectionService();
+                    list = svc.DetectRelevantProcesses();
+                }
+                catch (Exception ex)
+                {
+                    System.Diagnostics.Debug.WriteLine($"One-shot notification check: {ex.Message}");
+                }
+            }).ConfigureAwait(false);
+            if (list == null) return;
+            var single = list.Count == 1 ? list[0] : null;
+            await Dispatcher.InvokeAsync(() =>
+            {
+                if (notifyIcon == null) return;
+                if (IsVisible && WindowState != WindowState.Minimized) return;
+                try
+                {
+                    var tokenStorage = new TokenStorage();
+                    var tokens = tokenStorage.GetTokens();
+                    if (tokens == null) return;
+                    var status = (tokens.LicenseInfo?.Status ?? tokens.UserInfo?.LicenseStatus ?? "").Trim();
+                    if (status.Equals("Expired", StringComparison.OrdinalIgnoreCase)) return;
+                    if (status.Equals("Trial", StringComparison.OrdinalIgnoreCase) && (tokens.LicenseInfo?.TrialAttemptsRemaining ?? 0) == 0) return;
+                }
+                catch { return; }
+                if (controller != null && controller.IsDetectionRunning()) return;
+                if (openResultsFolderAfterStop) return;
+                if (list.Count > 1)
+                {
+                    if (MultipleSourcesDetectedPopup.IsAnyOpen) return;
+                    var multiPopup = new MultipleSourcesDetectedPopup();
+                    multiPopup.Closed += (s, _) =>
+                    {
+                        Dispatcher.BeginInvoke(new Action(() =>
+                        {
+                            _lastMultipleSourcesPopupClosedAt = DateTime.UtcNow;
+                            StartOneShotNotificationTimer(forMultiple: true);
+                        }), DispatcherPriority.Normal);
+                    };
+                    multiPopup.OpenApplicationRequested += (s, _) =>
+                    {
+                        Show();
+                        WindowState = WindowState.Normal;
+                        Activate();
+                    };
+                    multiPopup.ShowAtBottomRight();
+                    _floatingWidget?.BringAboveNotifications();
+                    return;
+                }
+                if (list.Count != 1 || single == null) return;
+                if (MultipleSourcesDetectedPopup.IsAnyOpen) return;
+                if (MediaSourceDetectedPopup.IsAnyOpen) return;
+                var popup = new MediaSourceDetectedPopup();
+                popup.Closed += (s, _) =>
+                {
+                    Dispatcher.BeginInvoke(new Action(() =>
+                    {
+                        _lastMediaSourcePopupClosedAt = DateTime.UtcNow;
+                        StartOneShotNotificationTimer(forMultiple: false);
+                    }), DispatcherPriority.Normal);
+                };
+                popup.StartDetectionChosen += (s, ev) =>
+                {
+                    StartDetectionFromPopup(ev.Source, ev.IsLiveCallMode, ev.IsAudioMode);
+                    ShowDetectionContent();
+                    DetectionSelectionContainer.Visibility = Visibility.Collapsed;
+                    DetectionResultsPanel.Visibility = Visibility.Visible;
+                    try
+                    {
+                        WindowState = WindowState.Minimized;
+                        System.Threading.Thread.Sleep(200);
+                        ProcessDetectionService.BringProcessWindowToForeground(single);
+                    }
+                    catch { }
+                };
+                popup.ShowForProcess(single);
+                _floatingWidget?.BringAboveNotifications();
+            });
+        }
+
+        /// <summary>
+        /// Notification rules: (1) Only when app is minimized/tray. (2) First show 1 min after minimize if sources detected.
+        /// (3) No duplicate: if a notification is visible, do not show another. (4) After closing, 1-min timer starts; show again after 1 min if still minimized and sources detected.
+        /// (5) If user opens app then minimizes again, timer restarts (StopBackgroundProcessCheck resets closed-at). (6) Repeat every minute while minimized and sources detected.
+        /// </summary>
         private async void BackgroundProcessCheckTimer_Tick(object? sender, EventArgs e)
         {
-            // Run when window is hidden (closed to tray) or minimized to taskbar
+            // Rule 1: Only when minimized (or hidden to tray)
             if (notifyIcon == null) return;
             if (IsVisible && WindowState != WindowState.Minimized) return;
             List<DetectedProcess> list = null;
@@ -2215,35 +2337,54 @@ videoLiveFakeProportionThreshold = 0.7
                 // Do not show when user just chose "Stop & View Results" from floating widget (we're about to restore and open results)
                 if (openResultsFolderAfterStop) return;
 
-                // Multiple sources: show "Multiple Source Detection" notification (every 1 minute when detected)
+                // Multiple sources: show after 1 min from minimize or from when user closed the last notification; never duplicate if one is open
                 if (list.Count > 1)
                 {
                     if (MultipleSourcesDetectedPopup.IsAnyOpen) return;
-                    double elapsed = (DateTime.UtcNow - _lastMultipleSourcesPopupShownAt).TotalSeconds;
-                    if (elapsed >= MediaSourcePopupCooldownSeconds)
+                    var nowUtc = DateTime.UtcNow;
+                    var elapsedSinceMinimize = (nowUtc - _minimizedOrTraySince).TotalSeconds;
+                    var elapsedSinceClose = _lastMultipleSourcesPopupClosedAt == DateTime.MinValue
+                        ? double.MaxValue
+                        : (nowUtc - _lastMultipleSourcesPopupClosedAt).TotalSeconds;
+                    if (elapsedSinceMinimize < MediaSourcePopupCooldownSeconds || elapsedSinceClose < MediaSourcePopupCooldownSeconds) return;
+                    var multiPopup = new MultipleSourcesDetectedPopup();
+                    multiPopup.Closed += (s, _) =>
                     {
-                        _lastMultipleSourcesPopupShownAt = DateTime.UtcNow;
-                        var multiPopup = new MultipleSourcesDetectedPopup();
-                        multiPopup.OpenApplicationRequested += (s, _) =>
+                        Dispatcher.BeginInvoke(new Action(() =>
                         {
-                            Show();
-                            WindowState = WindowState.Normal;
-                            Activate();
-                        };
-                        multiPopup.ShowAtBottomRight();
-                        _floatingWidget?.BringAboveNotifications();
-                    }
+                            _lastMultipleSourcesPopupClosedAt = DateTime.UtcNow;
+                            StartOneShotNotificationTimer(forMultiple: true);
+                        }), DispatcherPriority.Normal);
+                    };
+                    multiPopup.OpenApplicationRequested += (s, _) =>
+                    {
+                        Show();
+                        WindowState = WindowState.Normal;
+                        Activate();
+                    };
+                    multiPopup.ShowAtBottomRight();
+                    _floatingWidget?.BringAboveNotifications();
                     return;
                 }
                 if (list.Count != 1 || single == null) return;
                 if (MultipleSourcesDetectedPopup.IsAnyOpen) return;
-                // Do not show if a single-process notification is already open (avoids duplicate popups)
                 if (MediaSourceDetectedPopup.IsAnyOpen) return;
-                // Show "Single Source Detected" notification every 1 minute when one source is detected
-                bool cooldownPassed = (DateTime.UtcNow - _lastMediaSourcePopupShownAt).TotalSeconds >= MediaSourcePopupCooldownSeconds;
-                if (!cooldownPassed) return;
-                _lastMediaSourcePopupShownAt = DateTime.UtcNow;
+                // Single source: show after 1 min from minimize or from when user closed the last notification
+                var nowUtcSingle = DateTime.UtcNow;
+                var elapsedSinceMinimizeSingle = (nowUtcSingle - _minimizedOrTraySince).TotalSeconds;
+                var elapsedSinceCloseSingle = _lastMediaSourcePopupClosedAt == DateTime.MinValue
+                    ? double.MaxValue
+                    : (nowUtcSingle - _lastMediaSourcePopupClosedAt).TotalSeconds;
+                if (elapsedSinceMinimizeSingle < MediaSourcePopupCooldownSeconds || elapsedSinceCloseSingle < MediaSourcePopupCooldownSeconds) return;
                 var popup = new MediaSourceDetectedPopup();
+                popup.Closed += (s, _) =>
+                {
+                    Dispatcher.BeginInvoke(new Action(() =>
+                    {
+                        _lastMediaSourcePopupClosedAt = DateTime.UtcNow;
+                        StartOneShotNotificationTimer(forMultiple: false);
+                    }), DispatcherPriority.Normal);
+                };
                 popup.StartDetectionChosen += (s, ev) =>
                 {
                     StartDetectionFromPopup(ev.Source, ev.IsLiveCallMode, ev.IsAudioMode);

@@ -260,11 +260,11 @@
                                     </Style>
                                 </DataGridTextColumn.ElementStyle>
                             </DataGridTextColumn>
-                            <DataGridTemplateColumn Header="Type" Width="0.5*" MinWidth="70">
+                            <DataGridTemplateColumn Header="Type" Width="0.6*" MinWidth="100">
                                 <DataGridTemplateColumn.CellTemplate>
                                     <DataTemplate>
-                                        <Border Background="{StaticResource TypePillBg}" CornerRadius="14" Padding="8,3" HorizontalAlignment="Center">
-                                            <TextBlock Text="{Binding Type}" Foreground="{StaticResource TextPrimaryBrush}" FontSize="12"/>
+                                        <Border Background="{StaticResource TypePillBg}" CornerRadius="14" Padding="10,4" HorizontalAlignment="Center">
+                                            <TextBlock Text="{Binding Type}" Foreground="{StaticResource TextPrimaryBrush}" FontSize="12" TextTrimming="None"/>
                                         </Border>
                                     </DataTemplate>
                                 </DataGridTemplateColumn.CellTemplate>
@@ -311,14 +311,14 @@
                                     </DataTemplate>
                                 </DataGridTemplateColumn.CellTemplate>
                             </DataGridTemplateColumn>
-                            <DataGridTemplateColumn Header="Actions" Width="0.6*" MinWidth="90">
+                            <DataGridTemplateColumn Header="Actions" Width="0.7*" MinWidth="110">
                                 <DataGridTemplateColumn.CellTemplate>
                                     <DataTemplate>
                                         <Button Background="Transparent"
                                                 BorderThickness="0"
                                                 Cursor="Hand"
                                                 FontSize="12"
-                                                Padding="0"
+                                                Padding="4,0"
                                                 HorizontalAlignment="Center"
                                                 FocusVisualStyle="{x:Null}"
                                                 Click="ViewResult_Click">
@@ -331,7 +331,8 @@
                                             </Button.Template>
                                             <TextBlock Text="View Result"
                                                        Foreground="{StaticResource TextPrimaryBrush}"
-                                                       TextDecorations="Underline"/>
+                                                       TextDecorations="Underline"
+                                                       TextTrimming="None"/>
                                         </Button>
                                     </DataTemplate>
                                 </DataGridTemplateColumn.CellTemplate>

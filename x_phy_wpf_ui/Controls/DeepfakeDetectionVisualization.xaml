@@ -4,17 +4,33 @@
              xmlns:mc="http://schemas.openxmlformats.org/markup-compatibility/2006" 
              xmlns:d="http://schemas.microsoft.com/expression/blend/2008" 
              mc:Ignorable="d" 
-             d:DesignHeight="600" d:DesignWidth="500">
-    <Grid Background="Transparent">
+             d:DesignHeight="700" d:DesignWidth="500">
+    <StackPanel Background="Transparent" VerticalAlignment="Center">
+        <!-- Title above the image -->
+        <TextBlock Text="Deepfake Detector"
+                   FontSize="20"
+                   FontFamily="{StaticResource AppFontFamily}"
+                   FontWeight="SemiBold"
+                   Foreground="{DynamicResource Brush.TextPrimary}"
+                   HorizontalAlignment="Center"
+                   Margin="0,0,0,16"/>
         <!-- Main Image Container -->
-        <Grid HorizontalAlignment="Center" 
-              VerticalAlignment="Center"
-              MaxWidth="350"
-              MaxHeight="400">
+        <Grid HorizontalAlignment="Center"
+              MaxWidth="450"
+              MaxHeight="450">
             <Image Source="pack://application:,,,/face.png" 
                    Stretch="Uniform" 
                    HorizontalAlignment="Center" 
                    VerticalAlignment="Center"/>
         </Grid>
-    </Grid>
+        <!-- Subtitle below the image -->
+        <TextBlock Text="Select a source to begin deepfake detection."
+                   FontSize="14"
+                   FontFamily="{StaticResource AppFontFamily}"
+                   Foreground="{DynamicResource Brush.TextSecondary}"
+                   HorizontalAlignment="Center"
+                   TextAlignment="Center"
+                   TextWrapping="Wrap"
+                   Margin="0,16,0,0"/>
+    </StackPanel>
 </UserControl>

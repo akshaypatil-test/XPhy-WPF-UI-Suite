@@ -38,6 +38,13 @@ namespace x_phy_wpf_ui
         private bool openResultsFolderAfterStop = false;
         /// <summary>When true, CreateResult was already called from "Stop & View Results" click; ShowFinalResult should skip PushDetectionResultToBackend to avoid duplicate.</summary>
         private bool _resultPushedForStopAndViewResults = false;
+        /// <summary>True when CreateResult API succeeded for the current run; used to avoid duplicate push and to retry on notification close if false.</summary>
+        private bool _resultPushSucceeded = false;
+        /// <summary>When set, closing the completion notification will retry push if _resultPushSucceeded is still false.</summary>
+        private string _pendingResultPath = null;
+        private bool _pendingResultHadDeepfake = false;
+        /// <summary>True when we pushed from Stop path (Back to Home) so ShowFinalResult skips duplicate if native sends isLast later.</summary>
+        private bool _resultPushedOnStop = false;
         /// <summary>True when we just navigated to Results after "Stop & View Results"; finally block should skip ResetAppContentToHome so user stays on Results.</summary>
         private bool _openedResultsAfterStop = false;
         private bool isAudioDetection = false; // Track if current detection is Audio mode (vs Video mode)
@@ -1507,6 +1514,9 @@ videoLiveFakeProportionThreshold = 0.7
                     overallClassification = null;
                     _deepfakeDetectedDuringRun = false;
                     _evidenceSaveCounter = 0;
+                    _resultPushedForStopAndViewResults = false;
+                    _resultPushSucceeded = false;
+                    _resultPushedOnStop = false;
                     string baseResultsDir = "";
                     try { baseResultsDir = controller?.GetResultsDir() ?? ""; } catch { }
                     _currentRunArtifactPath = string.IsNullOrEmpty(baseResultsDir) ? null : Path.Combine(baseResultsDir, isAudioMode ? "audio" : "video", DateTime.Now.ToString("dd-MM-yyyy"), DateTime.Now.ToString("HH-mm"));
@@ -2778,6 +2788,12 @@ videoLiveFakeProportionThreshold = 0.7
             }
             finally
             {
+                // If we never got isLast (e.g. audio/early stop), push result now so DB is never missing a run
+                if (!_resultPushSucceeded && !_resultPushedForStopAndViewResults && !string.IsNullOrEmpty(_currentRunArtifactPath))
+                {
+                    _resultPushedOnStop = true;
+                    PushDetectionResultToBackend(_currentRunArtifactPath, _deepfakeDetectedDuringRun);
+                }
                 if (openResultsFolderAfterStop)
                 {
                     _openedResultsAfterStop = true;
@@ -2924,6 +2940,7 @@ videoLiveFakeProportionThreshold = 0.7
 
         private void ShowFinalResult(string resultPath)
         {
+            _pendingResultPath = null; // clear so retry-on-close uses only this run's path when set below
             // Tell floater detection has ended so it stops the arc and closes the Detection Activity popup if open
             if (FloatingWidgetEnabled && _floatingWidget != null && _floatingWidget.IsVisible)
                 _floatingWidget.SetDetectionState(false, _deepfakeDetectedDuringRun);
@@ -2947,10 +2964,21 @@ videoLiveFakeProportionThreshold = 0.7
             // Final Detection Complete: show max fake confidence from all 15s notifications (same value shown in one of them).
             if (hadDeepfake)
             {
+                _pendingResultPath = displayPath ?? resultPath ?? "Local";
+                _pendingResultHadDeepfake = true;
+                if (!_resultPushedForStopAndViewResults)
+                    _resultPushSucceeded = false;
                 int rawConfidence = DetectionResultsComponent?.RunMaxConfidencePercent ?? DetectionResultsComponent?.LastConfidencePercent ?? 0;
                 int confidence = GetDisplayConfidence(rawConfidence, true, isAudioDetection);
                 var evidenceImage = isAudioDetection ? Controls.SessionDetailsPanel.GetAudioWaveImageSource() : (DetectionResultsComponent?.RunMaxEvidenceImage ?? DetectionResultsComponent?.LatestEvidenceImage);
-                ShowDetectionCompletedWithThreatNotification(displayPath ?? "", confidence, evidenceImage, isAudioDetection);
+                ShowDetectionCompletedWithThreatNotification(displayPath ?? "", confidence, evidenceImage, isAudioDetection, onClosed: () =>
+                {
+                    if (!_resultPushSucceeded && _pendingResultPath != null)
+                    {
+                        PushDetectionResultToBackend(_pendingResultPath, _pendingResultHadDeepfake);
+                        _pendingResultPath = null;
+                    }
+                });
             }
             else
             {
@@ -2963,14 +2991,14 @@ videoLiveFakeProportionThreshold = 0.7
                 System.Diagnostics.Debug.WriteLine("ShowFinalResult: Final result shown, stopping flag cleared");
             }
 
-            // Save detection result to backend (CreateResult) only when detection is completed or stopped.
-            // Skip if we already saved when user clicked "Stop & View Results" (avoid duplicate).
-            if (!_resultPushedForStopAndViewResults)
+            // Save detection result to backend (CreateResult) when detection completes. Skip if already saved (Stop & View Results or Back to Home push).
+            if (!_resultPushedForStopAndViewResults && !_resultPushedOnStop)
             {
                 System.Diagnostics.Debug.WriteLine($"ShowFinalResult: Pushing result to backend (audio={isAudioDetection}, hadDeepfake={hadDeepfake})");
                 PushDetectionResultToBackend(displayPath ?? resultPath ?? "Local", hadDeepfake);
             }
             _resultPushedForStopAndViewResults = false;
+            _resultPushedOnStop = false;
         }
 
         /// <summary>Confidence to show in notification, result view, and API. For video, when raw is 0 but deepfake was detected we use fallback 97. For audio the native layer does not provide a score, so we return 0 and the UI shows "—" or N/A.</summary>
@@ -3048,7 +3076,7 @@ videoLiveFakeProportionThreshold = 0.7
             NavigateToResultsAndShowSessionDetail(resultPath);
         }
 
-        /// <summary>Calls CreateResult API with current detection outcome so result is saved in DB and appears in Results tab.</summary>
+        /// <summary>Calls CreateResult API with current detection outcome so result is saved in DB and appears in Results tab. Runs immediately (no dispatcher delay) so save is not missed if user dismisses notification.</summary>
         private void PushDetectionResultToBackend(string artifactPath, bool aiManipulationDetected)
         {
             try
@@ -3066,42 +3094,43 @@ videoLiveFakeProportionThreshold = 0.7
                     Type = isAudioDetection ? "Audio" : "Video",
                     Outcome = aiManipulationDetected ? "AI Manipulation Detected" : "No AI Manipulation detected",
                     DetectionConfidence = (decimal)Math.Min(100, Math.Max(0, confidence)),
-                    MediaSource = _currentMediaSourceDisplayName ?? "Local", // App name (Zoom, Google Chrome)
-                    ArtifactPath = string.IsNullOrEmpty(artifactPath) || artifactPath == "Local" ? null : artifactPath, // Path for loading evidence images
+                    MediaSource = _currentMediaSourceDisplayName ?? "Local",
+                    ArtifactPath = string.IsNullOrEmpty(artifactPath) || artifactPath == "Local" ? null : artifactPath,
                     MachineFingerprint = machineFingerprint,
                     Duration = (decimal)durationSec
                 };
-#pragma warning disable CS4014
-                Dispatcher.InvokeAsync(async () =>
-                {
-                    try
-                    {
-                        var response = await _resultsApiService.CreateResultAsync(request);
-                        if (response != null)
-                        {
-                            System.Diagnostics.Debug.WriteLine($"CreateResult succeeded: Id={response.Id}");
-                            RefreshStatisticsAsync();
-                            // Refresh results list so the table shows the new record when user goes back from Session Details
-                            await RefreshResultsListFromApiAsync();
-                        }
-                        else
-                        {
-                            System.Diagnostics.Debug.WriteLine("CreateResult: no response (e.g. not logged in or API error)");
-                            Dispatcher.Invoke(() => ShowResultSaveFailureMessage());
-                        }
-                    }
-                    catch (Exception ex)
-                    {
-                        System.Diagnostics.Debug.WriteLine($"CreateResult failed: {ex.Message}");
-                        Dispatcher.Invoke(() => ShowResultSaveFailureMessage());
-                    }
-                });
-#pragma warning restore CS4014
+                _ = SendResultToBackendAsync(request);
             }
             catch (Exception ex)
             {
                 System.Diagnostics.Debug.WriteLine($"PushDetectionResultToBackend: {ex.Message}");
                 try { ShowResultSaveFailureMessage(); } catch { }
+            }
+        }
+
+        /// <summary>Sends CreateResult request to API; sets _resultPushSucceeded on success so notification close can skip retry.</summary>
+        private async Task SendResultToBackendAsync(CreateResultRequest request)
+        {
+            try
+            {
+                var response = await _resultsApiService.CreateResultAsync(request);
+                if (response != null)
+                {
+                    _resultPushSucceeded = true;
+                    System.Diagnostics.Debug.WriteLine($"CreateResult succeeded: Id={response.Id}");
+                    RefreshStatisticsAsync();
+                    await RefreshResultsListFromApiAsync();
+                }
+                else
+                {
+                    System.Diagnostics.Debug.WriteLine("CreateResult: no response (e.g. not logged in or API error)");
+                    Dispatcher.Invoke(() => ShowResultSaveFailureMessage());
+                }
+            }
+            catch (Exception ex)
+            {
+                System.Diagnostics.Debug.WriteLine($"CreateResult failed: {ex.Message}");
+                Dispatcher.Invoke(() => ShowResultSaveFailureMessage());
             }
         }
 
@@ -3644,12 +3673,14 @@ videoLiveFakeProportionThreshold = 0.7
             }));
         }
 
-        private void ShowDetectionCompletedWithThreatNotification(string resultPath, int confidencePercent, System.Windows.Media.ImageSource evidenceImage, bool isAudio = false)
+        private void ShowDetectionCompletedWithThreatNotification(string resultPath, int confidencePercent, System.Windows.Media.ImageSource evidenceImage, bool isAudio = false, Action onClosed = null)
         {
             Dispatcher.BeginInvoke(new Action(() =>
             {
                 DetectionNotificationWindow.CloseAllOpen();
                 var popup = new DetectionNotificationWindow();
+                if (onClosed != null)
+                    popup.Closed += (s, e) => onClosed();
                 popup.SetDetectionCompletedWithThreatContent(confidencePercent, resultPath,
                     openResultsFolder: () =>
                     {

@@ -357,7 +357,7 @@ namespace x_phy_wpf_ui.Controls
             _deepfakeNotificationTimer = null;
         }
 
-        /// <summary>Show final result and Back to Home button after 60s.</summary>
+        /// <summary>Show final result and Back to Home button after 60s. If AI manipulation was detected at any time during the 60s (RunMaxConfidencePercent > 0), show that in the final result even if the last content was natural.</summary>
         public void ShowFinalResult(string resultPath)
         {
             StopDetectionArcAnimation();
@@ -365,7 +365,19 @@ namespace x_phy_wpf_ui.Controls
             FlushLastNotificationWindow();
             DuringDetectionPanel.Visibility = Visibility.Collapsed;
 
-            if (_detectedFaces.Count > 0)
+            // Use run-max from any 15s window so we show AI manipulation if it was ever detected during the 60s (e.g. user switched to natural content later)
+            bool aiManipulationDetectedDuringRun = RunMaxConfidencePercent > 0;
+            if (aiManipulationDetectedDuringRun)
+            {
+                ClassificationIcon.Text = "⚠️";
+                ClassificationText.Text = "DEEPFAKE DETECTED";
+                ClassificationText.Foreground = GetBrush("FakeColor");
+                ClassificationPercentage.Text = $"({RunMaxConfidencePercent}% Suspicious)";
+                ClassificationSubtext.Text = !string.IsNullOrEmpty(resultPath)
+                    ? $"Detection completed. Results saved to: {resultPath}"
+                    : "Detection completed. Results saved.";
+            }
+            else if (_detectedFaces.Count > 0)
             {
                 int fakeCount = _detectedFaces.Count(f => f.StatusText == "FAKE");
                 double avgConfidence = _detectedFaces.Average(f => f.ConfidencePercent);

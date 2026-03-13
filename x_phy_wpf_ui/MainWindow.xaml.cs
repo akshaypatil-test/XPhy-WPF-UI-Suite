@@ -2936,7 +2936,8 @@ videoLiveFakeProportionThreshold = 0.7
             DetectionResultsComponent?.ShowFinalResult(displayPath ?? resultPath);
 
             int faceCount = DetectionResultsComponent?.DetectedFacesCount ?? 0;
-            bool hadDeepfake = _deepfakeDetectedDuringRun;
+            // If AI manipulation was detected at any time during the 60s, show it in the final notification (e.g. user switched to natural content later)
+            bool hadDeepfake = _deepfakeDetectedDuringRun || (DetectionResultsComponent?.RunMaxConfidencePercent ?? 0) > 0;
             // Final Detection Complete: show max fake confidence from all 15s notifications (same value shown in one of them).
             if (hadDeepfake)
             {
@@ -3003,15 +3004,16 @@ videoLiveFakeProportionThreshold = 0.7
             resultsDir = resultsDir ?? DetectionResultsLoader.GetDefaultResultsDir();
             string artifactPath = !string.IsNullOrEmpty(_currentRunArtifactPath) ? _currentRunArtifactPath : (DetectionResultsLoader.ResolveFullArtifactPath(resultPath ?? resultsDir ?? "", isAudioDetection) ?? resultPath ?? resultsDir ?? "");
             if (string.IsNullOrEmpty(artifactPath)) artifactPath = resultPath ?? resultsDir ?? "";
-            int rawConfidence = _deepfakeDetectedDuringRun
+            bool hadDeepfakeForResult = _deepfakeDetectedDuringRun || (DetectionResultsComponent?.RunMaxConfidencePercent ?? 0) > 0;
+            int rawConfidence = hadDeepfakeForResult
                 ? (DetectionResultsComponent?.RunMaxConfidencePercent ?? DetectionResultsComponent?.LastConfidencePercent ?? 0)
                 : (DetectionResultsComponent?.LastConfidencePercent ?? 0);
             var item = new DetectionResultItem
             {
                 Timestamp = DateTime.Now,
                 Type = isAudioDetection ? "Audio" : "Video",
-                IsAiManipulationDetected = _deepfakeDetectedDuringRun,
-                ConfidencePercent = GetDisplayConfidence(rawConfidence, _deepfakeDetectedDuringRun),
+                IsAiManipulationDetected = hadDeepfakeForResult,
+                ConfidencePercent = GetDisplayConfidence(rawConfidence, hadDeepfakeForResult),
                 ResultPathOrId = artifactPath,
                 MediaSourceDisplay = _currentMediaSourceDisplayName ?? "Local",
                 SerialNumber = 0,

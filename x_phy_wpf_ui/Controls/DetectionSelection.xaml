@@ -265,7 +265,7 @@
                 <Button Content="Cancel" 
                         Style="{StaticResource SecondaryButtonStyle}"
                         Click="CancelButton_Click"
-                        MinWidth="120"
+                        MinWidth="180"
                         Padding="24,12"/>
             </StackPanel>
         </Grid>

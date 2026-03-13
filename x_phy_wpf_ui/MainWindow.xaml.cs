@@ -600,6 +600,9 @@ namespace x_phy_wpf_ui
         /// <summary>Show Welcome screen (first run / session expired). Use this instead of Sign In when user is effectively logged out.</summary>
         private void ShowWelcomeView()
         {
+            // If we're leaving the verification screen (e.g. restore from tray/desktop), cancel the unverified user
+            if (AuthPanel.CurrentContent == _emailVerificationComponent)
+                _ = _emailVerificationComponent.CancelRegistrationIfPendingAsync();
             AuthPanel.SetContent(_welcomeComponent);
             AuthPanel.Visibility = Visibility.Visible;
             AppPanel.Visibility = Visibility.Collapsed;
@@ -2126,6 +2129,10 @@ videoLiveFakeProportionThreshold = 0.7
             if (_isExitingFromTray)
                 return;
 
+            // If on Create Account verification screen, cancel the unverified user (same as Back button)
+            if (AuthPanel.CurrentContent == _emailVerificationComponent)
+                _ = _emailVerificationComponent.CancelRegistrationIfPendingAsync();
+
             // Close (X): minimize to tray; if Remember Me is false, logout (clear tokens) so next open shows login
             if (notifyIcon != null)
             {
@@ -3455,17 +3462,30 @@ videoLiveFakeProportionThreshold = 0.7
         {
             Dispatcher.Invoke(() =>
             {
+                // If window was hidden (user closed with X), opening from tray should show Get Started. If window was only minimized (taskbar), preserve current screen (e.g. verification).
+                bool wasClosedWithX = !IsVisible;
                 Show();
                 WindowState = WindowState.Normal;
                 Activate();
-                // If user closed from Auth view (no tokens), show Launch (Get Started) when opening from tray
                 try
                 {
                     var tokenStorage = new TokenStorage();
                     var tokens = tokenStorage.GetTokens();
                     if (tokens == null)
                     {
-                        AuthPanel.SetContent(_launchComponent);
+                        if (wasClosedWithX)
+                        {
+                            // User had closed with X on Auth → always go to Get Started (and cancel unverified user if they were on verification)
+                            if (AuthPanel.CurrentContent == _emailVerificationComponent)
+                                _ = _emailVerificationComponent.CancelRegistrationIfPendingAsync();
+                            AuthPanel.SetContent(_launchComponent);
+                        }
+                        else
+                        {
+                            // Minimized (not closed with X) → preserve verification screen like taskbar restore
+                            if (AuthPanel.CurrentContent != _emailVerificationComponent)
+                                AuthPanel.SetContent(_launchComponent);
+                        }
                         AuthPanel.Visibility = Visibility.Visible;
                         AppPanel.Visibility = Visibility.Collapsed;
                         return;

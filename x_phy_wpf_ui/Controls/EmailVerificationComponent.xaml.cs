@@ -32,6 +32,21 @@ namespace x_phy_wpf_ui.Controls
             UpdateCreateAccountButtonState();
         }
 
+        /// <summary>Cancel registration for the pending email (e.g. when user closes app on verification screen). Does nothing if no email.</summary>
+        public async Task CancelRegistrationIfPendingAsync()
+        {
+            if (string.IsNullOrWhiteSpace(_email))
+                return;
+            try
+            {
+                await _authService.CancelRegistrationAsync(_email);
+            }
+            catch
+            {
+                // Best-effort; ignore errors when closing
+            }
+        }
+
         /// <summary>Clear OTP and errors when navigating back to this screen.</summary>
         public void ClearInputs()
         {

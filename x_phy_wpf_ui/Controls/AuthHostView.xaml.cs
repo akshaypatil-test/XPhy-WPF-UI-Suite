@@ -69,6 +69,9 @@ namespace x_phy_wpf_ui.Controls
             }
         }
 
+        /// <summary>Current auth content (e.g. to detect verification screen on window close).</summary>
+        public object CurrentContent => AuthContent.Content;
+
         public void SetContent(object content)
         {
             AuthContent.Content = content;

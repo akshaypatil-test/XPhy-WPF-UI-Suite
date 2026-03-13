@@ -36,7 +36,7 @@ namespace x_phy_wpf_ui.Controls
             _currentResult = result;
             _resultsDirectory = resultsDirectory;
 
-            DetailConfidencePercent.Text = result.ConfidencePercent + "%";
+            DetailConfidencePercent.Text = result.ConfidenceText;
             DetailConfidencePercent.Foreground = result.IsAiManipulationDetected
                 ? (Brush)Resources["ResultRedBrush"]
                 : (Brush)Resources["ResultGreenBrush"];

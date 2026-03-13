@@ -35,7 +35,10 @@ namespace x_phy_wpf_ui.Models
         };
 
         public string ResultText => IsAiManipulationDetected ? "AI Manipulation Detected" : "No AI Manipulation detected";
-        public string ConfidenceText => ConfidencePercent + "%";
+        /// <summary>Confidence for display. Audio has no score from native layer, so show "—" when detected and 0.</summary>
+        public string ConfidenceText => (Type != null && Type.IndexOf("Audio", StringComparison.OrdinalIgnoreCase) >= 0 && IsAiManipulationDetected && ConfidencePercent == 0)
+            ? "—"
+            : (ConfidencePercent + "%");
         public string DurationDisplay => DurationSeconds.HasValue && DurationSeconds.Value > 0
             ? $"{(int)Math.Min((decimal)MaxDurationDisplaySeconds, DurationSeconds.Value)} Seconds"
             : "—";

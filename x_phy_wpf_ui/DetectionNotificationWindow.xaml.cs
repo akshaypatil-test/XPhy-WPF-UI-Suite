@@ -95,7 +95,7 @@ namespace x_phy_wpf_ui
             CompletedWithThreatContentPanel.Visibility = Visibility.Visible;
 
             CompletedThreatAlertText.Text = isAudio ? "Audio: DEEPFAKE DETECTED" : "DEEPFAKE DETECTED";
-            CompletedThreatConfidenceText.Text = $"Confidence {confidencePercent}%";
+            CompletedThreatConfidenceText.Text = (isAudio && confidencePercent == 0) ? "Confidence: —" : $"Confidence {confidencePercent}%";
             CompletedThreatTimestampText.Text = DateTime.Now.ToString("dd/MM/yyyy, HH:mm");
             _resultPath = resultPath ?? "";
             _openResultsFolder = openResultsFolder;
@@ -120,7 +120,7 @@ namespace x_phy_wpf_ui
             WarningSection.Visibility = Visibility.Collapsed;
 
             AlertTitleText.Text = isAudio ? "Audio: AI Manipulated Content Detected" : "AI Manipulated Content Detected";
-            ConfidenceText.Text = $"Confidence {confidencePercent}%";
+            ConfidenceText.Text = (isAudio && confidencePercent == 0) ? "Confidence: —" : $"Confidence {confidencePercent}%";
             TimestampText.Text = DateTime.Now.ToString("dd/MM/yyyy, HH:mm");
 
             _resultPath = resultPath ?? "";

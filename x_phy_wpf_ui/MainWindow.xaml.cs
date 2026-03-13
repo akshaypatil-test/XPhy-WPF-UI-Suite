@@ -1598,13 +1598,12 @@ videoLiveFakeProportionThreshold = 0.7
                                     UpdateAudioClassification(classification);
                                 });
                             },
-                            // Voice graph score callback
+                            // Voice graph score callback: track max per 15s window and run max for deepfake confidence
                             (score) =>
                             {
                                 Dispatcher.Invoke(() =>
                                 {
-                                    // Update graph score if needed (for future graph visualization)
-                                    System.Diagnostics.Debug.WriteLine($"Voice graph score: {score}");
+                                    DetectionResultsComponent?.UpdateAudioScore(score);
                                 });
                             });
                     }
@@ -1645,12 +1644,12 @@ videoLiveFakeProportionThreshold = 0.7
                                     UpdateAudioClassification(classification);
                                 });
                             },
-                            // Voice graph score callback
+                            // Voice graph score callback: track max per 15s window and run max for deepfake confidence
                             (score) =>
                             {
                                 Dispatcher.Invoke(() =>
                                 {
-                                    System.Diagnostics.Debug.WriteLine($"Voice graph score: {score}");
+                                    DetectionResultsComponent?.UpdateAudioScore(score);
                                 });
                             });
                     }
@@ -2940,7 +2939,7 @@ videoLiveFakeProportionThreshold = 0.7
                 displayPath = _currentRunArtifactPath;
             else
                 displayPath = DetectionResultsLoader.ResolveFullArtifactPath(displayPath ?? "", isAudioDetection) ?? displayPath;
-            DetectionResultsComponent?.ShowFinalResult(displayPath ?? resultPath);
+            DetectionResultsComponent?.ShowFinalResult(displayPath ?? resultPath, isAudioDetection && _deepfakeDetectedDuringRun);
 
             int faceCount = DetectionResultsComponent?.DetectedFacesCount ?? 0;
             // If AI manipulation was detected at any time during the 60s, show it in the final notification (e.g. user switched to natural content later)
@@ -2949,7 +2948,7 @@ videoLiveFakeProportionThreshold = 0.7
             if (hadDeepfake)
             {
                 int rawConfidence = DetectionResultsComponent?.RunMaxConfidencePercent ?? DetectionResultsComponent?.LastConfidencePercent ?? 0;
-                int confidence = GetDisplayConfidence(rawConfidence, true);
+                int confidence = GetDisplayConfidence(rawConfidence, true, isAudioDetection);
                 var evidenceImage = isAudioDetection ? Controls.SessionDetailsPanel.GetAudioWaveImageSource() : (DetectionResultsComponent?.RunMaxEvidenceImage ?? DetectionResultsComponent?.LatestEvidenceImage);
                 ShowDetectionCompletedWithThreatNotification(displayPath ?? "", confidence, evidenceImage, isAudioDetection);
             }
@@ -2974,10 +2973,11 @@ videoLiveFakeProportionThreshold = 0.7
             _resultPushedForStopAndViewResults = false;
         }
 
-        /// <summary>Confidence to show in notification, result view, and API. When raw is 0 (e.g. audio) but deepfake was detected, use fallback so all show the same value.</summary>
-        private static int GetDisplayConfidence(int rawPercent, bool hadDeepfake)
+        /// <summary>Confidence to show in notification, result view, and API. For video, when raw is 0 but deepfake was detected we use fallback 97. For audio the native layer does not provide a score, so we return 0 and the UI shows "—" or N/A.</summary>
+        private static int GetDisplayConfidence(int rawPercent, bool hadDeepfake, bool isAudio = false)
         {
             if (rawPercent > 0) return Math.Min(100, Math.Max(0, rawPercent));
+            if (isAudio) return 0; // Audio has no confidence score from native; UI shows "—"
             return hadDeepfake ? 97 : 0;
         }
 
@@ -3020,7 +3020,7 @@ videoLiveFakeProportionThreshold = 0.7
                 Timestamp = DateTime.Now,
                 Type = isAudioDetection ? "Audio" : "Video",
                 IsAiManipulationDetected = hadDeepfakeForResult,
-                ConfidencePercent = GetDisplayConfidence(rawConfidence, hadDeepfakeForResult),
+                ConfidencePercent = GetDisplayConfidence(rawConfidence, hadDeepfakeForResult, isAudioDetection),
                 ResultPathOrId = artifactPath,
                 MediaSourceDisplay = _currentMediaSourceDisplayName ?? "Local",
                 SerialNumber = 0,
@@ -3056,7 +3056,7 @@ videoLiveFakeProportionThreshold = 0.7
                 int rawConfidence = aiManipulationDetected
                     ? (DetectionResultsComponent?.RunMaxConfidencePercent ?? DetectionResultsComponent?.LastConfidencePercent ?? 0)
                     : (DetectionResultsComponent?.LastConfidencePercent ?? 0);
-                int confidence = GetDisplayConfidence(rawConfidence, aiManipulationDetected);
+                int confidence = GetDisplayConfidence(rawConfidence, aiManipulationDetected, isAudioDetection);
                 double durationSec = DetectionResultsComponent?.GetDetectionDurationSeconds() ?? 60;
                 string machineFingerprint = null;
                 try { machineFingerprint = new DeviceFingerprintService().GetDeviceFingerprint(); } catch { }
@@ -3586,7 +3586,7 @@ videoLiveFakeProportionThreshold = 0.7
                 if (!isAudioDetection && DetectionResultsComponent?.LatestEvidenceImage != null && !string.IsNullOrEmpty(artifactPath))
                     SaveEvidenceImageToResultFolder(artifactPath, DetectionResultsComponent.LatestEvidenceImage);
                 int rawConfidence = DetectionResultsComponent?.LastConfidencePercent ?? 0;
-                int confidence = GetDisplayConfidence(rawConfidence, true);
+                int confidence = GetDisplayConfidence(rawConfidence, true, isAudioDetection);
                 var evidenceImage = isAudioDetection ? Controls.SessionDetailsPanel.GetAudioWaveImageSource() : DetectionResultsComponent?.LatestEvidenceImage;
 
                 var popup = new DetectionNotificationWindow();

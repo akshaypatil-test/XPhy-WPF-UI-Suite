@@ -31,28 +31,27 @@
         </Style>
     </UserControl.Resources>
     <StackPanel>
-        <!-- Success Icon -->
-        <StackPanel HorizontalAlignment="Center" Margin="0,0,0,20">
-            <Ellipse Width="72" Height="72" Fill="{DynamicResource Brush.Primary}">
+        <!-- Success Icon: circle with tick centered in a Grid so alignment is correct -->
+        <Grid HorizontalAlignment="Center" Margin="0,0,0,20" Width="72" Height="72">
+            <Ellipse Width="72" Height="72" Fill="{DynamicResource Brush.Primary}" HorizontalAlignment="Center" VerticalAlignment="Center">
                 <Ellipse.Effect>
                     <DropShadowEffect BlurRadius="10" ShadowDepth="0" Color="#E2156B"/>
                 </Ellipse.Effect>
             </Ellipse>
             <TextBlock Text="✓" FontSize="42" FontWeight="Bold"
-                       Foreground="{DynamicResource Brush.White}"
-                       HorizontalAlignment="Center" VerticalAlignment="Center"
-                       Margin="0,-56,0,0"/>
-        </StackPanel>
+                       Foreground="White"
+                       HorizontalAlignment="Center" VerticalAlignment="Center"/>
+        </Grid>
 
         <TextBlock Text="Payment Successful!"
                    FontSize="22" FontWeight="Bold"
-                   Foreground="{DynamicResource Brush.TextPrimary}"
+                   Foreground="White"
                    HorizontalAlignment="Center"
                    Margin="0,0,0,6"/>
 
         <TextBlock Text="Your license has been activated successfully."
                    FontSize="13"
-                   Foreground="{DynamicResource Brush.TextSecondary}"
+                   Foreground="#B0B0B0"
                    HorizontalAlignment="Center"
                    TextWrapping="Wrap" TextAlignment="Center"
                    Margin="0,0,0,20"/>

@@ -3034,17 +3034,21 @@ videoLiveFakeProportionThreshold = 0.7
             return hadDeepfake ? 97 : 0;
         }
 
-        /// <summary>Save evidence image to run folder so Evidence UI shows all deepfake detections (evidence_1.png, evidence_2.png, ...).</summary>
+        /// <summary>Subfolder name under the result folder where notification evidence images (evidence_1.png, evidence_2.png, ...) are stored.</summary>
+        private const string EvidenceSubfolderName = "evidence";
+
+        /// <summary>Save evidence image to run folder under an "evidence" subfolder so it is separate from detection frames (1.png, 2.png). Evidence UI loads from this subfolder.</summary>
         private void SaveEvidenceImageToResultFolder(string artifactFolderPath, System.Windows.Media.Imaging.BitmapSource bitmap)
         {
             if (bitmap == null || string.IsNullOrEmpty(artifactFolderPath)) return;
             try
             {
-                if (!Directory.Exists(artifactFolderPath))
-                    Directory.CreateDirectory(artifactFolderPath);
+                string evidenceDir = Path.Combine(artifactFolderPath, EvidenceSubfolderName);
+                if (!Directory.Exists(evidenceDir))
+                    Directory.CreateDirectory(evidenceDir);
                 _evidenceSaveCounter++;
                 string fileName = $"evidence_{_evidenceSaveCounter}.png";
-                string filePath = Path.Combine(artifactFolderPath, fileName);
+                string filePath = Path.Combine(evidenceDir, fileName);
                 var encoder = new PngBitmapEncoder();
                 encoder.Frames.Add(BitmapFrame.Create(bitmap));
                 using (var stream = new FileStream(filePath, FileMode.Create, FileAccess.Write, FileShare.None))

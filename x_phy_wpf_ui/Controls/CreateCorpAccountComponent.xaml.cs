@@ -2,6 +2,8 @@ using System;
 using System.Text.RegularExpressions;
 using System.Windows;
 using System.Windows.Controls;
+using System.Windows.Data;
+using System.Windows.Input;
 using System.Windows.Media;
 using System.Windows.Threading;
 using x_phy_wpf_ui.Services;
@@ -28,6 +30,10 @@ namespace x_phy_wpf_ui.Controls
         private bool _isContactNumberValid;
         private bool _isOrderNumberValid;
         private bool _isActivationDateValid;
+        private DateTime? _selectedDate;
+        private DateTime _displayMonth;
+        // Prevents re-opening the popup when the input field click is what closed it
+        private bool _suppressNextFieldClick;
 
         public CreateCorpAccountComponent()
         {
@@ -40,20 +46,6 @@ namespace x_phy_wpf_ui.Controls
                 UpdateStepIndicator();
                 UpdateNextButtonState();
             };
-        }
-
-        private static T FindVisualChild<T>(DependencyObject parent) where T : DependencyObject
-        {
-            for (int i = 0; i < VisualTreeHelper.GetChildrenCount(parent); i++)
-            {
-                var child = VisualTreeHelper.GetChild(parent, i);
-                if (child is T found)
-                    return found;
-                var descendant = FindVisualChild<T>(child);
-                if (descendant != null)
-                    return descendant;
-            }
-            return null;
         }
 
         public void ClearInputs()
@@ -76,7 +68,12 @@ namespace x_phy_wpf_ui.Controls
             CountryCodeTextBox.Text = "";
             ContactNumberTextBox.Text = "";
             OrderNumberTextBox.Text = "";
-            ActivationDatePicker.SelectedDate = null;
+            _selectedDate = null;
+            if (ActivationDateDisplay != null)
+            {
+                ActivationDateDisplay.Text = "Select a date";
+                ActivationDateDisplay.SetResourceReference(TextBlock.ForegroundProperty, "Brush.TextSecondary");
+            }
             ErrorMessageText.Text = "";
             ErrorMessageText.Visibility = Visibility.Collapsed;
             FirstNameErrorText.Visibility = Visibility.Collapsed;
@@ -142,23 +139,183 @@ namespace x_phy_wpf_ui.Controls
         private void OrderNumberTextBox_LostFocus(object sender, RoutedEventArgs e) { ValidateOrderNumber(); UpdateCreateButtonState(); }
         private void PolicyNumberTextBox_LostFocus(object sender, RoutedEventArgs e) { ValidatePolicyNumber(); UpdateCreateButtonState(); }
         private void MaxDevicesTextBox_LostFocus(object sender, RoutedEventArgs e) { ValidateMaxDevices(); UpdateCreateButtonState(); }
-        private void ActivationDatePicker_LostFocus(object sender, RoutedEventArgs e) { ValidateActivationDate(); UpdateCreateButtonState(); }
-        private void ActivationDatePicker_SelectedDateChanged(object sender, SelectionChangedEventArgs e)
+        // ── Custom date picker ──────────────────────────────────────────────
+        private void ActivationDateField_Click(object sender, MouseButtonEventArgs e)
         {
-            ValidateActivationDate();
-            UpdateCreateButtonState();
-            Dispatcher.BeginInvoke(new Action(RefreshActivationDateDisplay), DispatcherPriority.Loaded);
+            // Suppress re-open when this click is the same one that just closed the popup
+            if (_suppressNextFieldClick) return;
+
+            if (CalendarPopup.IsOpen) { CalendarPopup.IsOpen = false; return; }
+
+            if (_displayMonth == default)
+                _displayMonth = new DateTime(DateTime.Today.Year, DateTime.Today.Month, 1);
+            BuildCalendar();
+            CalendarPopup.IsOpen = true;
         }
 
-        private void RefreshActivationDateDisplay()
+        private void CalendarPopup_Opened(object sender, EventArgs e)
         {
-            var tb = FindVisualChild<TextBox>(ActivationDatePicker);
-            if (tb != null)
+            // Capture mouse to the popup border with SubTree mode so:
+            //   • clicks inside the popup still route normally to buttons
+            //   • clicks outside fire PreviewMouseDownOutsideCapturedElement → we close cleanly
+            Mouse.Capture(CalendarPopupBorder, CaptureMode.SubTree);
+
+            // Also close when the host window loses activation (user switches app/window)
+            var window = Window.GetWindow(this);
+            if (window != null)
+                window.Deactivated += Window_Deactivated_CloseCalendar;
+        }
+
+        private void CalendarPopup_Closed(object sender, EventArgs e)
+        {
+            Mouse.Capture(null);
+
+            var window = Window.GetWindow(this);
+            if (window != null)
+                window.Deactivated -= Window_Deactivated_CloseCalendar;
+        }
+
+        private void Window_Deactivated_CloseCalendar(object sender, EventArgs e)
+        {
+            CalendarPopup.IsOpen = false;
+        }
+
+        private void CalendarPopup_OutsideClick(object sender, MouseButtonEventArgs e)
+        {
+            // Set flag so the field's MouseDown handler (which fires right after this)
+            // does not immediately re-open the popup when the click was on the input field.
+            _suppressNextFieldClick = true;
+            CalendarPopup.IsOpen = false;
+            // Clear the flag after the current input-event chain finishes
+            Dispatcher.BeginInvoke(new Action(() => _suppressNextFieldClick = false),
+                DispatcherPriority.Input);
+        }
+
+        private void PrevMonth_Click(object sender, RoutedEventArgs e)
+        {
+            _displayMonth = _displayMonth.AddMonths(-1);
+            BuildCalendar();
+        }
+
+        private void NextMonth_Click(object sender, RoutedEventArgs e)
+        {
+            _displayMonth = _displayMonth.AddMonths(1);
+            BuildCalendar();
+        }
+
+        private void BuildCalendar()
+        {
+            MonthYearLabel.Text = _displayMonth.ToString("MMMM yyyy");
+
+            // Day-of-week header row
+            DayOfWeekGrid.ColumnDefinitions.Clear();
+            DayOfWeekGrid.Children.Clear();
+            string[] dowLabels = { "Su", "Mo", "Tu", "We", "Th", "Fr", "Sa" };
+            for (int i = 0; i < 7; i++)
             {
-                tb.SetResourceReference(Control.BackgroundProperty, "Brush.InputBackground");
-                tb.SetResourceReference(Control.ForegroundProperty, "Brush.TextPrimary");
-                tb.SetResourceReference(TextBox.CaretBrushProperty, "Brush.TextPrimary");
-                tb.InvalidateVisual();
+                DayOfWeekGrid.ColumnDefinitions.Add(new ColumnDefinition { Width = new GridLength(1, GridUnitType.Star) });
+                var tb = new TextBlock
+                {
+                    Text = dowLabels[i],
+                    TextAlignment = TextAlignment.Center,
+                    FontSize = 11,
+                    FontWeight = FontWeights.Bold,
+                    VerticalAlignment = VerticalAlignment.Center,
+                    HorizontalAlignment = HorizontalAlignment.Center,
+                    Margin = new Thickness(0, 0, 0, 2),
+                };
+                tb.SetResourceReference(TextBlock.ForegroundProperty, "Brush.TextSecondary");
+                Grid.SetColumn(tb, i);
+                DayOfWeekGrid.Children.Add(tb);
+            }
+
+            // Day buttons grid
+            CalendarDaysGrid.ColumnDefinitions.Clear();
+            CalendarDaysGrid.RowDefinitions.Clear();
+            CalendarDaysGrid.Children.Clear();
+            for (int i = 0; i < 7; i++)
+                CalendarDaysGrid.ColumnDefinitions.Add(new ColumnDefinition { Width = new GridLength(1, GridUnitType.Star) });
+
+            int startCol = (int)_displayMonth.DayOfWeek;
+            int daysInMonth = DateTime.DaysInMonth(_displayMonth.Year, _displayMonth.Month);
+            int rows = (int)Math.Ceiling((startCol + daysInMonth) / 7.0);
+            for (int r = 0; r < rows; r++)
+                CalendarDaysGrid.RowDefinitions.Add(new RowDefinition { Height = new GridLength(36) });
+
+            for (int day = 1; day <= daysInMonth; day++)
+            {
+                int cell = startCol + day - 1;
+                int row = cell / 7;
+                int col = cell % 7;
+                var dt = new DateTime(_displayMonth.Year, _displayMonth.Month, day);
+                bool isSelected = _selectedDate.HasValue && _selectedDate.Value.Date == dt.Date;
+                bool isToday = dt.Date == DateTime.Today;
+
+                var btn = new Button
+                {
+                    Content = day.ToString(),
+                    Width = 32, Height = 32,
+                    FontSize = 12,
+                    BorderThickness = new Thickness(0),
+                    Cursor = Cursors.Hand,
+                    Tag = dt,
+                    HorizontalAlignment = HorizontalAlignment.Center,
+                    VerticalAlignment = VerticalAlignment.Center,
+                    Template = _dayButtonTemplate ??= BuildDayButtonTemplate(),
+                };
+
+                if (isSelected)
+                {
+                    btn.SetResourceReference(Button.BackgroundProperty, "Brush.Secondary");
+                    btn.Foreground = Brushes.White;
+                }
+                else if (isToday)
+                {
+                    btn.SetResourceReference(Button.BackgroundProperty, "Brush.Primary");
+                    btn.Foreground = Brushes.White;
+                }
+                else
+                {
+                    btn.Background = Brushes.Transparent;
+                    btn.SetResourceReference(Button.ForegroundProperty, "Brush.TextPrimary");
+                }
+
+                btn.Click += DayButton_Click;
+                Grid.SetRow(btn, row);
+                Grid.SetColumn(btn, col);
+                CalendarDaysGrid.Children.Add(btn);
+            }
+        }
+
+        private ControlTemplate _dayButtonTemplate;
+
+        private static ControlTemplate BuildDayButtonTemplate()
+        {
+            var template = new ControlTemplate(typeof(Button));
+            var border = new FrameworkElementFactory(typeof(Border));
+            border.SetValue(Border.CornerRadiusProperty, new CornerRadius(16));
+            border.SetBinding(Border.BackgroundProperty, new Binding("Background")
+            {
+                RelativeSource = new RelativeSource(RelativeSourceMode.TemplatedParent)
+            });
+            var cp = new FrameworkElementFactory(typeof(ContentPresenter));
+            cp.SetValue(ContentPresenter.HorizontalAlignmentProperty, HorizontalAlignment.Center);
+            cp.SetValue(ContentPresenter.VerticalAlignmentProperty, VerticalAlignment.Center);
+            border.AppendChild(cp);
+            template.VisualTree = border;
+            return template;
+        }
+
+        private void DayButton_Click(object sender, RoutedEventArgs e)
+        {
+            if (sender is Button btn && btn.Tag is DateTime dt)
+            {
+                _selectedDate = dt;
+                ActivationDateDisplay.Text = dt.ToString("MM/dd/yyyy");
+                ActivationDateDisplay.SetResourceReference(TextBlock.ForegroundProperty, "Brush.TextPrimary");
+                CalendarPopup.IsOpen = false;
+                ValidateActivationDate();
+                UpdateCreateButtonState();
             }
         }
 
@@ -222,7 +379,7 @@ namespace x_phy_wpf_ui.Controls
             ContactNumberErrorText.Visibility = Visibility.Collapsed;
         }
         private void ValidateOrderNumber() { var t = OrderNumberTextBox?.Text?.Trim() ?? ""; _isOrderNumberValid = t.Length >= 1; }
-        private void ValidateActivationDate() { _isActivationDateValid = ActivationDatePicker.SelectedDate.HasValue; ActivationDateErrorText.Visibility = _isActivationDateValid ? Visibility.Collapsed : Visibility.Visible; ActivationDateErrorText.Text = _isActivationDateValid ? "" : "Select a date."; }
+        private void ValidateActivationDate() { _isActivationDateValid = _selectedDate.HasValue; ActivationDateErrorText.Visibility = _isActivationDateValid ? Visibility.Collapsed : Visibility.Visible; ActivationDateErrorText.Text = _isActivationDateValid ? "" : "Select a date."; }
 
         private void UpdateStepVisibility()
         {
@@ -358,9 +515,9 @@ namespace x_phy_wpf_ui.Controls
             if (contactDigits.Length == 0 || Regex.IsMatch(contactNumber, @"[A-Za-z]"))
                 { ShowError("Contact number must contain only numbers."); return; }
             if (string.IsNullOrWhiteSpace(orderNumber)) { ShowError("Order Number is required."); return; }
-            if (!ActivationDatePicker.SelectedDate.HasValue) { ShowError("Activation Date is required."); return; }
+            if (!_selectedDate.HasValue) { ShowError("Activation Date is required."); return; }
 
-            var activationDate = ActivationDatePicker.SelectedDate.Value.ToString("yyyy-MM-dd") + "T00:00:00Z";
+            var activationDate = _selectedDate.Value.ToString("yyyy-MM-dd") + "T00:00:00Z";
 
             CreateButton.Content = "Please wait...";
             CreateButton.IsEnabled = false;

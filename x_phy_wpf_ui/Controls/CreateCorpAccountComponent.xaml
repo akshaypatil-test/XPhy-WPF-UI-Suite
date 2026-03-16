@@ -3,7 +3,6 @@
              xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
              xmlns:mc="http://schemas.openxmlformats.org/markup-compatibility/2006"
              xmlns:d="http://schemas.microsoft.com/expression/blend/2008"
-             xmlns:primitives="clr-namespace:System.Windows.Controls.Primitives;assembly=PresentationFramework"
              mc:Ignorable="d"
              d:DesignHeight="700" d:DesignWidth="1000">
     <UserControl.Resources>
@@ -374,33 +373,110 @@
                         <TextBlock x:Name="MaxDevicesErrorText" Text="" FontSize="10" Foreground="{DynamicResource Brush.Error}" Margin="2,0,0,10" Visibility="Collapsed" TextWrapping="Wrap"/>
 
                         <TextBlock Text="Activation Date" Style="{StaticResource FieldLabelStyle}"/>
-                        <Border x:Name="ActivationDateFieldBorder" Background="{DynamicResource Brush.InputBackground}" BorderBrush="{DynamicResource Brush.Border}" BorderThickness="1" CornerRadius="6" MinHeight="40" Margin="0,0,0,4">
-                            <DatePicker x:Name="ActivationDatePicker"
-                                        Background="Transparent"
-                                        Foreground="{DynamicResource Brush.TextPrimary}"
-                                        BorderThickness="0"
-                                        Padding="12,8"
-                                        FontSize="14"
-                                        SelectedDateChanged="ActivationDatePicker_SelectedDateChanged"
-                                        LostFocus="ActivationDatePicker_LostFocus"
-                                        VerticalAlignment="Center">
-                                <DatePicker.Resources>
-                                    <Style TargetType="{x:Type primitives:DatePickerTextBox}">
-                                        <Setter Property="Background" Value="Transparent"/>
-                                        <Setter Property="Foreground" Value="{DynamicResource Brush.TextPrimary}"/>
-                                        <Setter Property="CaretBrush" Value="{DynamicResource Brush.TextPrimary}"/>
-                                        <Setter Property="BorderThickness" Value="0"/>
-                                        <Setter Property="Padding" Value="12,8"/>
-                                    </Style>
-                                    <Style TargetType="{x:Type Calendar}">
-                                        <Setter Property="Background" Value="{DynamicResource Brush.Card}"/>
-                                        <Setter Property="Foreground" Value="{DynamicResource Brush.TextPrimary}"/>
-                                        <Setter Property="BorderBrush" Value="{DynamicResource Brush.Border}"/>
-                                        <Setter Property="BorderThickness" Value="1"/>
-                                    </Style>
-                                </DatePicker.Resources>
-                            </DatePicker>
+                        <!-- Custom date picker: input field -->
+                        <Border x:Name="ActivationDateFieldBorder"
+                                Background="{DynamicResource Brush.InputBackground}"
+                                BorderBrush="{DynamicResource Brush.Border}"
+                                BorderThickness="1" CornerRadius="6" MinHeight="40"
+                                Margin="0,0,0,4" Cursor="Hand"
+                                MouseLeftButtonDown="ActivationDateField_Click">
+                            <Grid Margin="12,0,8,0">
+                                <TextBlock x:Name="ActivationDateDisplay"
+                                           Text="Select a date"
+                                           Foreground="{DynamicResource Brush.TextSecondary}"
+                                           FontSize="14" VerticalAlignment="Center"/>
+                                <Viewbox Width="16" Height="16" HorizontalAlignment="Right"
+                                         VerticalAlignment="Center" Margin="0,0,4,0"
+                                         IsHitTestVisible="False">
+                                    <Canvas Width="18" Height="18">
+                                        <Rectangle Canvas.Left="1" Canvas.Top="3"
+                                                   Width="16" Height="14"
+                                                   Fill="Transparent" RadiusX="1.5" RadiusY="1.5"
+                                                   Stroke="{DynamicResource Brush.TextSecondary}"
+                                                   StrokeThickness="1.5"/>
+                                        <Line X1="1" Y1="7" X2="17" Y2="7"
+                                              Stroke="{DynamicResource Brush.TextSecondary}"
+                                              StrokeThickness="1.5"/>
+                                        <Line X1="5" Y1="1" X2="5" Y2="5"
+                                              Stroke="{DynamicResource Brush.TextSecondary}"
+                                              StrokeThickness="1.5"
+                                              StrokeStartLineCap="Round" StrokeEndLineCap="Round"/>
+                                        <Line X1="13" Y1="1" X2="13" Y2="5"
+                                              Stroke="{DynamicResource Brush.TextSecondary}"
+                                              StrokeThickness="1.5"
+                                              StrokeStartLineCap="Round" StrokeEndLineCap="Round"/>
+                                    </Canvas>
+                                </Viewbox>
+                            </Grid>
                         </Border>
+                        <!-- Custom calendar popup — solid background, fully theme-aware.
+                             StaysOpen="True" + Mouse.Capture avoids the WPF StaysOpen=False
+                             bug where the same MouseDown that opens the popup is detected as
+                             an outside click and immediately closes it. -->
+                        <Popup x:Name="CalendarPopup"
+                               PlacementTarget="{Binding ElementName=ActivationDateFieldBorder}"
+                               Placement="Bottom"
+                               AllowsTransparency="True"
+                               StaysOpen="True"
+                               Opened="CalendarPopup_Opened"
+                               Closed="CalendarPopup_Closed"
+                               Width="288">
+                            <Border x:Name="CalendarPopupBorder"
+                                    Mouse.PreviewMouseDownOutsideCapturedElement="CalendarPopup_OutsideClick"
+                                    Background="{DynamicResource Brush.Surface}"
+                                    BorderBrush="{DynamicResource Brush.Border}"
+                                    BorderThickness="1"
+                                    CornerRadius="8"
+                                    Padding="8">
+                                <StackPanel>
+                                    <!-- Month navigation header -->
+                                    <Grid Margin="0,2,0,8">
+                                        <Grid.ColumnDefinitions>
+                                            <ColumnDefinition Width="32"/>
+                                            <ColumnDefinition Width="*"/>
+                                            <ColumnDefinition Width="32"/>
+                                        </Grid.ColumnDefinitions>
+                                        <Button x:Name="PrevMonthButton" Grid.Column="0"
+                                                Style="{StaticResource Button.Icon}"
+                                                Cursor="Hand" Width="32" Height="32"
+                                                Click="PrevMonth_Click">
+                                            <Viewbox Width="9" Height="14" Stretch="Uniform">
+                                                <Path Data="M 8,1 L 1,8 L 8,15"
+                                                      Stroke="{DynamicResource Brush.TextPrimary}"
+                                                      StrokeThickness="2.2"
+                                                      StrokeStartLineCap="Round"
+                                                      StrokeEndLineCap="Round"
+                                                      StrokeLineJoin="Round"
+                                                      Fill="Transparent"/>
+                                            </Viewbox>
+                                        </Button>
+                                        <TextBlock x:Name="MonthYearLabel" Grid.Column="1"
+                                                   FontSize="13" FontWeight="SemiBold"
+                                                   Foreground="{DynamicResource Brush.TextPrimary}"
+                                                   HorizontalAlignment="Center"
+                                                   VerticalAlignment="Center"/>
+                                        <Button x:Name="NextMonthButton" Grid.Column="2"
+                                                Style="{StaticResource Button.Icon}"
+                                                Cursor="Hand" Width="32" Height="32"
+                                                Click="NextMonth_Click">
+                                            <Viewbox Width="9" Height="14" Stretch="Uniform">
+                                                <Path Data="M 1,1 L 8,8 L 1,15"
+                                                      Stroke="{DynamicResource Brush.TextPrimary}"
+                                                      StrokeThickness="2.2"
+                                                      StrokeStartLineCap="Round"
+                                                      StrokeEndLineCap="Round"
+                                                      StrokeLineJoin="Round"
+                                                      Fill="Transparent"/>
+                                            </Viewbox>
+                                        </Button>
+                                    </Grid>
+                                    <!-- Day-of-week labels (built in code-behind) -->
+                                    <Grid x:Name="DayOfWeekGrid" Margin="0,0,0,4"/>
+                                    <!-- Day number buttons (built in code-behind) -->
+                                    <Grid x:Name="CalendarDaysGrid"/>
+                                </StackPanel>
+                            </Border>
+                        </Popup>
                         <TextBlock x:Name="ActivationDateErrorText" Text="" FontSize="10" Foreground="{DynamicResource Brush.Error}" Margin="2,0,0,0" Visibility="Collapsed" TextWrapping="Wrap"/>
                 </StackPanel>
             </StackPanel>

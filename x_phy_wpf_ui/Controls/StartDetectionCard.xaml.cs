@@ -54,16 +54,26 @@ namespace x_phy_wpf_ui.Controls
 
         private void UpdateBackgroundImage()
         {
-            if (BackgroundImageBrush == null) return;
+            if (CardBorder == null) return;
 
             try
             {
                 var isLight = ThemeManager.CurrentTheme == Theme.Light;
-                var imagePath = isLight ? "pack://application:,,,/facebg-white.png" : "pack://application:,,,/facebg.png";
-                
-                BackgroundImageBrush.ImageSource = new BitmapImage(new Uri(imagePath));
-                
-                System.Diagnostics.Debug.WriteLine($"StartDetectionCard: Updated background to {(isLight ? "facebg-white.png" : "facebg.png")}");
+                if (isLight)
+                {
+                    // Light theme: no image, keep rounded card with solid surface color
+                    CardBorder.Background = new System.Windows.Media.SolidColorBrush(
+                        (System.Windows.Media.Color)System.Windows.Media.ColorConverter.ConvertFromString("#FFFFFF"));
+                }
+                else
+                {
+                    // Dark theme: use facebg image
+                    if (BackgroundImageBrush != null)
+                    {
+                        BackgroundImageBrush.ImageSource = new BitmapImage(new Uri("pack://application:,,,/facebg.png"));
+                        CardBorder.Background = BackgroundImageBrush;
+                    }
+                }
             }
             catch (Exception ex)
             {

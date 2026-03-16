@@ -69,7 +69,8 @@ namespace x_phy_wpf_ui
         /// <summary>Set content for Detection Completed: message and View Result action.</summary>
         /// <param name="navigateToResultsPage">If set, "View Result" navigates to the Results page; otherwise uses openResultsFolder.</param>
         /// <param name="isAudio">When true, prefix with "Audio" so notification matches result view.</param>
-        public void SetDetectionCompletedContent(string message, string resultPath, Action openResultsFolder, Action navigateToResultsPage = null, bool isAudio = false)
+        /// <param name="noManipulationConfidencePercent">When set, shows "Confidence X% (no AI manipulation)" from (1 - avg ProbFake) over the run so lower avg prob fake = higher confidence.</param>
+        public void SetDetectionCompletedContent(string message, string resultPath, Action openResultsFolder, Action navigateToResultsPage = null, bool isAudio = false, int? noManipulationConfidencePercent = null)
         {
             SimpleContentPanel.Visibility = Visibility.Collapsed;
             DeepfakeContentPanel.Visibility = Visibility.Collapsed;
@@ -78,6 +79,15 @@ namespace x_phy_wpf_ui
 
             CompletedTitleText.Text = isAudio ? "Audio Detection Complete" : "Detection Complete";
             CompletedMessageText.Text = message ?? (isAudio ? "Audio: NOT DETECTED" : "NOT DETECTED");
+            if (noManipulationConfidencePercent.HasValue)
+            {
+                CompletedNoThreatConfidenceText.Text = $"Confidence {noManipulationConfidencePercent.Value}% (No AI manipulation)";
+                CompletedNoThreatConfidenceText.Visibility = Visibility.Visible;
+            }
+            else
+            {
+                CompletedNoThreatConfidenceText.Visibility = Visibility.Collapsed;
+            }
             _resultPath = resultPath ?? "";
             _openResultsFolder = openResultsFolder;
             _navigateToResultsPage = navigateToResultsPage;
@@ -129,6 +139,9 @@ namespace x_phy_wpf_ui
 
             EvidenceImageLeft.Source = evidenceImageLeft;
             EvidenceImageRight.Source = evidenceImageRight ?? evidenceImageLeft;
+            // Hide evidence section when no image (e.g. first notification fired before any face frame was available)
+            if (DeepfakeEvidenceBorder != null)
+                DeepfakeEvidenceBorder.Visibility = (evidenceImageLeft != null) ? Visibility.Visible : Visibility.Collapsed;
         }
 
         public void ShowAtBottomRight(int autoCloseSeconds = 5)

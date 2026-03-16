@@ -60,11 +60,12 @@
                 <TextBlock x:Name="MessageText" Text="Monitoring for deepfakes." FontSize="13" Foreground="#333333" TextWrapping="Wrap"/>
             </StackPanel>
 
-            <!-- Detection Completed: title, message, Close + View Result buttons -->
+            <!-- Detection Completed: title, message, no-manipulation confidence, Close + View Result buttons -->
             <StackPanel x:Name="CompletedContentPanel" Grid.Row="1" Visibility="Collapsed">
                 <StackPanel Margin="20,20,20,16">
                     <TextBlock x:Name="CompletedTitleText" Text="Detection Complete" FontWeight="Bold" FontSize="16" Foreground="#1A1A1A" Margin="0,0,0,8"/>
-                    <TextBlock x:Name="CompletedMessageText" Text="No AI Manipulation Found" FontSize="14" Foreground="#333333" TextWrapping="Wrap" Margin="0,0,0,20"/>
+                    <TextBlock x:Name="CompletedMessageText" Text="No AI Manipulation Found" FontSize="14" Foreground="#333333" TextWrapping="Wrap" Margin="0,0,0,4"/>
+                    <TextBlock x:Name="CompletedNoThreatConfidenceText" Text="" FontSize="13" FontWeight="SemiBold" Foreground="#15803d" Margin="0,0,0,20" Visibility="Collapsed"/>
                     <Grid>
                         <Grid.ColumnDefinitions>
                             <ColumnDefinition Width="*"/>
@@ -210,8 +211,8 @@
                            FontSize="12" Foreground="#333333"/>
                 </StackPanel>
 
-                <!-- Visual evidence: two images side by side (capped height to save space) -->
-                <Border Margin="14,0,14,8" Background="#1A1A1A" CornerRadius="6" Padding="3" BorderBrush="#333" BorderThickness="1" MaxHeight="100">
+                <!-- Visual evidence: two images side by side (capped height to save space). Hidden when no image yet (e.g. first notification before face frame available). -->
+                <Border x:Name="DeepfakeEvidenceBorder" Margin="14,0,14,8" Background="#1A1A1A" CornerRadius="6" Padding="3" BorderBrush="#333" BorderThickness="1" MaxHeight="100">
                     <Grid>
                         <Grid.ColumnDefinitions>
                             <ColumnDefinition Width="*"/>

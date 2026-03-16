@@ -1593,6 +1593,11 @@ videoLiveFakeProportionThreshold = 0.7
                                                     OpenResultsAndShowSessionDetailAfterStop(!string.IsNullOrEmpty(_pathForResultsAfterStop) ? _pathForResultsAfterStop : (resultPath ?? ""));
                                             }
                                         }
+                                        else
+                                        {
+                                            _currentRunArtifactPath = DetectionResultsLoader.ResolveFullArtifactPath(resultPath ?? "", true) ?? resultPath ?? "";
+                                            DetectionResultsComponent?.NotifyFakeFromNative();
+                                        }
                                     }
                                     catch (Exception ex)
                                     {
@@ -1638,6 +1643,11 @@ videoLiveFakeProportionThreshold = 0.7
                                                 if (openResultsFolderAfterStop)
                                                     OpenResultsAndShowSessionDetailAfterStop(!string.IsNullOrEmpty(_pathForResultsAfterStop) ? _pathForResultsAfterStop : (resultPath ?? ""));
                                             }
+                                        }
+                                        else
+                                        {
+                                            _currentRunArtifactPath = DetectionResultsLoader.ResolveFullArtifactPath(resultPath ?? "", true) ?? resultPath ?? "";
+                                            DetectionResultsComponent?.NotifyFakeFromNative();
                                         }
                                     }
                                     catch (Exception ex)
@@ -1688,6 +1698,11 @@ videoLiveFakeProportionThreshold = 0.7
                                                 OpenResultsAndShowSessionDetailAfterStop(!string.IsNullOrEmpty(_pathForResultsAfterStop) ? _pathForResultsAfterStop : (resultPath ?? ""));
                                         }
                                     }
+                                    else
+                                    {
+                                        _currentRunArtifactPath = DetectionResultsLoader.ResolveFullArtifactPath(resultPath ?? "", false) ?? resultPath ?? "";
+                                        DetectionResultsComponent?.NotifyFakeFromNative();
+                                    }
                                 }
                                 catch (Exception ex)
                                 {
@@ -1732,6 +1747,11 @@ videoLiveFakeProportionThreshold = 0.7
                                             if (openResultsFolderAfterStop)
                                                 OpenResultsAndShowSessionDetailAfterStop(!string.IsNullOrEmpty(_pathForResultsAfterStop) ? _pathForResultsAfterStop : (resultPath ?? ""));
                                         }
+                                    }
+                                    else
+                                    {
+                                        _currentRunArtifactPath = DetectionResultsLoader.ResolveFullArtifactPath(resultPath ?? "", false) ?? resultPath ?? "";
+                                        DetectionResultsComponent?.NotifyFakeFromNative();
                                     }
                                 }
                                 catch (Exception ex)
@@ -1845,7 +1865,7 @@ videoLiveFakeProportionThreshold = 0.7
 
         private void DetectionResultsComponent_DeepfakeDetected(object sender, EventArgs e)
         {
-            // Keep floater in sync when deepfake is detected (e.g. audio classification 1); notification uses same state
+            _deepfakeDetectedDuringRun = true; // So final View Results and floater show threat state (triggered by native ResultNotification only now)
             if (FloatingWidgetEnabled && _floatingWidget != null && _floatingWidget.IsVisible)
                 _floatingWidget.SetDetectionState(true, true);
             ShowDeepfakeNotification();
@@ -2915,7 +2935,7 @@ videoLiveFakeProportionThreshold = 0.7
         private void UpdateOverallClassification(bool isDeepfake)
         {
             overallClassification = isDeepfake;
-            if (isDeepfake) _deepfakeDetectedDuringRun = true;
+            // Do NOT set _deepfakeDetectedDuringRun here — only set when we actually show the "Fake Detected" popup (NotifyFakeFromNative / ResultNotification isLast=false)
             DetectionResultsComponent?.UpdateOverallClassification(isDeepfake);
             // Update floating widget immediately so arc turns red when deepfake is detected (don't wait for status timer)
             if (FloatingWidgetEnabled && _floatingWidget != null && _floatingWidget.IsVisible)
@@ -2929,7 +2949,7 @@ videoLiveFakeProportionThreshold = 0.7
             switch (classification)
             {
                 case 0: overallClassification = false; break;
-                case 1: overallClassification = true; _deepfakeDetectedDuringRun = true; break;
+                case 1: overallClassification = true; break; // Do NOT set _deepfakeDetectedDuringRun — only when we show the popup (ResultNotification isLast=false)
                 default: overallClassification = null; break;
             }
             DetectionResultsComponent?.UpdateAudioClassification(classification);
@@ -2959,9 +2979,9 @@ videoLiveFakeProportionThreshold = 0.7
             DetectionResultsComponent?.ShowFinalResult(displayPath ?? resultPath, isAudioDetection && _deepfakeDetectedDuringRun);
 
             int faceCount = DetectionResultsComponent?.DetectedFacesCount ?? 0;
-            // If AI manipulation was detected at any time during the 60s, show it in the final notification (e.g. user switched to natural content later)
-            bool hadDeepfake = _deepfakeDetectedDuringRun || (DetectionResultsComponent?.RunMaxConfidencePercent ?? 0) > 0;
-            // Final Detection Complete: show max fake confidence from all 15s notifications (same value shown in one of them).
+            // Final "Fake Detected" only if we actually showed at least one "Fake Detected" notification during the run (native sent ResultNotification isLast=false).
+            bool hadDeepfake = _deepfakeDetectedDuringRun;
+            // When hadDeepfake: show max confidence from those notifications; otherwise show "No Fake Detected" with (1 - avg ProbFake)*100.
             if (hadDeepfake)
             {
                 _pendingResultPath = displayPath ?? resultPath ?? "Local";
@@ -2982,7 +3002,12 @@ videoLiveFakeProportionThreshold = 0.7
             }
             else
             {
-                ShowDetectionCompletedNotification(isAudioDetection ? "Audio: NOT DETECTED" : "NOT DETECTED", displayPath ?? "", isAudioDetection);
+                int noManipulationConfidence = DetectionResultsComponent?.GetNoManipulationConfidencePercent() ?? 100;
+                ShowDetectionCompletedNotification(
+                    isAudioDetection ? "Audio: No Fake Detected" : "No Fake Detected",
+                    displayPath ?? "",
+                    isAudioDetection,
+                    noManipulationConfidencePercent: noManipulationConfidence);
             }
 
             if (isStoppingDetection)
@@ -3039,16 +3064,16 @@ videoLiveFakeProportionThreshold = 0.7
             resultsDir = resultsDir ?? DetectionResultsLoader.GetDefaultResultsDir();
             string artifactPath = !string.IsNullOrEmpty(_currentRunArtifactPath) ? _currentRunArtifactPath : (DetectionResultsLoader.ResolveFullArtifactPath(resultPath ?? resultsDir ?? "", isAudioDetection) ?? resultPath ?? resultsDir ?? "");
             if (string.IsNullOrEmpty(artifactPath)) artifactPath = resultPath ?? resultsDir ?? "";
-            bool hadDeepfakeForResult = _deepfakeDetectedDuringRun || (DetectionResultsComponent?.RunMaxConfidencePercent ?? 0) > 0;
-            int rawConfidence = hadDeepfakeForResult
-                ? (DetectionResultsComponent?.RunMaxConfidencePercent ?? DetectionResultsComponent?.LastConfidencePercent ?? 0)
-                : (DetectionResultsComponent?.LastConfidencePercent ?? 0);
+            bool hadDeepfakeForResult = _deepfakeDetectedDuringRun;
+            int confidenceForItem = hadDeepfakeForResult
+                ? GetDisplayConfidence(DetectionResultsComponent?.RunMaxConfidencePercent ?? DetectionResultsComponent?.LastConfidencePercent ?? 0, true, isAudioDetection)
+                : (DetectionResultsComponent?.GetNoManipulationConfidencePercent() ?? 100);
             var item = new DetectionResultItem
             {
                 Timestamp = DateTime.Now,
                 Type = isAudioDetection ? "Audio" : "Video",
                 IsAiManipulationDetected = hadDeepfakeForResult,
-                ConfidencePercent = GetDisplayConfidence(rawConfidence, hadDeepfakeForResult, isAudioDetection),
+                ConfidencePercent = confidenceForItem,
                 ResultPathOrId = artifactPath,
                 MediaSourceDisplay = _currentMediaSourceDisplayName ?? "Local",
                 SerialNumber = 0,
@@ -3081,10 +3106,16 @@ videoLiveFakeProportionThreshold = 0.7
         {
             try
             {
-                int rawConfidence = aiManipulationDetected
-                    ? (DetectionResultsComponent?.RunMaxConfidencePercent ?? DetectionResultsComponent?.LastConfidencePercent ?? 0)
-                    : (DetectionResultsComponent?.LastConfidencePercent ?? 0);
-                int confidence = GetDisplayConfidence(rawConfidence, aiManipulationDetected, isAudioDetection);
+                int confidence;
+                if (aiManipulationDetected)
+                {
+                    int rawConfidence = DetectionResultsComponent?.RunMaxConfidencePercent ?? DetectionResultsComponent?.LastConfidencePercent ?? 0;
+                    confidence = GetDisplayConfidence(rawConfidence, true, isAudioDetection);
+                }
+                else
+                {
+                    confidence = DetectionResultsComponent?.GetNoManipulationConfidencePercent() ?? 100;
+                }
                 double durationSec = DetectionResultsComponent?.GetDetectionDurationSeconds() ?? 60;
                 string machineFingerprint = null;
                 try { machineFingerprint = new DeviceFingerprintService().GetDeviceFingerprint(); } catch { }
@@ -3648,7 +3679,7 @@ videoLiveFakeProportionThreshold = 0.7
             }));
         }
 
-        private void ShowDetectionCompletedNotification(string message, string resultPath, bool isAudio = false)
+        private void ShowDetectionCompletedNotification(string message, string resultPath, bool isAudio = false, int? noManipulationConfidencePercent = null)
         {
             Dispatcher.BeginInvoke(new Action(() =>
             {
@@ -3667,7 +3698,8 @@ videoLiveFakeProportionThreshold = 0.7
                         }
                     },
                     navigateToResultsPage: () => NavigateToResultsAndShowSessionDetail(resultPath),
-                    isAudio: isAudio);
+                    isAudio: isAudio,
+                    noManipulationConfidencePercent: noManipulationConfidencePercent);
                 popup.ShowAtBottomRight(autoCloseSeconds: 0);
                 _floatingWidget?.BringAboveNotifications();
             }));

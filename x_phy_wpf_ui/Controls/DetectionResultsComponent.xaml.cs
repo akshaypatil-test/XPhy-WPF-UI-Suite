@@ -385,8 +385,18 @@ namespace x_phy_wpf_ui.Controls
         /// <summary>Called when native sends ResultNotification(isLast=false). Shows richer popup with confidence from ProbFake (RunMax) and saves evidence. MainWindow sets _currentRunArtifactPath before calling.</summary>
         public void NotifyFakeFromNative()
         {
+            // For first quick notification we may not have crossed a 15s window yet, so RunMax* is still unset. Flush current window into RunMax so we have image and confidence to show.
+            if (_windowHadFake && _windowMaxScore >= 0)
+            {
+                int windowConfidence = (int)Math.Round(Math.Min(100, Math.Max(0, _windowMaxScore * 100)));
+                if (windowConfidence > RunMaxConfidencePercent)
+                {
+                    RunMaxConfidencePercent = windowConfidence;
+                    RunMaxEvidenceImage = _windowEvidenceImage;
+                }
+            }
             LastConfidencePercent = RunMaxConfidencePercent;
-            LatestEvidenceImage = RunMaxEvidenceImage;
+            LatestEvidenceImage = RunMaxEvidenceImage ?? _windowEvidenceImage; // use current-window image when run-max not set yet (first quick notification)
             DeepfakeDetected?.Invoke(this, EventArgs.Empty);
         }
 

@@ -324,6 +324,7 @@ namespace x_phy_wpf_ui.Controls
             if (PasswordRevealTextBox.Visibility == Visibility.Visible) { PasswordBox.Password = PasswordRevealTextBox.Text; PasswordRevealTextBox.Visibility = Visibility.Collapsed; PasswordBox.Visibility = Visibility.Visible; }
             else { PasswordRevealTextBox.Text = PasswordBox.Password; PasswordRevealTextBox.Visibility = Visibility.Visible; PasswordBox.Visibility = Visibility.Collapsed; }
             UpdatePlaceholders();
+            UpdateEyeIcon(PasswordEyeButton, PasswordRevealTextBox.Visibility == Visibility.Visible);
         }
 
         private void ConfirmPasswordEyeButton_Click(object sender, RoutedEventArgs e)
@@ -331,6 +332,19 @@ namespace x_phy_wpf_ui.Controls
             if (ConfirmPasswordRevealTextBox.Visibility == Visibility.Visible) { ConfirmPasswordBox.Password = ConfirmPasswordRevealTextBox.Text; ConfirmPasswordRevealTextBox.Visibility = Visibility.Collapsed; ConfirmPasswordBox.Visibility = Visibility.Visible; }
             else { ConfirmPasswordRevealTextBox.Text = ConfirmPasswordBox.Password; ConfirmPasswordRevealTextBox.Visibility = Visibility.Visible; ConfirmPasswordBox.Visibility = Visibility.Collapsed; }
             UpdatePlaceholders();
+            UpdateEyeIcon(ConfirmPasswordEyeButton, ConfirmPasswordRevealTextBox.Visibility == Visibility.Visible);
+        }
+
+        private static void UpdateEyeIcon(System.Windows.Controls.Button eyeButton, bool isRevealed)
+        {
+            if (eyeButton?.Template == null) return;
+            var iconShow = eyeButton.Template.FindName("IconShow", eyeButton) as System.Windows.UIElement;
+            var iconHide = eyeButton.Template.FindName("IconHide", eyeButton) as System.Windows.UIElement;
+            if (iconShow != null && iconHide != null)
+            {
+                iconShow.Visibility = isRevealed ? Visibility.Collapsed : Visibility.Visible;
+                iconHide.Visibility = isRevealed ? Visibility.Visible : Visibility.Collapsed;
+            }
         }
 
         private void PasswordInfoButton_Click(object sender, RoutedEventArgs e)

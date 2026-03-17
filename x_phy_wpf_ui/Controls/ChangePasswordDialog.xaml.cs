@@ -252,6 +252,7 @@ namespace x_phy_wpf_ui.Controls
                 CurrentPasswordBox.Visibility = Visibility.Collapsed;
             }
             UpdatePlaceholders();
+            UpdateEyeIcon(CurrentEyeButton, CurrentReveal.Visibility == Visibility.Visible);
         }
 
         private void NewPasswordBox_PasswordChanged(object sender, RoutedEventArgs e)
@@ -288,6 +289,7 @@ namespace x_phy_wpf_ui.Controls
                 NewPasswordBox.Visibility = Visibility.Collapsed;
             }
             UpdatePlaceholders();
+            UpdateEyeIcon(NewEyeButton, NewReveal.Visibility == Visibility.Visible);
         }
 
         private void ConfirmPasswordBox_PasswordChanged(object sender, RoutedEventArgs e)
@@ -322,6 +324,19 @@ namespace x_phy_wpf_ui.Controls
                 ConfirmPasswordBox.Visibility = Visibility.Collapsed;
             }
             UpdatePlaceholders();
+            UpdateEyeIcon(ConfirmEyeButton, ConfirmReveal.Visibility == Visibility.Visible);
+        }
+
+        private static void UpdateEyeIcon(System.Windows.Controls.Button eyeButton, bool isRevealed)
+        {
+            if (eyeButton?.Template == null) return;
+            var iconShow = eyeButton.Template.FindName("IconShow", eyeButton) as System.Windows.UIElement;
+            var iconHide = eyeButton.Template.FindName("IconHide", eyeButton) as System.Windows.UIElement;
+            if (iconShow != null && iconHide != null)
+            {
+                iconShow.Visibility = isRevealed ? Visibility.Collapsed : Visibility.Visible;
+                iconHide.Visibility = isRevealed ? Visibility.Visible : Visibility.Collapsed;
+            }
         }
 
         private void Back_Click(object sender, RoutedEventArgs e) => BackRequested?.Invoke(this, EventArgs.Empty);

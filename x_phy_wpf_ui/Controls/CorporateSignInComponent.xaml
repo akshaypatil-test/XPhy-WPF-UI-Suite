@@ -243,8 +243,15 @@
                                     <Border Background="{TemplateBinding Background}" Padding="6">
                                         <Viewbox Width="20" Height="20">
                                             <Grid Width="24" Height="24">
-                                                <Path Stroke="{DynamicResource Brush.TextSecondary}" StrokeThickness="1.25" Fill="Transparent" Data="M 12,5.5 C 7,5.5 2.5,9 1,12 2.5,15 7,18.5 12,18.5 17,18.5 21.5,15 23,12 21.5,9 17,5.5 12,5.5 Z"/>
-                                                <Ellipse Width="8" Height="8" Stroke="{DynamicResource Brush.TextSecondary}" StrokeThickness="1.25" Fill="Transparent" HorizontalAlignment="Center" VerticalAlignment="Center"/>
+                                                <Grid x:Name="IconShow" Visibility="Visible">
+                                                    <Path Stroke="{DynamicResource Brush.TextSecondary}" StrokeThickness="1.25" Fill="Transparent" Data="M 12,5.5 C 7,5.5 2.5,9 1,12 2.5,15 7,18.5 12,18.5 17,18.5 21.5,15 23,12 21.5,9 17,5.5 12,5.5 Z"/>
+                                                    <Ellipse Width="8" Height="8" Stroke="{DynamicResource Brush.TextSecondary}" StrokeThickness="1.25" Fill="Transparent" HorizontalAlignment="Center" VerticalAlignment="Center"/>
+                                                </Grid>
+                                                <Grid x:Name="IconHide" Visibility="Collapsed">
+                                                    <Path Stroke="{DynamicResource Brush.TextSecondary}" StrokeThickness="1.25" Fill="Transparent" Data="M 12,5.5 C 7,5.5 2.5,9 1,12 2.5,15 7,18.5 12,18.5 17,18.5 21.5,15 23,12 21.5,9 17,5.5 12,5.5 Z"/>
+                                                    <Ellipse Width="8" Height="8" Stroke="{DynamicResource Brush.TextSecondary}" StrokeThickness="1.25" Fill="Transparent" HorizontalAlignment="Center" VerticalAlignment="Center"/>
+                                                    <Path Stroke="{DynamicResource Brush.TextSecondary}" StrokeThickness="1.5" Fill="Transparent" Data="M 6 18 L 18 6"/>
+                                                </Grid>
                                             </Grid>
                                         </Viewbox>
                                     </Border>

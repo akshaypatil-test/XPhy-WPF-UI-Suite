@@ -2808,8 +2808,8 @@ videoLiveFakeProportionThreshold = 0.7
             }
             finally
             {
-                // If we never got isLast (e.g. audio/early stop), push result now so DB is never missing a run
-                if (!_resultPushSucceeded && !_resultPushedForStopAndViewResults && !string.IsNullOrEmpty(_currentRunArtifactPath))
+                // Only save result when user chose "Stop & View Results"; do not save when user cancelled detection
+                if (openResultsFolderAfterStop && !_resultPushSucceeded && !_resultPushedForStopAndViewResults && !string.IsNullOrEmpty(_currentRunArtifactPath))
                 {
                     _resultPushedOnStop = true;
                     PushDetectionResultToBackend(_currentRunArtifactPath, _deepfakeDetectedDuringRun);

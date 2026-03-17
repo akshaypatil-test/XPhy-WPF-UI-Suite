@@ -14,7 +14,8 @@
         <ScrollViewer VerticalScrollBarVisibility="Hidden" HorizontalScrollBarVisibility="Disabled">
             <StackPanel VerticalAlignment="Center" 
                         HorizontalAlignment="Left"
-                        Width="400"
+                        Width="380"
+                        MinWidth="360"
                         Margin="50,40,50,50">
                 
                 <!-- Title -->

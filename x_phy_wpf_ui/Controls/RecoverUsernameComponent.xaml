@@ -108,7 +108,7 @@
     </UserControl.Resources>
     <Grid Background="Transparent">
         <ScrollViewer VerticalScrollBarVisibility="Auto">
-            <StackPanel VerticalAlignment="Center" HorizontalAlignment="Left" Width="400" Margin="50,40,50,50">
+            <StackPanel VerticalAlignment="Center" HorizontalAlignment="Left" Width="380" MinWidth="360" Margin="50,40,50,50">
                 <TextBlock FontSize="24" FontWeight="Bold" Foreground="{DynamicResource Brush.TextPrimary}"
                            TextAlignment="Center" Margin="0,0,0,8"><Run Language="en-in" Text="Forgot Username"/></TextBlock>
                 <TextBlock Text="Enter your email to receive your username" FontSize="14" Foreground="{DynamicResource Brush.TextSecondary}"

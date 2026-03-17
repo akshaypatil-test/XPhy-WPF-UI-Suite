@@ -111,7 +111,7 @@
             <Setter Property="Foreground" Value="{DynamicResource Brush.TextPrimary}"/>
             <Setter Property="FontSize" Value="12"/>
             <Setter Property="FontWeight" Value="Medium"/>
-            <Setter Property="Padding" Value="12,10"/>
+            <Setter Property="Padding" Value="12,6"/>
             <Setter Property="BorderThickness" Value="1"/>
             <Setter Property="BorderBrush" Value="{DynamicResource Brush.Border}"/>
             <Setter Property="Cursor" Value="Hand"/>
@@ -141,7 +141,7 @@
             <Setter Property="Foreground" Value="{DynamicResource Brush.White}"/>
             <Setter Property="FontSize" Value="12"/>
             <Setter Property="FontWeight" Value="Medium"/>
-            <Setter Property="Padding" Value="12,10"/>
+            <Setter Property="Padding" Value="12,6"/>
             <Setter Property="BorderThickness" Value="2"/>
             <Setter Property="BorderBrush" Value="{StaticResource NavBarBorderGradient}"/>
             <Setter Property="Cursor" Value="Hand"/>
@@ -170,7 +170,7 @@
             <Setter Property="Foreground" Value="{DynamicResource Brush.White}"/>
             <Setter Property="FontSize" Value="12"/>
             <Setter Property="FontWeight" Value="Medium"/>
-            <Setter Property="Padding" Value="12,10"/>
+            <Setter Property="Padding" Value="12,6"/>
             <Setter Property="BorderThickness" Value="2"/>
             <Setter Property="BorderBrush" Value="{StaticResource NavBarBorderGradient}"/>
             <Setter Property="Cursor" Value="Hand"/>
@@ -193,7 +193,7 @@
     <!-- Single card with grey background (like bottom bar) -->
     <Border Background="{DynamicResource Brush.Surface}" 
             CornerRadius="12" 
-            Padding="14">
+            Padding="10">
         <Grid>
             <Grid.RowDefinitions>
                 <RowDefinition Height="Auto"/>
@@ -202,7 +202,7 @@
             </Grid.RowDefinitions>
             
             <!-- Header: only "Select Detection Source" + Close (title hidden when no processes) -->
-            <Grid Grid.Row="0" Margin="0,0,0,6">
+            <Grid Grid.Row="0" Margin="0,0,0,4">
                 <TextBlock x:Name="SelectDetectionSourceTitle" Text="Select Detection Source" 
                            FontSize="14" 
                            FontWeight="SemiBold" 
@@ -224,15 +224,15 @@
                           Padding="0,0,4,0">
                 <StackPanel>
                     <!-- Source buttons (Zoom, VLC, Youtube) - no extra heading -->
-                    <StackPanel x:Name="ProcessesPanel" Margin="0,0,0,6"/>
+                    <StackPanel x:Name="ProcessesPanel" Margin="0,0,0,4"/>
                     
                     <!-- Only second heading: Select Input Type (hidden when no processes) -->
                     <TextBlock x:Name="SelectInputTypeHeading" Text="Select Input Type" 
                                FontSize="13" 
                                FontWeight="SemiBold" 
                                Foreground="{DynamicResource Brush.TextPrimary}"
-                               Margin="0,0,0,4"/>
-                    <Grid x:Name="SourceOptionsGrid" Margin="0,0,0,4">
+                               Margin="0,0,0,2"/>
+                    <Grid x:Name="SourceOptionsGrid" Margin="0,0,0,2">
                         <Grid.ColumnDefinitions>
                             <ColumnDefinition Width="*"/>
                             <ColumnDefinition Width="8"/>
@@ -253,20 +253,20 @@
             <StackPanel Grid.Row="2" 
                         Orientation="Horizontal" 
                         HorizontalAlignment="Center" 
-                        Margin="0,8,0,0">
+                        Margin="0,6,0,0">
                 <Button Content="Start Detection" 
                         Style="{StaticResource PrimaryButtonStyle}"
                         Click="StartDetection_Click"
                         x:Name="StartDetectionButton"
                         MinWidth="180"
-                        Padding="24,12"
+                        Padding="24,8"
                         Margin="0,0,12,0"
                         IsEnabled="False"/>
                 <Button Content="Cancel" 
                         Style="{StaticResource SecondaryButtonStyle}"
                         Click="CancelButton_Click"
                         MinWidth="180"
-                        Padding="24,12"/>
+                        Padding="24,8"/>
             </StackPanel>
         </Grid>
     </Border>

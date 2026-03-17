@@ -724,9 +724,9 @@ namespace x_phy_wpf_ui
             UpdateLogo();
             ThemeManager.ThemeChanged += (_, __) => Dispatcher.BeginInvoke(new Action(UpdateLogo));
             
-            // Set exact window size (1000x783)
-            this.Width = 1000;
-            this.Height = 783;
+            // Set exact window size
+            this.Width = 920;
+            this.Height = 750;
             
             // Ensure window fits within screen bounds
             var screenWidth = SystemParameters.PrimaryScreenWidth;

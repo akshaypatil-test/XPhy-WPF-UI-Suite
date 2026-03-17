@@ -3,14 +3,14 @@
         xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
         xmlns:shell="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
         xmlns:controls="clr-namespace:x_phy_wpf_ui.Controls"
-        Title="X-PHY Deepfake Detector" Height="783" Width="1000"
+        Title="X-PHY Deepfake Detector" Height="540" Width="780"
         WindowStartupLocation="CenterScreen"
         Background="Transparent"
         WindowStyle="None"
         AllowsTransparency="True"
         ResizeMode="CanResize"
-        MinHeight="700"
-        MinWidth="1000"
+        MinHeight="520"
+        MinWidth="760"
         SizeToContent="Manual">
     <WindowChrome.WindowChrome>
     <shell:WindowChrome
@@ -150,7 +150,7 @@
         </Grid>
         
         <!-- Main Content Area (no scroll - content fits or clips) -->
-        <Grid Grid.Row="3" Margin="30,16,30,15">
+        <Grid Grid.Row="3" Margin="30,4,30,15">
             <!-- Detection Content (default) -->
             <Grid x:Name="DetectionContentGrid" Visibility="Visible">
                 <Grid.RowDefinitions>
@@ -161,7 +161,7 @@
                 <!-- Start Deepfake Detection Card -->
                 <controls:StartDetectionCard Grid.Row="0"
                                                  x:Name="StartDetectionCard"
-                                                 Margin="0,-20,0,20"
+                                                 Margin="0,-24,0,20"
                                                  StartDetectionClicked="StartDetectionCard_StartDetectionClicked"/>
                 
                 <!-- Main content row: either selection or results (same * row so results get full height) -->
@@ -177,6 +177,8 @@
                         <controls:DeepfakeDetectionVisualization Grid.Column="0" x:Name="DetectionVisualization"/>
                         <controls:DetectionSelection Grid.Column="2"
                                                      x:Name="DetectionSelectionComponent"
+                                                     VerticalAlignment="Stretch"
+                                                     MaxHeight="380"
                                                      StartDetectionRequested="DetectionSelection_StartDetectionRequested"
                                                      CancelRequested="DetectionSelection_CancelRequested"/>
                     </Grid>

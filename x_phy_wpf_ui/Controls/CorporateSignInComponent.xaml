@@ -157,7 +157,7 @@
 
     <Grid Background="Transparent">
         <ScrollViewer VerticalScrollBarVisibility="Auto">
-            <StackPanel VerticalAlignment="Center" HorizontalAlignment="Left" Width="400" Margin="50,40,50,50">
+            <StackPanel VerticalAlignment="Center" HorizontalAlignment="Left" Width="380" MinWidth="360" Margin="50,40,50,50">
 
                 <TextBlock Text="Corporate Sign In"
                            FontSize="24" FontWeight="Bold"

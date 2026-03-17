@@ -140,7 +140,7 @@
         </Grid>
         
         <!-- Statistics Cards -->
-        <Grid x:Name="StatisticsCardsGrid" Grid.Row="2" Margin="30,0,30,0" Height="58">
+        <Grid x:Name="StatisticsCardsGrid" Grid.Row="2" Margin="30,0,30,0" Height="72">
             <controls:StatisticsCards x:Name="StatisticsCardsControl"
                                      TotalDetections="0"
                                      TotalDeepfakes="0"

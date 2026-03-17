@@ -124,7 +124,7 @@
                         BorderThickness="1"
                         CornerRadius="8"
                         MinHeight="44"
-                        Margin="0,0,0,16">
+                        Margin="0,0,0,10">
                     <Grid>
                         <TextBox x:Name="EmailTextBox" Style="{StaticResource ModernTextBoxInnerStyleFullWidth}"
                                  GotFocus="EmailTextBox_GotFocus"
@@ -140,7 +140,7 @@
                     </Grid>
                 </Border>
                 <TextBlock x:Name="EmailErrorText" Text="" FontSize="11" Foreground="{DynamicResource Brush.Error}"
-                           Margin="4,0,0,0" Visibility="Collapsed" TextWrapping="Wrap"/>
+                           Margin="4,0,0,16" Visibility="Collapsed" TextWrapping="Wrap"/>
 
                 <Grid Margin="0,0,0,16">
                     <Grid.ColumnDefinitions>

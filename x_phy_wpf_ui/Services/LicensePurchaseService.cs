@@ -69,7 +69,10 @@ namespace x_phy_wpf_ui.Services
                     return confirmResponse;
                 }
                 var errorResponse = JsonConvert.DeserializeObject<ApiErrorResponse>(responseJson);
-                throw new Exception(errorResponse?.Message ?? $"Purchase confirmation failed: {response.StatusCode}");
+                var serverMessage = !string.IsNullOrWhiteSpace(errorResponse?.Message)
+                    ? errorResponse.Message
+                    : $"Purchase confirmation failed: {response.StatusCode}";
+                throw new Exception(serverMessage);
             }
             catch (SessionExpiredException)
             {
@@ -85,7 +88,8 @@ namespace x_phy_wpf_ui.Services
             }
             catch (Exception ex) when (ex is not SessionExpiredException)
             {
-                throw new Exception($"Purchase confirmation error: {ex.Message}");
+                // Preserve server message (e.g. LMS machine limit) so it is shown in the payment UI
+                throw;
             }
         }
 

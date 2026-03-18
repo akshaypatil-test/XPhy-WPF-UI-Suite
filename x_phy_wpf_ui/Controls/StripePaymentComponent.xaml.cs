@@ -181,6 +181,10 @@ namespace x_phy_wpf_ui.Controls
                         case "payment_error":
                             ShowError($"Payment failed: {data.Message}");
                             break;
+
+                        case "back_requested":
+                            BackRequested?.Invoke(this, EventArgs.Empty);
+                            break;
                             
                         default:
                             System.Diagnostics.Debug.WriteLine($"Unknown message type: {data.Type}");
@@ -228,13 +232,56 @@ namespace x_phy_wpf_ui.Controls
                 }
                 else
                 {
-                    ShowError("Failed to confirm purchase. Please contact support.");
+                    ShowConfirmError("Failed to confirm purchase.");
+                    _ = ResetPaymentFormToBackAsync();
                 }
             }
             catch (Exception ex)
             {
-                ShowError($"Error confirming purchase: {ex.Message}");
+                ShowConfirmError(ex.Message);
+                _ = ResetPaymentFormToBackAsync();
             }
+        }
+
+        /// <summary>Shows user-friendly error when confirm fails (any amount charged will be refunded).</summary>
+        private void ShowConfirmError(string serverMessage)
+        {
+            ErrorMessageText.Text = "Purchase could not be completed if any amount deducted it will be refunded back to source.\n\nPlease contact X-PHY support.";
+            ErrorMessageText.Visibility = Visibility.Visible;
+            StatusText.Foreground = (SolidColorBrush)FindResource("Brush.Error");
+            StatusText.Text = "Purchase could not be completed.";
+            if (!string.IsNullOrWhiteSpace(serverMessage))
+                System.Diagnostics.Debug.WriteLine($"StripePaymentComponent confirm error (server): {serverMessage}");
+        }
+
+        /// <summary>Resets the WebView payment form button to "Back" when confirm fails; clicking Back fires BackRequested.</summary>
+        private async System.Threading.Tasks.Task ResetPaymentFormToBackAsync()
+        {
+            try
+            {
+                if (StripeWebView?.CoreWebView2 == null) return;
+                const string script = @"
+(function() {
+    var b = document.getElementById('submit-button');
+    var t = document.getElementById('button-text');
+    var s = document.getElementById('button-spinner');
+    if (b) {
+        b.type = 'button';
+        b.disabled = false;
+        b.onclick = function() {
+            try {
+                if (window.chrome && window.chrome.webview)
+                    window.chrome.webview.postMessage(JSON.stringify({ type: 'back_requested' }));
+            } catch (e) {}
+        };
+    }
+    if (t) t.textContent = 'Back';
+    if (s) s.style.display = 'none';
+})();
+";
+                await StripeWebView.CoreWebView2.ExecuteScriptAsync(script);
+            }
+            catch { /* ignore script errors */ }
         }
 
         private string GenerateStripeHtml(string clientSecret, decimal amount)
@@ -567,9 +614,10 @@ namespace x_phy_wpf_ui.Controls
 </html>";
         }
 
+        /// <summary>Shows error for Stripe/card failures (user can try again). For confirm/LMS failures use ShowConfirmError and Back button.</summary>
         private void ShowError(string message)
         {
-            ErrorMessageText.Text = message;
+            ErrorMessageText.Text = message ?? "An error occurred.";
             ErrorMessageText.Visibility = Visibility.Visible;
             StatusText.Foreground = (SolidColorBrush)FindResource("Brush.Error");
             StatusText.Text = "Payment failed. Please try again.";

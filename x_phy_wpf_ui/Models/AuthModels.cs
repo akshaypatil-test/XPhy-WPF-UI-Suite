@@ -269,9 +269,10 @@ namespace x_phy_wpf_ui.Models
         public string Email { get; set; } = string.Empty;
     }
 
-    // Error Response
+    // Error Response (backend returns { "message": "..." } e.g. LMS/Keygen errors)
     public class ApiErrorResponse
     {
+        [JsonProperty("message")]
         public string Message { get; set; } = string.Empty;
         public Dictionary<string, string[]>? Errors { get; set; }
     }

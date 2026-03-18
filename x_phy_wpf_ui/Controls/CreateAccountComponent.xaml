@@ -364,6 +364,7 @@
                     <Button x:Name="SignUpButton" Grid.Column="0"
                             Content="Continue Setup"
                             Style="{StaticResource LaunchButtonStyle}"
+                            Padding="16,14"
                             Click="ContinueSetup_Click"
                             IsEnabled="False"/>
                     <Button Grid.Column="2" Content="Back" Style="{StaticResource BackButtonStyle}" Click="Back_Click"/>

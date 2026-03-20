@@ -49,6 +49,8 @@ namespace x_phy_wpf_ui
         private bool _openedResultsAfterStop = false;
         /// <summary>When true, native <c>isLast</c> / ShowFinalResult must not auto-open Results (user stopped without "View Results"). Set at start of StopDetection_Click.</summary>
         private bool _suppressAutoNavigateToResultsOnComplete = false;
+        /// <summary>True while a detection session is active in the UI (from StartDetection through completion or reset). Suppresses tray/minimized single- and multiple-source process notifications.</summary>
+        private bool _suppressProcessSourceNotificationsDuringDetection = false;
         private bool isAudioDetection = false; // Track if current detection is Audio mode (vs Video mode)
         /// <summary>Display name for current detection source (e.g. "Zoom", "Google Chrome") for CreateResult MediaSource.</summary>
         private string _currentMediaSourceDisplayName = "Local";
@@ -106,6 +108,8 @@ namespace x_phy_wpf_ui
         private DateTime _lastMultipleSourcesPopupClosedAt = DateTime.MinValue;
         /// <summary>One-shot timer: fire exactly 1 minute after user closed a notification, then show again if still minimized and sources detected (avoids waiting for next periodic tick which can add an extra minute).</summary>
         private DispatcherTimer _oneShotAfterNotificationClosedTimer;
+        /// <summary>Whether the pending one-shot retry is for multiple-sources (true) or single-source (false) popup chain.</summary>
+        private bool _oneShotForMultipleSources;
 
         /// <summary>Ref count for background blur when in-app popups/overlays are visible. Blur is applied when > 0.</summary>
         private int _blurRefCount = 0;
@@ -1528,6 +1532,7 @@ videoLiveFakeProportionThreshold = 0.7
                         try { if (!Directory.Exists(_currentRunArtifactPath)) Directory.CreateDirectory(_currentRunArtifactPath); } catch { }
                     }
                     StartDetectionCard.StatusText = $"Identifying Active Media Sources";
+                    _suppressProcessSourceNotificationsDuringDetection = true;
                     DetectionResultsComponent.StartDetection(isAudioMode);
                     string detectionType = isAudioMode ? "Audio" : "Video";
                     ShowNotification("Detection Started",
@@ -1810,6 +1815,7 @@ videoLiveFakeProportionThreshold = 0.7
         /// </summary>
         private void ResetAppContentToHome()
         {
+            _suppressProcessSourceNotificationsDuringDetection = false;
             DetectionResultsComponent?.Reset();
             DetectionResultsPanel.Visibility = Visibility.Collapsed;
             DetectionSelectionContainer.Visibility = Visibility.Collapsed;
@@ -2225,9 +2231,24 @@ videoLiveFakeProportionThreshold = 0.7
             _lastMultipleSourcesPopupClosedAt = DateTime.MinValue;
         }
 
+        /// <summary>True while detection is in progress: suppress minimized/tray auto single- and multiple-source process notifications.</summary>
+        private bool ShouldSuppressProcessSourceNotifications()
+        {
+            if (_suppressProcessSourceNotificationsDuringDetection) return true;
+            try
+            {
+                return controller != null && controller.IsDetectionRunning();
+            }
+            catch
+            {
+                return false;
+            }
+        }
+
         /// <summary>Start a one-shot 1-minute timer so we show the notification again exactly 1 minute after the user closed it (instead of waiting for the next periodic tick which can add an extra minute).</summary>
         private void StartOneShotNotificationTimer(bool forMultiple)
         {
+            _oneShotForMultipleSources = forMultiple;
             _oneShotAfterNotificationClosedTimer?.Stop();
             _oneShotAfterNotificationClosedTimer = new DispatcherTimer(DispatcherPriority.Background)
             {
@@ -2275,7 +2296,12 @@ videoLiveFakeProportionThreshold = 0.7
                     if (status.Equals("Trial", StringComparison.OrdinalIgnoreCase) && (tokens.LicenseInfo?.TrialAttemptsRemaining ?? 0) == 0) return;
                 }
                 catch { return; }
-                if (controller != null && controller.IsDetectionRunning()) return;
+                if (ShouldSuppressProcessSourceNotifications())
+                {
+                    // Detection (or native) still active — try again in 1 min so the post-close chain resumes after session ends.
+                    StartOneShotNotificationTimer(_oneShotForMultipleSources);
+                    return;
+                }
                 if (openResultsFolderAfterStop) return;
                 if (list.Count > 1)
                 {
@@ -2335,6 +2361,7 @@ videoLiveFakeProportionThreshold = 0.7
         /// Notification rules: (1) Only when app is minimized/tray. (2) First show 1 min after minimize if sources detected.
         /// (3) No duplicate: if a notification is visible, do not show another. (4) After closing, 1-min timer starts; show again after 1 min if still minimized and sources detected.
         /// (5) If user opens app then minimizes again, timer restarts (StopBackgroundProcessCheck resets closed-at). (6) Repeat every minute while minimized and sources detected.
+        /// (7) No single/multiple notifications while detection is in progress (UI session or native running); one-shot chain reschedules if suppressed.
         /// </summary>
         private async void BackgroundProcessCheckTimer_Tick(object? sender, EventArgs e)
         {
@@ -2372,8 +2399,8 @@ videoLiveFakeProportionThreshold = 0.7
                     if (status.Equals("Trial", StringComparison.OrdinalIgnoreCase) && (tokens.LicenseInfo?.TrialAttemptsRemaining ?? 0) == 0) return;
                 }
                 catch { return; }
-                // Do not show single/multiple process notifications when detection is already running
-                if (controller != null && controller.IsDetectionRunning()) return;
+                // Do not show single/multiple process notifications during an active detection session (UI + native)
+                if (ShouldSuppressProcessSourceNotifications()) return;
                 // Do not show when user just chose "Stop & View Results" from floating widget (we're about to restore and open results)
                 if (openResultsFolderAfterStop) return;
 
@@ -2965,6 +2992,7 @@ videoLiveFakeProportionThreshold = 0.7
 
         private void ShowFinalResult(string resultPath)
         {
+            _suppressProcessSourceNotificationsDuringDetection = false;
             _pendingResultPath = null; // clear so retry-on-close uses only this run's path when set below
             // Tell floater detection has ended so it stops the arc and closes the Detection Activity popup if open
             if (FloatingWidgetEnabled && _floatingWidget != null && _floatingWidget.IsVisible)
@@ -3071,19 +3099,11 @@ videoLiveFakeProportionThreshold = 0.7
             }
         }
 
-        /// <summary>Navigate to Results tab and show the results list only (no session detail drill-in). Used when detection completes naturally.</summary>
+        /// <summary>Navigate to Results tab and show the results list only (no session detail drill-in). Used when detection completes naturally.
+        /// Does not restore or activate the window — if the app is minimized or hidden, it stays that way until the user opens it.</summary>
         private void NavigateToResultsTabOnly()
         {
             ShowDetectionResultsScreen();
-            try
-            {
-                if (WindowState == WindowState.Minimized)
-                    WindowState = WindowState.Normal;
-                Activate();
-                Topmost = true;
-                Topmost = false;
-            }
-            catch { }
         }
 
         /// <summary>Navigate to Results tab, show Session Details for the given result path, and bring main window to front. Used by "Stop & View Results" and notification "View Results".</summary>

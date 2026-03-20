@@ -135,6 +135,7 @@ namespace x_phy_wpf_ui.Controls
             _runCountProbFake = 0;
 
             DuringDetectionPanel.Visibility = Visibility.Visible;
+            if (DetectionCompleteHintPanel != null) DetectionCompleteHintPanel.Visibility = Visibility.Collapsed;
             if (ClassificationIndicator != null) ClassificationIndicator.Visibility = Visibility.Collapsed;
             if (StatisticsCardsGrid != null) StatisticsCardsGrid.Visibility = Visibility.Collapsed;
             if (FaceListScrollViewer != null) FaceListScrollViewer.Visibility = Visibility.Collapsed;
@@ -437,6 +438,11 @@ namespace x_phy_wpf_ui.Controls
             FlushLastNotificationWindow();
             DuringDetectionPanel.Visibility = Visibility.Collapsed;
 
+            if (DetectionCompleteHintPanel != null) DetectionCompleteHintPanel.Visibility = Visibility.Visible;
+            if (ClassificationIndicator != null) ClassificationIndicator.Visibility = Visibility.Visible;
+            if (StatisticsCardsGrid != null) StatisticsCardsGrid.Visibility = Visibility.Visible;
+            if (FaceListScrollViewer != null) FaceListScrollViewer.Visibility = Visibility.Visible;
+
             // Use run-max from any 15s window (video or audio scores), or audio deepfake flag when no score yet
             bool aiManipulationDetectedDuringRun = RunMaxConfidencePercent > 0 || audioDeepfakeDetected;
             if (aiManipulationDetectedDuringRun)
@@ -490,6 +496,7 @@ namespace x_phy_wpf_ui.Controls
             StopDetectionArcAnimation();
             StopDeepfakeNotificationTimer();
             DuringDetectionPanel.Visibility = Visibility.Collapsed;
+            if (DetectionCompleteHintPanel != null) DetectionCompleteHintPanel.Visibility = Visibility.Collapsed;
             _detectedFaces.Clear();
             TotalFacesText.Text = "0";
             FakeFacesText.Text = "0";

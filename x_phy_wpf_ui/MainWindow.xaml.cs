@@ -47,6 +47,8 @@ namespace x_phy_wpf_ui
         private bool _resultPushedOnStop = false;
         /// <summary>True when we just navigated to Results after "Stop & View Results"; finally block should skip ResetAppContentToHome so user stays on Results.</summary>
         private bool _openedResultsAfterStop = false;
+        /// <summary>When true, native <c>isLast</c> / ShowFinalResult must not auto-open Results (user stopped without "View Results"). Set at start of StopDetection_Click.</summary>
+        private bool _suppressAutoNavigateToResultsOnComplete = false;
         private bool isAudioDetection = false; // Track if current detection is Audio mode (vs Video mode)
         /// <summary>Display name for current detection source (e.g. "Zoom", "Google Chrome") for CreateResult MediaSource.</summary>
         private string _currentMediaSourceDisplayName = "Local";
@@ -1517,6 +1519,7 @@ videoLiveFakeProportionThreshold = 0.7
                     _resultPushedForStopAndViewResults = false;
                     _resultPushSucceeded = false;
                     _resultPushedOnStop = false;
+                    _suppressAutoNavigateToResultsOnComplete = false;
                     string baseResultsDir = "";
                     try { baseResultsDir = controller?.GetResultsDir() ?? ""; } catch { }
                     _currentRunArtifactPath = string.IsNullOrEmpty(baseResultsDir) ? null : Path.Combine(baseResultsDir, isAudioMode ? "audio" : "video", DateTime.Now.ToString("dd-MM-yyyy"), DateTime.Now.ToString("HH-mm"));
@@ -2753,6 +2756,8 @@ videoLiveFakeProportionThreshold = 0.7
         {
             try
             {
+                // Plain Stop / Cancel: do not auto-navigate when native sends final result; "Stop & View Results" leaves this false.
+                _suppressAutoNavigateToResultsOnComplete = !openResultsFolderAfterStop;
                 if (controller != null)
                 {
                     if (isAudioDetection)
@@ -3024,6 +3029,12 @@ videoLiveFakeProportionThreshold = 0.7
             }
             _resultPushedForStopAndViewResults = false;
             _resultPushedOnStop = false;
+
+            // After natural completion (timer), open Results tab (list only — not session detail). Skip when user stopped without "View Results".
+            bool suppressAutoNav = _suppressAutoNavigateToResultsOnComplete;
+            _suppressAutoNavigateToResultsOnComplete = false;
+            if (!suppressAutoNav)
+                Dispatcher.BeginInvoke(new Action(NavigateToResultsTabOnly), DispatcherPriority.ContextIdle);
         }
 
         /// <summary>Confidence to show in notification, result view, and API. For video, when raw is 0 but deepfake was detected we use fallback 97. For audio the native layer does not provide a score, so we return 0 and the UI shows "—" or N/A.</summary>
@@ -3060,7 +3071,22 @@ videoLiveFakeProportionThreshold = 0.7
             }
         }
 
-        /// <summary>Navigate to Results tab, show Session Details for the given result path, and bring main window to front. Used by "Stop & View Results" and by "View Results" on detection completion.</summary>
+        /// <summary>Navigate to Results tab and show the results list only (no session detail drill-in). Used when detection completes naturally.</summary>
+        private void NavigateToResultsTabOnly()
+        {
+            ShowDetectionResultsScreen();
+            try
+            {
+                if (WindowState == WindowState.Minimized)
+                    WindowState = WindowState.Normal;
+                Activate();
+                Topmost = true;
+                Topmost = false;
+            }
+            catch { }
+        }
+
+        /// <summary>Navigate to Results tab, show Session Details for the given result path, and bring main window to front. Used by "Stop & View Results" and notification "View Results".</summary>
         private void NavigateToResultsAndShowSessionDetail(string resultPath)
         {
             string resultsDir = null;

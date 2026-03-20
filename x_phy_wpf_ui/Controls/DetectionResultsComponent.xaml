@@ -44,13 +44,15 @@
             <RowDefinition Height="Auto"/>
             <RowDefinition Height="Auto"/>
             <RowDefinition Height="Auto"/>
+            <RowDefinition Height="Auto"/>
             <RowDefinition Height="*"/>
             <RowDefinition Height="Auto"/>
         </Grid.RowDefinitions>
 
-        <!-- During detection: lock icon + arc loader (same style as LoaderComponent) -->
-        <Border Grid.Row="0" x:Name="DuringDetectionPanel" Background="{DynamicResource Brush.Card}"
-                CornerRadius="8" Padding="24" Margin="0,0,0,8">
+        <!-- During detection: lock icon + arc loader — spans main content area (above buttons) and centers vertically -->
+        <Border Grid.Row="0" Grid.RowSpan="5" x:Name="DuringDetectionPanel" Background="{DynamicResource Brush.Card}"
+                CornerRadius="8" Padding="32" Margin="0,0,0,8"
+                VerticalAlignment="Center" HorizontalAlignment="Stretch">
             <StackPanel VerticalAlignment="Center" HorizontalAlignment="Center">
                 <Grid Width="120" Height="120" Margin="0,0,0,24" HorizontalAlignment="Center">
                     <Path x:Name="DetectionRollingArcPath" Fill="Transparent" Width="120" Height="120" StrokeThickness="4"
@@ -77,8 +79,22 @@
             </StackPanel>
         </Border>
 
+        <!-- Shown after detection completes: prompt to open Results tab -->
+        <Border Grid.Row="1" x:Name="DetectionCompleteHintPanel" Visibility="Collapsed"
+                Background="{StaticResource CardBackground}" CornerRadius="8" Padding="14,10" Margin="0,0,0,10"
+                HorizontalAlignment="Stretch">
+            <StackPanel HorizontalAlignment="Center">
+                <TextBlock Text="Detection complete"
+                           Foreground="{DynamicResource Brush.TextPrimary}" FontSize="16" FontWeight="SemiBold"
+                           HorizontalAlignment="Center" TextAlignment="Center"/>
+                <TextBlock Text="Please open the Results tab to view your session details and evidence."
+                           Foreground="{DynamicResource Brush.TextSecondary}" FontSize="13" TextWrapping="Wrap"
+                           TextAlignment="Center" Margin="0,6,0,0" MaxWidth="520"/>
+            </StackPanel>
+        </Border>
+
         <!-- Overall Classification Indicator (hidden during detection; show only after if needed) -->
-        <Border Grid.Row="1" x:Name="ClassificationIndicator"
+        <Border Grid.Row="2" x:Name="ClassificationIndicator"
                 Background="{StaticResource CardBackground}"
                 CornerRadius="8"
                 Padding="12"
@@ -97,7 +113,7 @@
         </Border>
 
         <!-- Statistics Cards (hidden during detection) -->
-        <Grid Grid.Row="2" x:Name="StatisticsCardsGrid" Margin="0,0,0,10">
+        <Grid Grid.Row="3" x:Name="StatisticsCardsGrid" Margin="0,0,0,10">
             <Grid.ColumnDefinitions>
                 <ColumnDefinition Width="*"/>
                 <ColumnDefinition Width="*"/>
@@ -127,7 +143,7 @@
         </Grid>
 
         <!-- Face list (hidden during detection) -->
-        <ScrollViewer Grid.Row="3" x:Name="FaceListScrollViewer" VerticalScrollBarVisibility="Auto" HorizontalScrollBarVisibility="Disabled">
+        <ScrollViewer Grid.Row="4" x:Name="FaceListScrollViewer" VerticalScrollBarVisibility="Auto" HorizontalScrollBarVisibility="Disabled">
             <ItemsControl x:Name="FacesItemsControl" Margin="0,0,0,8">
                 <ItemsControl.ItemsPanel>
                     <ItemsPanelTemplate>
@@ -150,13 +166,13 @@
         </ScrollViewer>
 
         <!-- Stop Button -->
-        <StackPanel Grid.Row="4" HorizontalAlignment="Center" Margin="0,10,0,0" x:Name="StopButtonPanel">
+        <StackPanel Grid.Row="5" HorizontalAlignment="Center" Margin="0,10,0,0" x:Name="StopButtonPanel">
             <Button Content="Stop Detection" Style="{StaticResource SecondaryButtonStyle}"
                     Click="StopButton_Click" x:Name="StopButtonAlways" Width="180" IsEnabled="True"/>
         </StackPanel>
 
         <!-- Back Button -->
-        <StackPanel Grid.Row="4" HorizontalAlignment="Center" Margin="0,10,0,0" x:Name="BackButtonPanel"
+        <StackPanel Grid.Row="5" HorizontalAlignment="Center" Margin="0,10,0,0" x:Name="BackButtonPanel"
                     Visibility="Collapsed">
             <Button Content="Back to Home" Style="{StaticResource SecondaryButtonStyle}"
                     Click="BackButton_Click" x:Name="BackButton" Width="200" IsEnabled="True"/>

@@ -494,7 +494,7 @@ namespace x_phy_wpf_ui.Controls
                     }}
                 }};
                 
-                const cardNumberElement = elements.create('cardNumber', {{ style: elementStyle, showIcon: true }});
+                const cardNumberElement = elements.create('cardNumber', {{ style: elementStyle, showIcon: true, disableLink: true }});
                 const cardExpiryElement = elements.create('cardExpiry', {{ style: elementStyle }});
                 const cardCvcElement = elements.create('cardCvc', {{ style: elementStyle }});
                 

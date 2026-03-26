@@ -76,6 +76,7 @@ namespace x_phy_wpf_ui.Controls
                 {
                     StatusText.Text = $"Error refreshing: {ex.Message}";
                     StatusText.Foreground = new SolidColorBrush(Colors.Red);
+                    StatusText.Visibility = Visibility.Visible;
                 }
             }
         }
@@ -101,6 +102,7 @@ namespace x_phy_wpf_ui.Controls
                 {
                     StatusText.Text = $"Error detecting processes: {ex.Message}";
                     StatusText.Foreground = new SolidColorBrush(Colors.Red);
+                    StatusText.Visibility = Visibility.Visible;
                 }
                 
                 // Show error message in processes panel
@@ -145,10 +147,10 @@ namespace x_phy_wpf_ui.Controls
                 return;
             }
 
-            // When processes are detected: show titles and status
+            // When processes are detected: show titles; keep status hidden unless there's an error.
             SelectDetectionSourceTitle.Visibility = Visibility.Visible;
             SelectInputTypeHeading.Visibility = Visibility.Visible;
-            StatusText.Visibility = Visibility.Visible;
+            StatusText.Visibility = Visibility.Collapsed;
 
             for (int i = 0; i < _detectedProcesses.Count; i++)
             {
@@ -264,7 +266,8 @@ namespace x_phy_wpf_ui.Controls
                 _isAudioMode = false;
                 _isLiveCallMode = true;
                 StartDetectionButton.IsEnabled = true;
-                StatusText.Text = "Ready to start detection";
+                StatusText.Text = string.Empty;
+                StatusText.Visibility = Visibility.Collapsed;
             }
             else if (process.ProcessType == "MediaPlayer" || process.ProcessType == "Streaming" || process.ProcessType == "Browser")
             {
@@ -293,7 +296,8 @@ namespace x_phy_wpf_ui.Controls
                 _isAudioMode = false;
                 _isLiveCallMode = false;
                 StartDetectionButton.IsEnabled = true;
-                StatusText.Text = "Ready to start detection";
+                StatusText.Text = string.Empty;
+                StatusText.Visibility = Visibility.Collapsed;
             }
         }
 
@@ -349,7 +353,8 @@ namespace x_phy_wpf_ui.Controls
                 
                 // Enable start button
                 StartDetectionButton.IsEnabled = true;
-                StatusText.Text = "Ready to start detection";
+                StatusText.Text = string.Empty;
+                StatusText.Visibility = Visibility.Collapsed;
             }
         }
 

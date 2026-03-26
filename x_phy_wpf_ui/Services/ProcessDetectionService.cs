@@ -280,10 +280,24 @@ namespace x_phy_wpf_ui.Services
                         DetectedProcess? browserDetected = null;
                         foreach (var browserProcess in allBrowserProcesses)
                         {
-                            if (addedProcessIds.Contains(browserProcess.Id)) continue;
                             bool hasEnumeratedWindow = processWindows.TryGetValue((uint)browserProcess.Id, out var titles) && titles.Count > 0;
                             bool hasMainWindowTitle = !string.IsNullOrWhiteSpace(browserProcess.MainWindowTitle);
                             if (!hasEnumeratedWindow && !hasMainWindowTitle) continue;
+
+                            // If this process was already used for Google Chat, still allow browser detection
+                            // when we can see a non-chat browser window/title for the same process.
+                            if (addedProcessIds.Contains(browserProcess.Id))
+                            {
+                                var combinedTitles = new List<string>();
+                                if (hasEnumeratedWindow && titles != null) combinedTitles.AddRange(titles);
+                                if (hasMainWindowTitle) combinedTitles.Add(browserProcess.MainWindowTitle);
+
+                                bool hasNonChatTitle = combinedTitles.Any(t =>
+                                    !string.IsNullOrWhiteSpace(t) &&
+                                    t.IndexOf("Google Chat", StringComparison.OrdinalIgnoreCase) < 0 &&
+                                    t.IndexOf("chat.google.com", StringComparison.OrdinalIgnoreCase) < 0);
+                                if (!hasNonChatTitle) continue;
+                            }
 
                             string displayName = GetDisplayName(processName);
                             browserDetected = new DetectedProcess

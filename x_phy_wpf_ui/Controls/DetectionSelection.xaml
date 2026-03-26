@@ -241,7 +241,7 @@
                     </Grid>
                     
                     <TextBlock x:Name="StatusText"
-                               Text="Please select a process to continue" 
+                               Text="" 
                                FontSize="12" 
                                Foreground="{DynamicResource Brush.TextSecondary}"
                                TextWrapping="Wrap"

@@ -102,7 +102,7 @@ namespace x_phy_wpf_ui.Services
             "nvidia broadcast.exe" // NVIDIA Broadcast
         };
 
-        // Browsers (for YouTube/streaming detection)
+        // Browsers (detected by active browser process/window presence)
         private static readonly HashSet<string> BrowserProcesses = new HashSet<string>(StringComparer.OrdinalIgnoreCase)
         {
             "chrome.exe",
@@ -237,7 +237,7 @@ namespace x_phy_wpf_ui.Services
                             WindowTitle = GetMainWindowTitle(process, processWindows)
                         };
                     }
-                    // Check for browsers with streaming tabs (YouTube, Twitch, Netflix, Prime Video)
+                    // Check for browsers (no tab/content conditions required)
                     else if (BrowserProcesses.Contains(processName))
                     {
                         // Skip if we've already checked this browser type
@@ -274,45 +274,31 @@ namespace x_phy_wpf_ui.Services
                             }
                         }
 
-                        // Streaming (YouTube, Twitch, Netflix, Prime Video) is present if it appears in any tab. We use window titles from EnumWindows
-                        // plus UI Automation to read all tab titles from each browser window, so background tabs are detected.
+                        // Browser is detected purely by process/window presence.
+                        // Pick a browser process that actually has a detectable window/title
+                        // (important for multi-process browsers like Brave/Chrome/Edge).
                         DetectedProcess? browserDetected = null;
                         foreach (var browserProcess in allBrowserProcesses)
                         {
-                            var allTitles = new List<string>();
-                            if (processWindows.TryGetValue((uint)browserProcess.Id, out var windowTitles))
-                                allTitles.AddRange(windowTitles);
-                            foreach (IntPtr hWnd in GetAllWindowHandlesForProcess(browserProcess.Id))
+                            if (addedProcessIds.Contains(browserProcess.Id)) continue;
+                            bool hasEnumeratedWindow = processWindows.TryGetValue((uint)browserProcess.Id, out var titles) && titles.Count > 0;
+                            bool hasMainWindowTitle = !string.IsNullOrWhiteSpace(browserProcess.MainWindowTitle);
+                            if (!hasEnumeratedWindow && !hasMainWindowTitle) continue;
+
+                            string displayName = GetDisplayName(processName);
+                            browserDetected = new DetectedProcess
                             {
-                                foreach (var tabTitle in GetTabTitlesFromBrowserWindow(hWnd))
-                                {
-                                    if (!string.IsNullOrWhiteSpace(tabTitle) && !allTitles.Contains(tabTitle))
-                                        allTitles.Add(tabTitle);
-                                }
-                            }
-                            if (allTitles.Count > 0 && HasStreamingTab(allTitles))
-                            {
-                                string displayName = GetDisplayName(processName);
-                                var candidate = new DetectedProcess
-                                {
-                                    ProcessId = browserProcess.Id,
-                                    ProcessName = processName,
-                                    DisplayName = displayName,
-                                    ProcessType = "Browser",
-                                    HasYouTubeTab = true,
-                                    WindowTitle = GetStreamingWindowTitle(allTitles)
-                                };
-                                if (HasYouTubeTab(allTitles))
-                                {
-                                    browserDetected = candidate;
-                                    break;
-                                }
-                                if (browserDetected == null)
-                                    browserDetected = candidate;
-                            }
+                                ProcessId = browserProcess.Id,
+                                ProcessName = processName,
+                                DisplayName = displayName,
+                                ProcessType = "Browser",
+                                HasYouTubeTab = false,
+                                WindowTitle = GetMainWindowTitle(browserProcess, processWindows)
+                            };
+                            break;
                         }
 
-                        // Only add browser when it has a streaming tab (YouTube, Twitch, Netflix, Prime Video); add directly so we get both Google Chat and Google Chrome when same process has both
+                        // Add browser once per browser type.
                         if (browserDetected != null)
                         {
                             detectedProcesses.Add(browserDetected);
@@ -373,7 +359,7 @@ namespace x_phy_wpf_ui.Services
                         ProcessName = procName,
                         DisplayName = match.Value.DisplayName,
                         ProcessType = match.Value.ProcessType,
-                        HasYouTubeTab = match.Value.ProcessType == "Browser" && windowTitles.Any(t => IsStreamingTabTitle(t)),
+                        HasYouTubeTab = false,
                         WindowTitle = windowTitles[0]
                     };
                     addedProcessIds.Add((int)processId);
@@ -392,12 +378,12 @@ namespace x_phy_wpf_ui.Services
                 .Select(g => g.First())
                 .ToList();
 
-            // Show all browsers that have a streaming tab (e.g. both Chrome and Edge when both have YouTube/Twitch/Netflix/Prime)
+            // Show all detected browsers.
             var browsers = uniqueByDisplayName.Where(p => p.ProcessType == "Browser").ToList();
             var nonBrowsers = uniqueByDisplayName.Where(p => p.ProcessType != "Browser").ToList();
             var selectedBrowsers = browsers;
 
-            // Combine non-browsers with all detected browsers (call apps, media players, streaming, browsers with YouTube/Twitch/Netflix/Prime)
+            // Combine non-browsers with all detected browsers.
             var combined = nonBrowsers.Concat(selectedBrowsers).ToList();
 
             // Choose only 3 processes: those with highest memory usage (working set)
@@ -412,7 +398,6 @@ namespace x_phy_wpf_ui.Services
         /// <summary>Match app by window title for UWP/host processes (e.g. ApplicationFrameHost) where Task Manager shows no process name.</summary>
         private static (string DisplayName, string ProcessType)? TryMatchAppByWindowTitle(List<string> windowTitles)
         {
-            bool hasStreaming = windowTitles.Any(t => t != null && IsStreamingTabTitle(t));
             foreach (var title in windowTitles)
             {
                 if (string.IsNullOrWhiteSpace(title)) continue;
@@ -420,19 +405,19 @@ namespace x_phy_wpf_ui.Services
 
                 if (t.IndexOf("Media Player", StringComparison.OrdinalIgnoreCase) >= 0)
                     return ("Media Player", "MediaPlayer");
-                if (t.IndexOf("Microsoft Edge", StringComparison.OrdinalIgnoreCase) >= 0 && hasStreaming)
+                if (t.IndexOf("Microsoft Edge", StringComparison.OrdinalIgnoreCase) >= 0)
                     return ("Microsoft Edge", "Browser");
                 // Google Chat (PWA/app) must be checked before "Google Chrome" so it's not misidentified
                 if (t.IndexOf("Google Chat", StringComparison.OrdinalIgnoreCase) >= 0 ||
                     (t.IndexOf("Chat", StringComparison.OrdinalIgnoreCase) >= 0 && t.IndexOf("chat.google.com", StringComparison.OrdinalIgnoreCase) >= 0))
                     return ("Google Chat", "VideoCalling");
-                if (t.IndexOf("Google Chrome", StringComparison.OrdinalIgnoreCase) >= 0 && hasStreaming)
+                if (t.IndexOf("Google Chrome", StringComparison.OrdinalIgnoreCase) >= 0)
                     return ("Google Chrome", "Browser");
-                if ((t.IndexOf("Mozilla Firefox", StringComparison.OrdinalIgnoreCase) >= 0 || (t.IndexOf("Firefox", StringComparison.OrdinalIgnoreCase) >= 0 && t.Length < 50)) && hasStreaming)
+                if (t.IndexOf("Mozilla Firefox", StringComparison.OrdinalIgnoreCase) >= 0 || (t.IndexOf("Firefox", StringComparison.OrdinalIgnoreCase) >= 0 && t.Length < 50))
                     return ("Mozilla Firefox", "Browser");
-                if (t.IndexOf("Opera", StringComparison.OrdinalIgnoreCase) >= 0 && hasStreaming)
+                if (t.IndexOf("Opera", StringComparison.OrdinalIgnoreCase) >= 0)
                     return ("Opera", "Browser");
-                if (t.IndexOf("Brave", StringComparison.OrdinalIgnoreCase) >= 0 && hasStreaming)
+                if (t.IndexOf("Brave", StringComparison.OrdinalIgnoreCase) >= 0)
                     return ("Brave", "Browser");
                 if (t.IndexOf("Microsoft Teams", StringComparison.OrdinalIgnoreCase) >= 0 || t.IndexOf("Teams", StringComparison.OrdinalIgnoreCase) >= 0)
                     return ("Microsoft Teams", "VideoCalling");

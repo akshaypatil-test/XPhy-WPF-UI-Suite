@@ -75,15 +75,14 @@
             <RowDefinition Height="Auto"/>
         </Grid.RowDefinitions>
 
-        <!-- List view: DETECTION RESULTS table (scrollable; buttons are in row below) -->
-        <ScrollViewer x:Name="ResultsListView" Grid.Row="0" VerticalScrollBarVisibility="Hidden" HorizontalScrollBarVisibility="Disabled" PreviewMouseWheel="ResultsListView_PreviewMouseWheel" FocusVisualStyle="{x:Null}">
-            <Grid Margin="0,0,0,0" HorizontalAlignment="Stretch">
+        <!-- Title row fixed; table row * fills space. DataGrid scrolls inside itself — column headers stay sticky (standard WPF behavior). -->
+        <Grid x:Name="ResultsListView" Grid.Row="0" Margin="0,0,0,0" HorizontalAlignment="Stretch" VerticalAlignment="Stretch" Focusable="True" FocusVisualStyle="{x:Null}">
                 <Grid.RowDefinitions>
                     <RowDefinition Height="Auto"/>
-                    <RowDefinition Height="Auto"/>
+                    <RowDefinition Height="*"/>
                 </Grid.RowDefinitions>
                 <!-- Title and Legend -->
-                <Grid Grid.Row="0" Margin="0,0,0,20">
+                <Grid x:Name="ResultsTitleRow" Grid.Row="0" Margin="0,0,0,20">
                     <Grid.ColumnDefinitions>
                         <ColumnDefinition Width="*"/>
                         <ColumnDefinition Width="Auto"/>
@@ -103,7 +102,7 @@
                 </Grid>
 
                 <!-- Results area: table when items exist, or "No results to show" when empty -->
-                <Grid Grid.Row="1" MinHeight="200" Margin="0,0,0,0">
+                <Grid x:Name="ResultsBodyGrid" Grid.Row="1" MinHeight="0" Margin="0,0,0,0" VerticalAlignment="Stretch">
                     <!-- Empty state: centered message -->
                     <Border x:Name="NoResultsPanel" Visibility="Collapsed"
                             VerticalAlignment="Center" HorizontalAlignment="Center"
@@ -112,20 +111,16 @@
                         <TextBlock Text="No results to show" FontSize="15" Foreground="{StaticResource TextSecondaryBrush}"/>
                     </Border>
                     <!-- Results Table: cyan top border + glass look -->
-                    <Border x:Name="ResultsTablePanel" CornerRadius="8" Margin="0,0,0,0" BorderBrush="{StaticResource PanelGlowBorder}" BorderThickness="0,1,0,0" HorizontalAlignment="Stretch" Focusable="False">
-                    <Border CornerRadius="8" Padding="0" UseLayoutRounding="True" Focusable="False">
-                        <Border.Background>
-                            <LinearGradientBrush StartPoint="0,0" EndPoint="0,1">
-                                <GradientStop Color="#1AFFFFFF" Offset="0"/>
-                                <GradientStop Color="#0CFFFFFF" Offset="0.5"/>
-                                <GradientStop Color="#08FFFFFF" Offset="1"/>
-                            </LinearGradientBrush>
-                        </Border.Background>
-                        <Border.Effect>
-                            <DropShadowEffect Color="#1AB4CC" BlurRadius="8" ShadowDepth="0" Opacity="0.15"/>
-                        </Border.Effect>
+                    <!-- ClipToBounds false: rounded rect + scroll viewer would clip the last rows at the bottom -->
+                    <Border x:Name="ResultsTablePanel" CornerRadius="8" Margin="0,0,0,0" BorderBrush="{StaticResource PanelGlowBorder}" BorderThickness="0,1,0,0" HorizontalAlignment="Stretch" VerticalAlignment="Stretch" ClipToBounds="False" Focusable="False">
+                    <!-- No Effect / no translucent gradient on this border: DropShadow + glass on a ScrollViewer parent
+                         causes WPF to bitmap-cache children and row content disappears or clips while scrolling. -->
+                    <Border CornerRadius="8" Padding="0,0,0,2" Background="Transparent" UseLayoutRounding="True"
+                            VerticalAlignment="Stretch" ClipToBounds="False" Focusable="False"
+                            SnapsToDevicePixels="True">
                     <DataGrid x:Name="ResultsDataGrid"
                               AutoGenerateColumns="False"
+                              EnableRowVirtualization="False"
                               IsReadOnly="True"
                               CanUserAddRows="False"
                               CanUserDeleteRows="False"
@@ -138,7 +133,7 @@
                               RowBackground="{DynamicResource Brush.Card}"
                               AlternatingRowBackground="{DynamicResource Brush.Card}"
                               BorderThickness="0"
-                              Background="Transparent"
+                              Background="{DynamicResource Brush.Card}"
                               Foreground="{StaticResource TextPrimaryBrush}"
                               RowHeight="44"
                               FontSize="13"
@@ -146,9 +141,17 @@
                               SelectionUnit="FullRow"
                               UseLayoutRounding="True"
                               HorizontalAlignment="Stretch"
-                              FocusVisualStyle="{x:Null}"
-                              PreviewMouseDown="ResultsDataGrid_PreviewMouseDown"
-                              MouseDown="ResultsDataGrid_MouseDown">
+                              VerticalAlignment="Stretch"
+                              VerticalScrollBarVisibility="Hidden"
+                              HorizontalScrollBarVisibility="Disabled"
+                              FocusVisualStyle="{x:Null}">
+                        <DataGrid.Resources>
+                            <!-- Pixel scrolling avoids logical scroll + hidden bar fighting row measure (squashed / blank rows in video). -->
+                            <Style TargetType="ScrollViewer">
+                                <Setter Property="Background" Value="{DynamicResource Brush.Card}"/>
+                                <Setter Property="CanContentScroll" Value="False"/>
+                            </Style>
+                        </DataGrid.Resources>
                         <DataGrid.ColumnHeaderStyle>
                             <Style TargetType="DataGridColumnHeader">
                                 <Setter Property="Background" Value="{DynamicResource Brush.Surface}"/>
@@ -182,32 +185,25 @@
                                 <Setter Property="FocusVisualStyle" Value="{x:Null}"/>
                                 <Setter Property="Template">
                                     <Setter.Value>
+                                        <!-- Default-style row: no SelectiveScrollingGrid (it desyncs with column-header scroll when scrollbar is hidden). -->
                                         <ControlTemplate TargetType="DataGridRow">
                                             <Border Background="{TemplateBinding Background}"
                                                     BorderThickness="0,0,0,1"
-                                                    BorderBrush="{DynamicResource Brush.Border}">
-                                                <SelectiveScrollingGrid>
-                                                    <SelectiveScrollingGrid.ColumnDefinitions>
-                                                        <ColumnDefinition/>
-                                                        <ColumnDefinition Width="Auto"/>
-                                                    </SelectiveScrollingGrid.ColumnDefinitions>
-                                                    <DataGridCellsPresenter Grid.Column="0"
-                                                                           ItemsPanel="{TemplateBinding ItemsPanel}"
-                                                                           SelectiveScrollingGrid.SelectiveScrollingOrientation="Horizontal"/>
-                                                    <DataGridRowHeader Grid.Column="1"
-                                                                       SelectiveScrollingGrid.SelectiveScrollingOrientation="Vertical"
-                                                                       Visibility="Collapsed"/>
-                                                </SelectiveScrollingGrid>
+                                                    BorderBrush="{DynamicResource Brush.Border}"
+                                                    SnapsToDevicePixels="True">
+                                                <DataGridCellsPresenter SnapsToDevicePixels="{TemplateBinding SnapsToDevicePixels}"
+                                                                        ItemsPanel="{TemplateBinding ItemsPanel}"/>
                                             </Border>
                                         </ControlTemplate>
                                     </Setter.Value>
                                 </Setter>
+                                <!-- IsSelected after IsMouseOver so selected row keeps visible highlight when both apply -->
                                 <Style.Triggers>
                                     <Trigger Property="IsMouseOver" Value="True">
                                         <Setter Property="Background" Value="{DynamicResource Brush.ResultsRowHover}"/>
                                     </Trigger>
                                     <Trigger Property="IsSelected" Value="True">
-                                        <Setter Property="Background" Value="{DynamicResource Brush.Card}"/>
+                                        <Setter Property="Background" Value="{DynamicResource Brush.Surface}"/>
                                     </Trigger>
                                     <DataTrigger Binding="{Binding}" Value="{x:Null}">
                                         <Setter Property="Visibility" Value="Collapsed"/>
@@ -311,7 +307,7 @@
                                     </DataTemplate>
                                 </DataGridTemplateColumn.CellTemplate>
                             </DataGridTemplateColumn>
-                            <DataGridTemplateColumn Header="Actions" Width="0.7*" MinWidth="110">
+                            <DataGridTemplateColumn Header="Evidence" Width="*" MinWidth="110">
                                 <DataGridTemplateColumn.CellTemplate>
                                     <DataTemplate>
                                         <Button Background="Transparent"
@@ -342,8 +338,7 @@
                     </Border>
                 </Border>
                 </Grid>
-            </Grid>
-        </ScrollViewer>
+        </Grid>
 
         <!-- Buttons row with popup overlay (toast shown over the two buttons) -->
         <Grid x:Name="ResultsButtonsPanel" Grid.Row="1" Margin="0,16,0,0">

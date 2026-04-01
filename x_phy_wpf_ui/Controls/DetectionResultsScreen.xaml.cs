@@ -6,8 +6,6 @@ using System.Linq;
 using System.Windows;
 using System.Windows.Controls;
 using System.Windows.Data;
-using System.Windows.Input;
-using System.Windows.Media;
 using System.Windows.Threading;
 using x_phy_wpf_ui.Models;
 using x_phy_wpf_ui.Services;
@@ -37,16 +35,14 @@ namespace x_phy_wpf_ui.Controls
                 ResultsListView.Visibility = Visibility.Visible;
                 SessionDetailView.Visibility = Visibility.Collapsed;
                 BackToResultsListRequested?.Invoke(this, EventArgs.Empty);
-                // Move focus off the grid so no cell shows focus highlight (white flash) when returning.
                 Dispatcher.BeginInvoke(new Action(() =>
                 {
-                    ResultsListView.Focus();
+                    try { ResultsDataGrid?.Focus(); } catch { }
                 }), DispatcherPriority.Loaded);
             };
             _items = new ObservableCollection<DetectionResultItem>();
             ResultsDataGrid.ItemsSource = _items;
             ResultsDataGrid.LoadingRow += ResultsDataGrid_LoadingRow;
-            ResultsDataGrid.SelectionChanged += ResultsDataGrid_SelectionChanged;
             _items.CollectionChanged += (s, e) => UpdateNoResultsVisibility();
             // Before first load: show table (empty). Only show "No results" after we've loaded and count is 0.
             UpdateNoResultsVisibility();
@@ -60,15 +56,10 @@ namespace x_phy_wpf_ui.Controls
                 NoResultsPanel.Visibility = showNoResults ? Visibility.Visible : Visibility.Collapsed;
             if (ResultsTablePanel != null)
                 ResultsTablePanel.Visibility = showNoResults ? Visibility.Collapsed : Visibility.Visible;
-        }
-
-        private void ResultsListView_PreviewMouseWheel(object sender, MouseWheelEventArgs e)
-        {
-            if (sender is ScrollViewer sv && e.Delta != 0)
-            {
-                sv.ScrollToVerticalOffset(sv.VerticalOffset - e.Delta);
-                e.Handled = true;
-            }
+            if (ResultsBodyGrid != null)
+                ResultsBodyGrid.MinHeight = showNoResults ? 200 : 0;
+            if (showNoResults && ResultsDataGrid != null)
+                ResultsDataGrid.ClearValue(FrameworkElement.HeightProperty);
         }
 
         private void ResultsDataGrid_LoadingRow(object sender, DataGridRowEventArgs e)
@@ -78,57 +69,6 @@ namespace x_phy_wpf_ui.Controls
             {
                 e.Row.Visibility = Visibility.Collapsed;
                 return;
-            }
-            // Row hover: use MouseEnter/MouseLeave so hover works (row IsMouseOver can be blocked by cells)
-            var row = e.Row;
-            row.MouseEnter += (s, _) =>
-            {
-                var hoverBrush = row.TryFindResource("Brush.ResultsRowHover") as System.Windows.Media.Brush;
-                if (hoverBrush != null) row.Background = hoverBrush;
-            };
-            row.MouseLeave += (s, _) =>
-            {
-                var cardBrush = row.TryFindResource("Brush.Card") as System.Windows.Media.Brush;
-                if (cardBrush != null) row.Background = cardBrush;
-            };
-        }
-
-        private void ResultsDataGrid_SelectionChanged(object sender, SelectionChangedEventArgs e)
-        {
-            // Don't keep any row selected: clear selection so no highlight appears when user clicks a result row.
-            if (ResultsDataGrid.SelectedItem != null)
-                ResultsDataGrid.SelectedItem = null;
-        }
-
-        private void ResultsDataGrid_PreviewMouseDown(object sender, MouseButtonEventArgs e)
-        {
-            // If user clicked on a row (or cell) but NOT on the "View Result" button, prevent the DataGrid from selecting the row so no blue highlight appears.
-            var hit = e.OriginalSource as DependencyObject;
-            while (hit != null)
-            {
-                if (hit is Button)
-                    return; // Click was on the View Result button — let it through
-                if (hit is DataGridRow)
-                {
-                    e.Handled = true;
-                    return;
-                }
-                hit = VisualTreeHelper.GetParent(hit);
-            }
-        }
-
-        private void ResultsDataGrid_MouseDown(object sender, MouseButtonEventArgs e)
-        {
-            // Bubble phase: if click originated from a Button (e.g. View Result), prevent the DataGrid from selecting the row so no blue highlight appears.
-            var hit = e.OriginalSource as DependencyObject;
-            while (hit != null)
-            {
-                if (hit is Button)
-                {
-                    e.Handled = true;
-                    return;
-                }
-                hit = VisualTreeHelper.GetParent(hit);
             }
         }
 
@@ -372,6 +312,10 @@ namespace x_phy_wpf_ui.Controls
         {
             ResultsListView.Visibility = Visibility.Visible;
             SessionDetailView.Visibility = Visibility.Collapsed;
+            Dispatcher.BeginInvoke(new Action(() =>
+            {
+                try { ResultsDataGrid?.Focus(); } catch { }
+            }), DispatcherPriority.Loaded);
         }
     }
 }

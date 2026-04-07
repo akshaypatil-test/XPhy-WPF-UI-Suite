@@ -6,6 +6,6 @@ namespace x_phy_wpf_ui.Services
     public static class StripePaymentService
     {
         // Stripe Publishable Key - safe to expose in client-side code (WebView2)
-        public const string StripePublishableKey = "pk_test_vqRv78JyvVS5GIsNafg8KNZF00TaKyxi0w";
+        public const string StripePublishableKey = "pk_live_M3XGQteH57lyHjEUI54vyFDB00jYw28bIB";
     }
 }

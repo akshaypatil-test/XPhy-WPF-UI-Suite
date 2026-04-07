@@ -145,23 +145,6 @@ namespace x_phy_wpf_ui.Controls
                     if (bitmap != null)
                         _carouselImages.Add(bitmap);
                 }
-                // Load evidence images from the evidence subfolder (evidence_1.png, evidence_2.png, ...)
-                var evidenceDir = new DirectoryInfo(Path.Combine(folderToUse, "evidence"));
-                if (evidenceDir.Exists)
-                {
-                    var evidenceFiles = evidenceDir.GetFiles("*.png")
-                        .Cast<FileInfo>()
-                        .Concat(evidenceDir.GetFiles("*.jpg"))
-                        .Concat(evidenceDir.GetFiles("*.jpeg"))
-                        .OrderBy(f => f.Name)
-                        .ToList();
-                    foreach (var fi in evidenceFiles)
-                    {
-                        var bitmap = LoadBitmapFromPath(fi.FullName);
-                        if (bitmap != null)
-                            _carouselImages.Add(bitmap);
-                    }
-                }
                 UpdateCarouselDisplay();
             }
             catch { /* ignore */ }

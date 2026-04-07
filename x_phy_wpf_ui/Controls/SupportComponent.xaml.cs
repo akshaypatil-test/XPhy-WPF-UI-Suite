@@ -9,16 +9,12 @@ namespace x_phy_wpf_ui.Controls
     {
         public event EventHandler? BackRequested;
 
-        private const string SupportUrl = "https://support.x-phy.com/support/home";
+        private const string SupportUrl = "https://x-phy.com/products/endpoint-security/deepfake-detector/support/";
         private const string TicketUrl = "https://support.x-phy.com/support/tickets/new";
-
-        private static readonly string ResourcesFolder = Path.Combine(
-            AppDomain.CurrentDomain.BaseDirectory,
-            "Resources"
-        );
+        private const string UserGuideVideoUrl = "https://www.youtube.com/watch?v=Kc_y__h5r0U";
+        private static readonly string ResourcesFolder = Path.Combine(AppDomain.CurrentDomain.BaseDirectory, "Resources");
         private const string UserGuidePdfFileName = "UserGuide.pdf";
         private const string FaqPdfFileName = "FAQ.pdf";
-        private const string UserGuideVideoFileName = "UserGuideVideo.mp4";
 
         public SupportComponent()
         {
@@ -58,23 +54,29 @@ namespace x_phy_wpf_ui.Controls
 
         private void UserGuidePdf_Click(object sender, RoutedEventArgs e)
         {
-            OpenOrDownloadResource(UserGuidePdfFileName, "Installation & User Guide");
+            DownloadResourceFile(
+                UserGuidePdfFileName,
+                "Installation Setup & User Guide",
+                "Installation Setup & User Guide.pdf");
         }
 
         private void FaqPdf_Click(object sender, RoutedEventArgs e)
         {
-            OpenOrDownloadResource(FaqPdfFileName, "FAQ / Knowledge Base");
+            DownloadResourceFile(
+                FaqPdfFileName,
+                "FAQ / Knowledge Base",
+                "F.A.Q Knowledgebase (version 2.0.0).pdf");
         }
 
         private void UserGuideVideo_Click(object sender, RoutedEventArgs e)
         {
-            OpenOrDownloadResource(UserGuideVideoFileName, "User Guide Video");
+            OpenUrl(UserGuideVideoUrl);
         }
 
-        private void OpenOrDownloadResource(string fileName, string displayName)
+        private void DownloadResourceFile(string fileName, string displayName, string downloadFileName)
         {
-            var path = Path.Combine(ResourcesFolder, fileName);
-            if (!File.Exists(path))
+            var sourcePath = Path.Combine(ResourcesFolder, fileName);
+            if (!File.Exists(sourcePath))
             {
                 AppDialog.Show(Window.GetWindow(this),
                     $"The file '{displayName}' was not found. Please ensure Resources are installed.",
@@ -82,17 +84,26 @@ namespace x_phy_wpf_ui.Controls
                     MessageBoxImage.Information);
                 return;
             }
+
             try
             {
-                var psi = new ProcessStartInfo(path)
-                {
-                    UseShellExecute = true
-                };
-                Process.Start(psi);
+                var downloadsFolder = Path.Combine(
+                    Environment.GetFolderPath(Environment.SpecialFolder.UserProfile),
+                    "Downloads");
+                Directory.CreateDirectory(downloadsFolder);
+
+                var destinationPath = Path.Combine(downloadsFolder, downloadFileName);
+                File.Copy(sourcePath, destinationPath, overwrite: true);
+
+                AppDialog.Show(
+                    Window.GetWindow(this),
+                    $"{displayName} downloaded successfully to:\n{destinationPath}",
+                    "Download complete",
+                    MessageBoxImage.Information);
             }
             catch (Exception ex)
             {
-                AppDialog.Show(Window.GetWindow(this), $"Could not open file: {ex.Message}", "Error", MessageBoxImage.Warning);
+                AppDialog.Show(Window.GetWindow(this), $"Could not download file: {ex.Message}", "Error", MessageBoxImage.Warning);
             }
         }
     }

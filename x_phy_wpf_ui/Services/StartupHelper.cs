@@ -1,20 +1,26 @@
 using System;
 using System.IO;
+using System.Reflection;
 using Microsoft.Win32;
 
 namespace x_phy_wpf_ui.Services
 {
     /// <summary>
-    /// Manages "run at Windows startup" via HKCU\...\Run. No admin required.
+    /// "Run at login" via Startup folder shortcut (same name as the product — Windows Settings shows it correctly).
+    /// Migrates legacy HKCU\...\Run entries from older builds.
     /// </summary>
     public static class StartupHelper
     {
         private const string RunKeyPath = @"Software\Microsoft\Windows\CurrentVersion\Run";
-        private const string AppName = "X-PHY Deepfake Detector";
+        private const string AppRegistryName = "X-PHY Deepfake Detector";
+        private const string StartupShortcutFileName = "X-PHY Deepfake Detector.lnk";
+        private const string ShortcutDescription = "X-PHY Deepfake Detector";
 
-        /// <summary>
-        /// Gets the full path to the current process executable (for writing to Run key).
-        /// </summary>
+        private static string StartupFolder =>
+            Environment.GetFolderPath(Environment.SpecialFolder.Startup);
+
+        private static string StartupShortcutPath => Path.Combine(StartupFolder, StartupShortcutFileName);
+
         public static string GetExecutablePath()
         {
             try
@@ -30,16 +36,15 @@ namespace x_phy_wpf_ui.Services
             return null;
         }
 
-        /// <summary>
-        /// Returns true if the app is currently set to run at Windows startup.
-        /// </summary>
         public static bool IsAutoStartEnabled()
         {
             try
             {
+                if (File.Exists(StartupShortcutPath))
+                    return true;
                 using (var key = Registry.CurrentUser.OpenSubKey(RunKeyPath, writable: false))
                 {
-                    var value = key?.GetValue(AppName) as string;
+                    var value = key?.GetValue(AppRegistryName) as string;
                     return !string.IsNullOrEmpty(value);
                 }
             }
@@ -50,34 +55,75 @@ namespace x_phy_wpf_ui.Services
             }
         }
 
-        /// <summary>
-        /// Enables or disables running the app at Windows startup.
-        /// </summary>
         public static void SetAutoStart(bool enable)
         {
             try
             {
-                using (var key = Registry.CurrentUser.OpenSubKey(RunKeyPath, writable: true))
+                if (enable)
                 {
-                    if (key == null)
+                    RemoveLegacyRunKey();
+                    var exePath = GetExecutablePath();
+                    if (string.IsNullOrEmpty(exePath))
                         return;
-                    if (enable)
+                    var workingDir = Path.GetDirectoryName(exePath);
+                    Directory.CreateDirectory(StartupFolder);
+                    if (!TryCreateShortcut(StartupShortcutPath, exePath, workingDir))
+                        throw new InvalidOperationException("Could not create startup shortcut.");
+                }
+                else
+                {
+                    try
                     {
-                        var exePath = GetExecutablePath();
-                        if (string.IsNullOrEmpty(exePath))
-                            return;
-                        key.SetValue(AppName, exePath);
+                        if (File.Exists(StartupShortcutPath))
+                            File.Delete(StartupShortcutPath);
                     }
-                    else
-                    {
-                        key.DeleteValue(AppName, throwOnMissingValue: false);
-                    }
+                    catch { /* ignore */ }
+                    RemoveLegacyRunKey();
                 }
             }
             catch (Exception ex)
             {
                 System.Diagnostics.Debug.WriteLine($"StartupHelper SetAutoStart: {ex.Message}");
                 throw;
+            }
+        }
+
+        private static void RemoveLegacyRunKey()
+        {
+            try
+            {
+                using (var key = Registry.CurrentUser.OpenSubKey(RunKeyPath, writable: true))
+                {
+                    key?.DeleteValue(AppRegistryName, throwOnMissingValue: false);
+                }
+            }
+            catch { /* ignore */ }
+        }
+
+        private static bool TryCreateShortcut(string shortcutPath, string exePath, string workingDir)
+        {
+            try
+            {
+                var shellType = Type.GetTypeFromProgID("WScript.Shell");
+                if (shellType == null) return false;
+                var shell = Activator.CreateInstance(shellType);
+                var shortcut = shellType.InvokeMember(
+                    "CreateShortcut",
+                    BindingFlags.InvokeMethod,
+                    null,
+                    shell,
+                    new object[] { shortcutPath });
+                if (shortcut == null) return false;
+                var t = shortcut.GetType();
+                t.InvokeMember("TargetPath", BindingFlags.SetProperty, null, shortcut, new object[] { exePath });
+                t.InvokeMember("WorkingDirectory", BindingFlags.SetProperty, null, shortcut, new object[] { workingDir ?? "" });
+                t.InvokeMember("Description", BindingFlags.SetProperty, null, shortcut, new object[] { ShortcutDescription });
+                t.InvokeMember("Save", BindingFlags.InvokeMethod, null, shortcut, null);
+                return File.Exists(shortcutPath);
+            }
+            catch
+            {
+                return false;
             }
         }
     }

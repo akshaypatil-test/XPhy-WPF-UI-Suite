@@ -684,52 +684,136 @@ namespace InstallerUI
         }
 
         private const string RunKeyName = "X-PHY Deepfake Detector";
+        private const string StartupShortcutFileName = "X-PHY Deepfake Detector.lnk";
 
-        /// <summary>Apply launch-on-startup: add or remove from the Run key so the app runs when Windows starts.
-        /// Writes to the interactive user's registry when the installer runs elevated (Admin), so it works for the user who will log in.</summary>
+        /// <summary>
+        /// Apply launch-on-startup using a Startup folder shortcut named like the product (Windows Settings shows that name and enables the toggle reliably).
+        /// Removes legacy HKCU Run entries for this app to avoid duplicate launches and wrong labels (x_phy_wpf_ui).
+        /// </summary>
         public void ApplyLaunchOnStartup()
         {
             if (!InstallSucceeded) return;
-            string exePath = null;
+
+            string resolvedExe = null;
+            string installDir = null;
             if (LaunchOnStartup)
             {
-                var (_, path) = TryResolveInstalledExePath(InstallPath);
-                if (path == null || !File.Exists(path)) return;
-                exePath = "\"" + path + "\"";
+                for (var attempt = 0; attempt < 8; attempt++)
+                {
+                    var (dir, path) = TryResolveInstalledExePath(InstallPath);
+                    if (path != null && File.Exists(path))
+                    {
+                        resolvedExe = path;
+                        installDir = dir;
+                        break;
+                    }
+                    System.Threading.Thread.Sleep(250);
+                }
+                if (resolvedExe == null) return;
             }
 
-            // Prefer interactive user's Run key (so when installer runs as Admin we write to the logged-in user, not Administrator)
-            using (var key = InteractiveUserRunKey.OpenInteractiveUserRunKey(writable: true))
+            RemoveStartupRunRegistryEntries();
+
+            if (!LaunchOnStartup)
+            {
+                foreach (var folder in GetCandidateStartupFolders())
+                    TryDeleteStartupFolder(folder);
+                return;
+            }
+
+            if (string.IsNullOrEmpty(installDir)) return;
+
+            var shellType = Type.GetTypeFromProgID("WScript.Shell");
+            foreach (var startupFolder in GetCandidateStartupFolders())
+            {
+                if (string.IsNullOrEmpty(startupFolder)) continue;
+                try { Directory.CreateDirectory(startupFolder); } catch { /* ignore */ }
+
+                var shortcutPath = Path.Combine(startupFolder, StartupShortcutFileName);
+                if (shellType != null && CreateShortcutAt(shellType, shortcutPath, resolvedExe, installDir))
+                    return;
+            }
+
+            FallbackRunRegistryStartup(resolvedExe);
+        }
+
+        /// <summary>All plausible Startup folder paths (interactive SID, SpecialFolder, USERPROFILE fallback).</summary>
+        private static List<string> GetCandidateStartupFolders()
+        {
+            var set = new HashSet<string>(StringComparer.OrdinalIgnoreCase);
+            void Add(string p)
+            {
+                if (string.IsNullOrWhiteSpace(p)) return;
+                set.Add(p.TrimEnd('\\', '/'));
+            }
+
+            try { Add(InteractiveUserRunKey.GetInteractiveUserStartupFolderPath()); } catch { /* ignore */ }
+            try { Add(Environment.GetFolderPath(Environment.SpecialFolder.Startup)); } catch { /* ignore */ }
+            try
+            {
+                var prof = Environment.GetEnvironmentVariable("USERPROFILE");
+                if (!string.IsNullOrEmpty(prof))
+                    Add(Path.Combine(prof, "AppData", "Roaming", "Microsoft", "Windows", "Start Menu", "Programs", "Startup"));
+            }
+            catch { /* ignore */ }
+
+            return new List<string>(set);
+        }
+
+        private static void TryDeleteStartupFolder(string folder)
+        {
+            if (string.IsNullOrEmpty(folder)) return;
+            try
+            {
+                var p = Path.Combine(folder, StartupShortcutFileName);
+                if (File.Exists(p)) File.Delete(p);
+            }
+            catch { /* ignore */ }
+        }
+
+        private static void RemoveStartupRunRegistryEntries()
+        {
+            try
+            {
+                using (var key = InteractiveUserRunKey.OpenInteractiveUserRunKey(writable: true))
+                {
+                    if (key != null)
+                        try { key.DeleteValue(RunKeyName, false); } catch { /* */ }
+                }
+            }
+            catch { /* ignore */ }
+            try
+            {
+                using (var key = Registry.CurrentUser.OpenSubKey(@"Software\Microsoft\Windows\CurrentVersion\Run", true))
+                {
+                    key?.DeleteValue(RunKeyName, false);
+                }
+            }
+            catch { /* ignore */ }
+        }
+
+        private static void FallbackRunRegistryStartup(string exePathUnquoted)
+        {
+            if (string.IsNullOrEmpty(exePathUnquoted)) return;
+            var value = "\"" + exePathUnquoted + "\"";
+            var wrote = false;
+            using (var key = InteractiveUserRunKey.OpenOrCreateInteractiveUserRunKey())
             {
                 if (key != null)
                 {
                     try
                     {
-                        if (LaunchOnStartup)
-                            key.SetValue(RunKeyName, exePath);
-                        else
-                        {
-                            try { key.DeleteValue(RunKeyName, false); } catch { /* value may not exist */ }
-                        }
+                        key.SetValue(RunKeyName, value);
+                        wrote = true;
                     }
                     catch { /* ignore */ }
-                    return;
                 }
             }
-
-            // Fallback: current process user (correct when installer is not elevated)
+            if (wrote) return;
             try
             {
-                using (var key = Registry.CurrentUser.OpenSubKey(@"Software\Microsoft\Windows\CurrentVersion\Run", true))
-                {
-                    if (key == null) return;
-                    if (LaunchOnStartup)
-                        key.SetValue(RunKeyName, exePath);
-                    else
-                    {
-                        try { key.DeleteValue(RunKeyName, false); } catch { /* value may not exist */ }
-                    }
-                }
+                using (var key = Registry.CurrentUser.CreateSubKey(@"Software\Microsoft\Windows\CurrentVersion\Run", true))
+                    key.SetValue(RunKeyName, value);
             }
             catch { /* ignore */ }
         }

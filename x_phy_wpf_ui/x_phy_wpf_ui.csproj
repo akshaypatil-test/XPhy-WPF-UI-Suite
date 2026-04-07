@@ -16,6 +16,10 @@
     <LangVersion>9.0</LangVersion>
     <Version>2.0.1</Version>
     <InformationalVersion>2.01</InformationalVersion>
+    <AssemblyTitle>X-PHY Deepfake Detector</AssemblyTitle>
+    <AssemblyProduct>X-PHY Deepfake Detector</AssemblyProduct>
+    <AssemblyDescription>X-PHY Deepfake Detector</AssemblyDescription>
+    <Product>X-PHY Deepfake Detector</Product>
   </PropertyGroup>
   <ItemGroup>
     <Reference Include="System.Windows.Forms" />

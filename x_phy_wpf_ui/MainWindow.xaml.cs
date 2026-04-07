@@ -168,6 +168,9 @@ namespace x_phy_wpf_ui
 
                 InitializeComponent();
 
+                if (VersionText != null)
+                    VersionText.Text = "Version: " + ApplicationVersion.GetDisplayVersion();
+
                 // Initialize timers (these are safe to initialize immediately)
                 InitializeStatusTimer();
                 
@@ -3603,17 +3606,6 @@ videoLiveFakeProportionThreshold = 0.7
                 }
                 catch { }
             });
-        }
-
-        private static string GetAppVersion()
-        {
-            try
-            {
-                var ver = System.Reflection.Assembly.GetExecutingAssembly().GetName().Version;
-                if (ver != null) return $"{ver.Major}.{ver.Minor}";
-            }
-            catch { }
-            return "2.0";
         }
 
         /// <summary>Start detection from tray menu; invokes native controller on UI thread.</summary>

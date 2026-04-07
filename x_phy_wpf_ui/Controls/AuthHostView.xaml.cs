@@ -20,6 +20,8 @@ namespace x_phy_wpf_ui.Controls
 
         private void AuthHostView_Loaded(object sender, RoutedEventArgs e)
         {
+            if (AuthHostVersionText != null)
+                AuthHostVersionText.Text = "Version: " + ApplicationVersion.GetDisplayVersion();
             UpdateBackgroundImage();
         }
 

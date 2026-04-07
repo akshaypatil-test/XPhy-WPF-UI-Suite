@@ -68,8 +68,8 @@
                            RenderOptions.BitmapScalingMode="HighQuality"/>
 
                     <!-- Version (next to logo) -->
-                    <TextBlock Grid.Column="1"
-                               Text="Version: 2.0" 
+                    <TextBlock x:Name="AuthHostVersionText" Grid.Column="1"
+                               Text="Version: 2.01" 
                                FontSize="12" 
                                Foreground="{DynamicResource Brush.TextSecondary}" 
                                VerticalAlignment="Center"

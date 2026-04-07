@@ -1,9 +1,9 @@
 #nullable enable
 using System;
-using System.Reflection;
 using System.Windows;
 using System.Windows.Input;
 using x_phy_wpf_ui.Models;
+using x_phy_wpf_ui.Services;
 
 namespace x_phy_wpf_ui
 {
@@ -28,26 +28,13 @@ namespace x_phy_wpf_ui
         public MediaSourceDetectedPopup()
         {
             InitializeComponent();
-            VersionText.Text = "Version: " + GetAppVersion();
+            VersionText.Text = "Version: " + ApplicationVersion.GetDisplayVersion();
             Closed += (s, _) =>
             {
                 if (_closeCounted) return;
                 _closeCounted = true;
                 if (_openCount > 0) _openCount--;
             };
-        }
-
-        private static string GetAppVersion()
-        {
-            try
-            {
-                var v = Assembly.GetExecutingAssembly().GetName().Version;
-                return v != null ? $"{v.Major}.{v.Minor}" : "2.0";
-            }
-            catch
-            {
-                return "2.0";
-            }
         }
 
         /// <summary>

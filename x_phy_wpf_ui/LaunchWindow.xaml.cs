@@ -26,6 +26,8 @@ namespace x_phy_wpf_ui
 
         private void LaunchWindow_Loaded(object sender, RoutedEventArgs e)
         {
+            if (LaunchVersionText != null)
+                LaunchVersionText.Text = "Version: " + ApplicationVersion.GetDisplayVersion();
             UpdateBackgroundImage();
         }
 

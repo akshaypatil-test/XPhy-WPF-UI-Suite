@@ -24,6 +24,8 @@ namespace x_phy_wpf_ui.Controls
 
         private void SettingsComponent_Loaded(object sender, RoutedEventArgs e)
         {
+            if (AppVersionText != null)
+                AppVersionText.Text = ApplicationVersion.GetDisplayVersion();
             UpdateThemeSelection();
             _updatingAutoStart = true;
             try

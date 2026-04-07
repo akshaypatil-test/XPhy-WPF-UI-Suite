@@ -61,7 +61,7 @@
                        Stretch="Uniform"
                        VerticalAlignment="Center"
                        RenderOptions.BitmapScalingMode="HighQuality"/>
-                <TextBlock x:Name="VersionText" Text="Version: 2.0"
+                <TextBlock x:Name="VersionText" Text="Version: 2.01"
                            FontSize="12"
                            Foreground="{DynamicResource Brush.TextSecondary}"
                            VerticalAlignment="Center"

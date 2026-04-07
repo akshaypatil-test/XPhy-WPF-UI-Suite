@@ -1,6 +1,6 @@
 using System;
-using System.Reflection;
 using System.Windows;
+using x_phy_wpf_ui.Services;
 using System.Windows.Input;
 using System.Windows.Media;
 using System.Windows.Threading;
@@ -23,7 +23,7 @@ namespace x_phy_wpf_ui
         public DetectionNotificationWindow()
         {
             InitializeComponent();
-            VersionText.Text = "Version: " + GetAppVersion();
+            VersionText.Text = "Version: " + ApplicationVersion.GetDisplayVersion();
         }
 
         /// <summary>Closes any open detection notification windows so a new one does not overlap.</summary>
@@ -40,19 +40,6 @@ namespace x_phy_wpf_ui
                 }
             }
             catch { }
-        }
-
-        private static string GetAppVersion()
-        {
-            try
-            {
-                var v = Assembly.GetExecutingAssembly().GetName().Version;
-                return v != null ? $"{v.Major}.{v.Minor}" : "2.0";
-            }
-            catch
-            {
-                return "2.0";
-            }
         }
 
         /// <summary>Set content for simple notifications (Detection Started only).</summary>

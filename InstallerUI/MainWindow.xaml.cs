@@ -115,6 +115,12 @@ namespace InstallerUI
                 DragMove();
         }
 
+        private void PrintLink_MouseLeftButtonDown(object sender, System.Windows.Input.MouseButtonEventArgs e)
+        {
+            if (PageContent?.Content is LicenseView licenseView)
+                licenseView.PrintLicense();
+        }
+
         /// <summary>Launch the installed app. Uses explorer.exe so it runs in the user's session when installer is elevated (Admin).</summary>
         private static bool TryLaunchApp(string exePath, string workingDirectory)
         {

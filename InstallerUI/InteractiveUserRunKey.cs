@@ -1,5 +1,7 @@
 using System;
+using System.Diagnostics;
 using System.Runtime.InteropServices;
+using System.Security.Principal;
 using System.Text;
 using Microsoft.Win32;
 
@@ -34,6 +36,14 @@ namespace InstallerUI
         [DllImport("advapi32.dll", SetLastError = false)]
         private static extern IntPtr LocalFree(IntPtr ptr);
 
+        [DllImport("advapi32.dll", SetLastError = true)]
+        private static extern bool OpenProcessToken(IntPtr processHandle, uint desiredAccess, out IntPtr tokenHandle);
+
+        [DllImport("kernel32.dll", SetLastError = true)]
+        private static extern bool CloseHandle(IntPtr handle);
+
+        private const uint TokenQuery = 0x0008;
+
         private const int SID_MAX_SUB_AUTHORITIES = 15;
         private const int SECURITY_MAX_SID_SIZE = 68; // 12 + (SID_MAX_SUB_AUTHORITIES * 4)
 
@@ -50,6 +60,30 @@ namespace InstallerUI
                 {
                     var runPath = sidString + @"\Software\Microsoft\Windows\CurrentVersion\Run";
                     return usersKey.OpenSubKey(runPath, writable);
+                }
+                finally
+                {
+                    usersKey?.Dispose();
+                }
+            }
+            catch
+            {
+                return null;
+            }
+        }
+
+        /// <summary>Creates the interactive user's Run key if missing (open alone returns null when the key never existed).</summary>
+        public static RegistryKey OpenOrCreateInteractiveUserRunKey()
+        {
+            try
+            {
+                string sidString = GetInteractiveUserSidString();
+                if (string.IsNullOrEmpty(sidString)) return null;
+
+                var usersKey = RegistryKey.OpenBaseKey(RegistryHive.Users, RegistryView.Default);
+                try
+                {
+                    return usersKey.CreateSubKey(sidString + @"\Software\Microsoft\Windows\CurrentVersion\Run", true);
                 }
                 finally
                 {
@@ -83,24 +117,110 @@ namespace InstallerUI
             }
         }
 
-        private static string GetInteractiveUserSidString()
+        /// <summary>Startup folder (shell:startup) for the interactive user — use when the installer runs elevated so SpecialFolder.Startup is not wrong.</summary>
+        public static string GetInteractiveUserStartupFolderPath()
         {
             try
             {
-                int sessionId = WTSGetActiveConsoleSessionId();
-                if (sessionId <= 0) return null;
+                string sidString = GetInteractiveUserSidString();
+                if (string.IsNullOrEmpty(sidString)) return null;
 
-                string domain = GetWtsSessionString(sessionId, WTSDomainName);
-                string user = GetWtsSessionString(sessionId, WTSUserName);
-                if (string.IsNullOrEmpty(user)) return null;
-
-                string accountName = string.IsNullOrEmpty(domain) ? user : domain + "\\" + user;
-                return GetSidStringForAccount(accountName);
+                using (var usersKey = RegistryKey.OpenBaseKey(RegistryHive.Users, RegistryView.Default))
+                using (var shellFolders = usersKey.OpenSubKey(sidString + @"\Software\Microsoft\Windows\CurrentVersion\Explorer\Shell Folders"))
+                {
+                    var startup = shellFolders?.GetValue("Startup") as string;
+                    return string.IsNullOrEmpty(startup) ? null : startup;
+                }
             }
             catch
             {
                 return null;
             }
+        }
+
+        /// <summary>
+        /// Resolves the logged-on desktop user's SID. WTS active-console often fails when the installer is elevated,
+        /// on RDP, or when there is no physical console — we fall back to the user running explorer.exe.
+        /// </summary>
+        private static string GetInteractiveUserSidString()
+        {
+            try
+            {
+                uint sessionId = unchecked((uint)WTSGetActiveConsoleSessionId());
+                // 0xFFFFFFFF = no active console; session 0 is non-interactive on client Windows.
+                if (sessionId != 0xFFFFFFFFu && sessionId != 0)
+                {
+                    string domain = GetWtsSessionString((int)sessionId, WTSDomainName);
+                    string user = GetWtsSessionString((int)sessionId, WTSUserName);
+                    if (!string.IsNullOrEmpty(user))
+                    {
+                        string accountName = string.IsNullOrEmpty(domain) ? user : domain + "\\" + user;
+                        var sid = GetSidStringForAccount(accountName);
+                        if (!string.IsNullOrEmpty(sid))
+                            return sid;
+                    }
+                }
+            }
+            catch { /* try fallbacks */ }
+
+            try
+            {
+                var fromExplorer = GetSidFromExplorerShellProcess();
+                if (!string.IsNullOrEmpty(fromExplorer))
+                    return fromExplorer;
+            }
+            catch { /* ignore */ }
+
+            return null;
+        }
+
+        /// <summary>Token user SID for a running explorer.exe (desktop shell) — reliable when WTS session APIs fail.</summary>
+        private static string GetSidFromExplorerShellProcess()
+        {
+            Process[] list = null;
+            try
+            {
+                list = Process.GetProcessesByName("explorer");
+                foreach (var proc in list)
+                {
+                    try
+                    {
+                        if (proc.Handle == IntPtr.Zero)
+                            continue;
+                        if (!OpenProcessToken(proc.Handle, TokenQuery, out IntPtr token))
+                            continue;
+                        try
+                        {
+                            using (var wi = new WindowsIdentity(token))
+                            {
+                                var v = wi.User?.Value;
+                                if (!string.IsNullOrEmpty(v))
+                                    return v;
+                            }
+                        }
+                        finally
+                        {
+                            CloseHandle(token);
+                        }
+                    }
+                    catch
+                    {
+                        /* try next explorer */
+                    }
+                }
+            }
+            finally
+            {
+                if (list != null)
+                {
+                    foreach (var p in list)
+                    {
+                        try { p.Dispose(); } catch { /* ignore */ }
+                    }
+                }
+            }
+
+            return null;
         }
 
         private static string GetWtsSessionString(int sessionId, int wtsInfoClass)

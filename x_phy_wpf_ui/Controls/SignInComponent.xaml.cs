@@ -3,6 +3,7 @@ using System.Text.RegularExpressions;
 using System.Threading.Tasks;
 using System.Windows;
 using System.Windows.Controls;
+using System.Windows.Input;
 using System.Windows.Media;
 using x_phy_wpf_ui.Models;
 using x_phy_wpf_ui.Services;
@@ -139,6 +140,19 @@ namespace x_phy_wpf_ui.Controls
                 PasswordBox.Visibility = Visibility.Collapsed;
             }
             UpdatePasswordPlaceholder();
+            UpdateEyeIcon(PasswordEyeButton, PasswordRevealTextBox.Visibility == Visibility.Visible);
+        }
+
+        private static void UpdateEyeIcon(System.Windows.Controls.Button eyeButton, bool isRevealed)
+        {
+            if (eyeButton?.Template == null) return;
+            var iconShow = eyeButton.Template.FindName("IconShow", eyeButton) as System.Windows.UIElement;
+            var iconHide = eyeButton.Template.FindName("IconHide", eyeButton) as System.Windows.UIElement;
+            if (iconShow != null && iconHide != null)
+            {
+                iconShow.Visibility = isRevealed ? Visibility.Collapsed : Visibility.Visible;
+                iconHide.Visibility = isRevealed ? Visibility.Visible : Visibility.Collapsed;
+            }
         }
 
         private void UpdatePasswordPlaceholder()
@@ -251,6 +265,15 @@ namespace x_phy_wpf_ui.Controls
         private void UpdateSignInButtonState()
         {
             SignInButton.IsEnabled = _isEmailValid && _isPasswordValid;
+        }
+
+        private void SignInForm_KeyDown(object sender, KeyEventArgs e)
+        {
+            if (e.Key == Key.Enter && SignInButton.IsEnabled)
+            {
+                e.Handled = true;
+                SignIn_Click(sender, new RoutedEventArgs());
+            }
         }
 
         private async void SignIn_Click(object sender, RoutedEventArgs e)

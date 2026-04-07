@@ -69,7 +69,10 @@ namespace x_phy_wpf_ui.Services
                     return confirmResponse;
                 }
                 var errorResponse = JsonConvert.DeserializeObject<ApiErrorResponse>(responseJson);
-                throw new Exception(errorResponse?.Message ?? $"Purchase confirmation failed: {response.StatusCode}");
+                var serverMessage = !string.IsNullOrWhiteSpace(errorResponse?.Message)
+                    ? errorResponse.Message
+                    : $"Purchase confirmation failed: {response.StatusCode}";
+                throw new Exception(serverMessage);
             }
             catch (SessionExpiredException)
             {
@@ -85,12 +88,14 @@ namespace x_phy_wpf_ui.Services
             }
             catch (Exception ex) when (ex is not SessionExpiredException)
             {
-                throw new Exception($"Purchase confirmation error: {ex.Message}");
+                // Preserve server message (e.g. LMS machine limit) so it is shown in the payment UI
+                throw;
             }
         }
 
         /// <summary>
         /// Consume one trial detection attempt. On session expiry, throws SessionExpiredException.
+        /// Backend must return trialAttemptsRemaining (from User.TrialAttemptsRemaining after decrement) in the response so the client can update the UI in real time.
         /// </summary>
         public async Task<UseDetectionAttemptResponse> UseDetectionAttemptAsync()
         {
@@ -129,6 +134,7 @@ namespace x_phy_wpf_ui.Services
 
         /// <summary>
         /// Validate license with device fingerprint. On session expiry, throws SessionExpiredException.
+        /// Backend should return license.trialAttemptsRemaining from User.TrialAttemptsRemaining so when user returns to app the attempts display is correct.
         /// </summary>
         public async Task<ValidateResponse?> ValidateLicenseAsync()
         {

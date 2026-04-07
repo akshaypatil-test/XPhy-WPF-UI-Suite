@@ -36,6 +36,8 @@ namespace x_phy_wpf_ui.Controls
             ConfirmPasswordBox.Visibility = Visibility.Visible;
             ErrorMessageText.Text = "";
             ErrorMessageText.Visibility = Visibility.Collapsed;
+            CurrentPasswordErrorText.Text = "";
+            CurrentPasswordErrorText.Visibility = Visibility.Collapsed;
             NewPasswordErrorText.Text = "";
             NewPasswordErrorText.Visibility = Visibility.Collapsed;
             ConfirmPasswordErrorText.Text = "";
@@ -70,15 +72,47 @@ namespace x_phy_wpf_ui.Controls
 
         private static bool IsValidPassword(string password)
         {
-            if (string.IsNullOrEmpty(password) || password.Length < 8) return false;
-            var regex = new Regex(@"^(?=.*[a-z])(?=.*[A-Z])(?=.*\d)(?=.*[@$!%*?&])[A-Za-z\d@$!%*?&]{8,}$");
+            if (string.IsNullOrEmpty(password) || password.Length < 8 || password.Contains(" ")) return false;
+            var regex = new Regex(@"^(?=.*[a-z])(?=.*[A-Z])(?=.*\d)(?=.*[^a-zA-Z0-9\s])[^\s]{8,}$");
             return regex.IsMatch(password);
+        }
+
+        private void ValidateCurrentPassword()
+        {
+            var current = CurrentPasswordReveal.Visibility == Visibility.Visible ? CurrentPasswordReveal.Text : CurrentPasswordBox.Password;
+            var isEmpty = string.IsNullOrEmpty(current);
+            CurrentPasswordErrorText.Visibility = isEmpty ? Visibility.Visible : Visibility.Collapsed;
+            CurrentPasswordErrorText.Text = isEmpty ? "Required." : "";
+        }
+
+        private void ValidateNewPassword()
+        {
+            var newPwd = NewPasswordReveal.Visibility == Visibility.Visible ? NewPasswordReveal.Text : NewPasswordBox.Password;
+            var valid = !string.IsNullOrEmpty(newPwd) && IsValidPassword(newPwd);
+            NewPasswordErrorText.Visibility = valid ? Visibility.Collapsed : Visibility.Visible;
+            NewPasswordErrorText.Text = valid ? "" : "Min 8 chars, upper, lower, number, one special (no spaces).";
+        }
+
+        private void ValidateConfirmPassword()
+        {
+            var newPwd = NewPasswordReveal.Visibility == Visibility.Visible ? NewPasswordReveal.Text : NewPasswordBox.Password;
+            var confirm = ConfirmPasswordReveal.Visibility == Visibility.Visible ? ConfirmPasswordReveal.Text : ConfirmPasswordBox.Password;
+            var valid = !string.IsNullOrEmpty(confirm) && confirm == newPwd;
+            ConfirmPasswordErrorText.Visibility = valid ? Visibility.Collapsed : Visibility.Visible;
+            ConfirmPasswordErrorText.Text = valid ? "" : "Passwords do not match.";
+        }
+
+        private void CurrentPasswordBox_LostFocus(object sender, RoutedEventArgs e)
+        {
+            ValidateCurrentPassword();
+            UpdateButtonState();
         }
 
         private void CurrentPasswordBox_PasswordChanged(object sender, RoutedEventArgs e)
         {
             if (CurrentPasswordReveal.Visibility != Visibility.Visible)
                 UpdatePasswordPlaceholders();
+            ValidateCurrentPassword();
             UpdateButtonState();
         }
 
@@ -87,6 +121,7 @@ namespace x_phy_wpf_ui.Controls
             if (CurrentPasswordReveal.Visibility == Visibility.Visible && CurrentPasswordBox.Password != CurrentPasswordReveal.Text)
                 CurrentPasswordBox.Password = CurrentPasswordReveal.Text;
             UpdatePasswordPlaceholders();
+            ValidateCurrentPassword();
             UpdateButtonState();
         }
 
@@ -105,12 +140,22 @@ namespace x_phy_wpf_ui.Controls
                 CurrentPasswordBox.Visibility = Visibility.Collapsed;
             }
             UpdatePasswordPlaceholders();
+            UpdateEyeIcon(CurrentPasswordEye, CurrentPasswordReveal.Visibility == Visibility.Visible);
+        }
+
+        private void NewPasswordBox_LostFocus(object sender, RoutedEventArgs e)
+        {
+            ValidateNewPassword();
+            ValidateConfirmPassword();
+            UpdateButtonState();
         }
 
         private void NewPasswordBox_PasswordChanged(object sender, RoutedEventArgs e)
         {
             if (NewPasswordReveal.Visibility != Visibility.Visible)
                 UpdatePasswordPlaceholders();
+            ValidateNewPassword();
+            ValidateConfirmPassword();
             UpdateButtonState();
         }
 
@@ -119,6 +164,8 @@ namespace x_phy_wpf_ui.Controls
             if (NewPasswordReveal.Visibility == Visibility.Visible && NewPasswordBox.Password != NewPasswordReveal.Text)
                 NewPasswordBox.Password = NewPasswordReveal.Text;
             UpdatePasswordPlaceholders();
+            ValidateNewPassword();
+            ValidateConfirmPassword();
             UpdateButtonState();
         }
 
@@ -137,21 +184,25 @@ namespace x_phy_wpf_ui.Controls
                 NewPasswordBox.Visibility = Visibility.Collapsed;
             }
             UpdatePasswordPlaceholders();
+            UpdateEyeIcon(NewPasswordEye, NewPasswordReveal.Visibility == Visibility.Visible);
         }
 
         private void NewPasswordInfoButton_Click(object sender, RoutedEventArgs e)
         {
-            MessageBox.Show(
-                "Password must be at least 8 characters and contain:\n• Uppercase letter\n• Lowercase letter\n• Number\n• Special character (@$!%*?&)",
-                "Password Requirements",
-                MessageBoxButton.OK,
-                MessageBoxImage.Information);
+            PasswordRequirementsPopup.IsOpen = true;
+        }
+
+        private void ConfirmPasswordBox_LostFocus(object sender, RoutedEventArgs e)
+        {
+            ValidateConfirmPassword();
+            UpdateButtonState();
         }
 
         private void ConfirmPasswordBox_PasswordChanged(object sender, RoutedEventArgs e)
         {
             if (ConfirmPasswordReveal.Visibility != Visibility.Visible)
                 UpdatePasswordPlaceholders();
+            ValidateConfirmPassword();
             UpdateButtonState();
         }
 
@@ -160,6 +211,7 @@ namespace x_phy_wpf_ui.Controls
             if (ConfirmPasswordReveal.Visibility == Visibility.Visible && ConfirmPasswordBox.Password != ConfirmPasswordReveal.Text)
                 ConfirmPasswordBox.Password = ConfirmPasswordReveal.Text;
             UpdatePasswordPlaceholders();
+            ValidateConfirmPassword();
             UpdateButtonState();
         }
 
@@ -178,6 +230,19 @@ namespace x_phy_wpf_ui.Controls
                 ConfirmPasswordBox.Visibility = Visibility.Collapsed;
             }
             UpdatePasswordPlaceholders();
+            UpdateEyeIcon(ConfirmPasswordEye, ConfirmPasswordReveal.Visibility == Visibility.Visible);
+        }
+
+        private static void UpdateEyeIcon(System.Windows.Controls.Button eyeButton, bool isRevealed)
+        {
+            if (eyeButton?.Template == null) return;
+            var iconShow = eyeButton.Template.FindName("IconShow", eyeButton) as System.Windows.UIElement;
+            var iconHide = eyeButton.Template.FindName("IconHide", eyeButton) as System.Windows.UIElement;
+            if (iconShow != null && iconHide != null)
+            {
+                iconShow.Visibility = isRevealed ? Visibility.Collapsed : Visibility.Visible;
+                iconHide.Visibility = isRevealed ? Visibility.Visible : Visibility.Collapsed;
+            }
         }
 
         private async void UpdatePassword_Click(object sender, RoutedEventArgs e)
@@ -187,21 +252,22 @@ namespace x_phy_wpf_ui.Controls
             var confirm = ConfirmPasswordReveal.Visibility == Visibility.Visible ? ConfirmPasswordReveal.Text : ConfirmPasswordBox.Password;
 
             ErrorMessageText.Visibility = Visibility.Collapsed;
+            CurrentPasswordErrorText.Visibility = Visibility.Collapsed;
             NewPasswordErrorText.Visibility = Visibility.Collapsed;
             ConfirmPasswordErrorText.Visibility = Visibility.Collapsed;
 
-            if (!IsValidPassword(newPwd))
+            if (string.IsNullOrEmpty(current))
             {
-                NewPasswordErrorText.Text = "Password must be at least 8 characters and contain uppercase, lowercase, number, and special character.";
-                NewPasswordErrorText.Visibility = Visibility.Visible;
+                CurrentPasswordErrorText.Text = "Required.";
+                CurrentPasswordErrorText.Visibility = Visibility.Visible;
                 return;
             }
-            if (newPwd != confirm)
-            {
-                ConfirmPasswordErrorText.Text = "Passwords do not match.";
-                ConfirmPasswordErrorText.Visibility = Visibility.Visible;
+            ValidateNewPassword();
+            if (NewPasswordErrorText.Visibility == Visibility.Visible)
                 return;
-            }
+            ValidateConfirmPassword();
+            if (ConfirmPasswordErrorText.Visibility == Visibility.Visible)
+                return;
 
             var tokens = _tokenStorage.GetTokens();
             if (tokens?.AccessToken == null)
@@ -219,10 +285,26 @@ namespace x_phy_wpf_ui.Controls
             }
             catch (Exception ex)
             {
-                ErrorMessageText.Text = ex.Message;
+                ErrorMessageText.Text = ToUserFriendlyError(ex.Message);
                 ErrorMessageText.Visibility = Visibility.Visible;
                 UpdatePasswordButton.IsEnabled = true;
             }
+        }
+
+        private static string ToUserFriendlyError(string message)
+        {
+            if (string.IsNullOrWhiteSpace(message)) return "Something went wrong. Please try again or contact support.";
+            var m = message.Trim();
+            if (m.IndexOf("current password", StringComparison.OrdinalIgnoreCase) >= 0 ||
+                m.IndexOf("invalid password", StringComparison.OrdinalIgnoreCase) >= 0 ||
+                m.IndexOf("401", StringComparison.OrdinalIgnoreCase) >= 0 ||
+                m.IndexOf("Unauthorized", StringComparison.OrdinalIgnoreCase) >= 0)
+                return "Current password is incorrect. Please try again.";
+            if (m.IndexOf("Network error", StringComparison.OrdinalIgnoreCase) >= 0)
+                return "Please check your internet connection and try again.";
+            if (m.IndexOf("timeout", StringComparison.OrdinalIgnoreCase) >= 0)
+                return "Request timed out. Please check your connection and try again.";
+            return message;
         }
     }
 }

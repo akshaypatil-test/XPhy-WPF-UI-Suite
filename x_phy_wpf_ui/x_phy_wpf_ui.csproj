@@ -14,7 +14,12 @@
     <Optimize>false</Optimize>
     <Platforms>AnyCPU;x64</Platforms>
     <LangVersion>9.0</LangVersion>
-    <Version>1.0.10</Version>
+    <Version>2.0.1</Version>
+    <InformationalVersion>2.01</InformationalVersion>
+    <AssemblyTitle>X-PHY Deepfake Detector</AssemblyTitle>
+    <AssemblyProduct>X-PHY Deepfake Detector</AssemblyProduct>
+    <AssemblyDescription>X-PHY Deepfake Detector</AssemblyDescription>
+    <Product>X-PHY Deepfake Detector</Product>
   </PropertyGroup>
   <ItemGroup>
     <Reference Include="System.Windows.Forms" />
@@ -24,6 +29,7 @@
     </Reference>
   </ItemGroup>
   <ItemGroup>
+    <PackageReference Include="MaterialDesignThemes" Version="4.9.0" />
     <PackageReference Include="Stripe.net" Version="43.15.0" />
     <PackageReference Include="Newtonsoft.Json" Version="13.0.3" />
     <PackageReference Include="Microsoft.Web.WebView2" Version="1.0.2210.55" />
@@ -56,11 +62,11 @@
       <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
     </None>
     <!-- Support documentation: copied to Resources folder so Support component can open them -->
-    <None Include="..\X-PHY Resource Files\X-PHY _ User Guide.pdf">
+    <None Include="..\X-PHY Resource Files\Installation Setup &amp; User Guide.pdf" Condition="Exists('..\X-PHY Resource Files\Installation Setup &amp; User Guide.pdf')">
       <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
       <Link>Resources\UserGuide.pdf</Link>
     </None>
-    <None Include="..\X-PHY Resource Files\X-PHY_FAQ.pdf">
+    <None Include="..\X-PHY Resource Files\F.A.Q Knowledgebase (version 2.0.0).pdf" Condition="Exists('..\X-PHY Resource Files\F.A.Q Knowledgebase (version 2.0.0).pdf')">
       <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
       <Link>Resources\FAQ.pdf</Link>
     </None>
@@ -91,8 +97,14 @@
     <Resource Include="..\X-PHY Resource Files\faceBg.png">
       <Link>facebg.png</Link>
     </Resource>
+    <Resource Include="..\X-PHY Resource Files\facebg-white.png">
+      <Link>facebg-white.png</Link>
+    </Resource>
     <Resource Include="..\X-PHY Resource Files\mainbg.png">
       <Link>mainbg.png</Link>
+    </Resource>
+    <Resource Include="..\X-PHY Resource Files\mainbg-white.png">
+      <Link>mainbg-white.png</Link>
     </Resource>
     <Resource Include="..\X-PHY Resource Files\bubble.svg">
       <Link>bubble.svg</Link>
@@ -100,5 +112,33 @@
     <Resource Include="..\X-PHY Resource Files\kpi-logo.png">
       <Link>kpi-logo.png</Link>
     </Resource>
+    <Resource Include="..\X-PHY Resource Files\profile.jpg">
+      <Link>profile.jpg</Link>
+    </Resource>
+    <!-- Audio evidence: waveform image - place in X-PHY Resource Files or x_phy_wpf_ui\Resources (any of these names: audio-wave.jpg, AudioWave.jpg) -->
+    <Resource Include="..\X-PHY Resource Files\audio-wave.jpg" Condition="Exists('..\X-PHY Resource Files\audio-wave.jpg')">
+      <Link>audio-wave.jpg</Link>
+    </Resource>
+    <Resource Include="..\X-PHY Resource Files\AudioWave.jpg" Condition="Exists('..\X-PHY Resource Files\AudioWave.jpg')">
+      <Link>AudioWave.jpg</Link>
+    </Resource>
+    <Resource Include="Resources\audio-wave.jpg" Condition="Exists('Resources\audio-wave.jpg')">
+      <Link>audio-wave.jpg</Link>
+    </Resource>
+    <Resource Include="Resources\AudioWave.jpg" Condition="Exists('Resources\AudioWave.jpg')">
+      <Link>AudioWave.jpg</Link>
+    </Resource>
+    <!-- Embedded Roboto font (extract zip into Fonts folder; include .ttf files) -->
+    <Resource Include="Fonts\*.ttf" />
+  </ItemGroup>
+  <ItemGroup>
+    <None Include="Resources\audio-wave.jpg" Condition="Exists('Resources\audio-wave.jpg')">
+      <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
+      <Link>Resources\audio-wave.jpg</Link>
+    </None>
+    <None Include="Resources\AudioWave.jpg" Condition="Exists('Resources\AudioWave.jpg')">
+      <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
+      <Link>Resources\AudioWave.jpg</Link>
+    </None>
   </ItemGroup>
 </Project>

@@ -10,6 +10,7 @@
         <local:NullableBoolToBoolConverter x:Key="NullableBoolToBool"/>
         <local:InverseBooleanConverter x:Key="InverseBool"/>
         <local:InverseBooleanToVisibilityConverter x:Key="BoolToVisInverse"/>
+        <local:StringToVisibilityConverter x:Key="StringToVis"/>
         <local:ProgressToWidthConverter x:Key="ProgressToWidth"/>
         <!-- Installer shell: white content, blue primary, grey secondary (matches Figma) -->
         <SolidColorBrush x:Key="ContentBackground" Color="#FFFFFF"/>
@@ -73,7 +74,38 @@
                 <Trigger Property="IsMouseOver" Value="True">
                     <Setter Property="Background" Value="#D0D0D0"/>
                 </Trigger>
+                <Trigger Property="IsEnabled" Value="False">
+                    <Setter Property="Background" Value="#F0F0F0"/>
+                    <Setter Property="Foreground" Value="#A0A0A0"/>
+                    <Setter Property="BorderBrush" Value="#E0E0E0"/>
+                    <Setter Property="Cursor" Value="Arrow"/>
+                    <Setter Property="Opacity" Value="0.7"/>
+                </Trigger>
             </Style.Triggers>
+        </Style>
+        <!-- Checkbox: blue fill + white check when checked (e.g. Finish screen "Launch now") -->
+        <Style x:Key="PrimaryCheckBoxStyle" TargetType="CheckBox">
+            <Setter Property="FontSize" Value="13"/>
+            <Setter Property="Foreground" Value="{StaticResource TextPrimary}"/>
+            <Setter Property="Template">
+                <Setter.Value>
+                    <ControlTemplate TargetType="CheckBox">
+                        <StackPanel Orientation="Horizontal" VerticalAlignment="Center">
+                            <Border x:Name="CheckBorder" Width="18" Height="18" CornerRadius="2" BorderThickness="1" BorderBrush="#CCCCCC" Background="Transparent" VerticalAlignment="Center" Margin="0,0,8,0">
+                                <TextBlock x:Name="CheckMark" Text="&#x2713;" FontSize="14" FontWeight="Bold" Foreground="White" HorizontalAlignment="Center" VerticalAlignment="Center" Visibility="Collapsed"/>
+                            </Border>
+                            <ContentPresenter Content="{TemplateBinding Content}" ContentTemplate="{TemplateBinding ContentTemplate}" VerticalAlignment="Center"/>
+                        </StackPanel>
+                        <ControlTemplate.Triggers>
+                            <Trigger Property="IsChecked" Value="True">
+                                <Setter TargetName="CheckBorder" Property="Background" Value="{StaticResource PrimaryBlue}"/>
+                                <Setter TargetName="CheckBorder" Property="BorderBrush" Value="{StaticResource PrimaryBlue}"/>
+                                <Setter TargetName="CheckMark" Property="Visibility" Value="Visible"/>
+                            </Trigger>
+                        </ControlTemplate.Triggers>
+                    </ControlTemplate>
+                </Setter.Value>
+            </Setter>
         </Style>
     </Application.Resources>
 </Application>

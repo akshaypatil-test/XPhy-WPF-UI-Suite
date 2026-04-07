@@ -167,6 +167,7 @@ namespace x_phy_wpf_ui.Controls
                 PasswordBox.Visibility = Visibility.Collapsed;
             }
             UpdatePasswordPlaceholder();
+            UpdateEyeIcon(PasswordEyeButton, PasswordRevealTextBox.Visibility == Visibility.Visible);
         }
 
         private void UpdatePasswordPlaceholder()
@@ -183,6 +184,12 @@ namespace x_phy_wpf_ui.Controls
             ValidatePassword();
             ValidateConfirmPassword();
             UpdateSignUpButtonState();
+        }
+
+        private void PasswordInfoButton_Click(object sender, RoutedEventArgs e)
+        {
+            if (PasswordRequirementsPopup != null)
+                PasswordRequirementsPopup.IsOpen = !PasswordRequirementsPopup.IsOpen;
         }
 
         private void ConfirmPasswordBox_PasswordChanged(object sender, RoutedEventArgs e)
@@ -221,6 +228,7 @@ namespace x_phy_wpf_ui.Controls
                 ConfirmPasswordBox.Visibility = Visibility.Collapsed;
             }
             UpdateConfirmPasswordPlaceholder();
+            UpdateEyeIcon(ConfirmPasswordEyeButton, ConfirmPasswordRevealTextBox.Visibility == Visibility.Visible);
         }
 
         private void UpdateConfirmPasswordPlaceholder()
@@ -230,6 +238,18 @@ namespace x_phy_wpf_ui.Controls
                 ? !string.IsNullOrEmpty(ConfirmPasswordRevealTextBox.Text)
                 : !string.IsNullOrEmpty(ConfirmPasswordBox.Password);
             ConfirmPasswordPlaceholder.Visibility = hasText ? Visibility.Collapsed : Visibility.Visible;
+        }
+
+        private static void UpdateEyeIcon(System.Windows.Controls.Button eyeButton, bool isRevealed)
+        {
+            if (eyeButton?.Template == null) return;
+            var iconShow = eyeButton.Template.FindName("IconShow", eyeButton) as System.Windows.UIElement;
+            var iconHide = eyeButton.Template.FindName("IconHide", eyeButton) as System.Windows.UIElement;
+            if (iconShow != null && iconHide != null)
+            {
+                iconShow.Visibility = isRevealed ? Visibility.Collapsed : Visibility.Visible;
+                iconHide.Visibility = isRevealed ? Visibility.Visible : Visibility.Collapsed;
+            }
         }
 
         private void ConfirmPasswordBox_LostFocus(object sender, RoutedEventArgs e)
@@ -339,17 +359,17 @@ namespace x_phy_wpf_ui.Controls
                 PasswordErrorText.Visibility = Visibility.Visible;
                 SetPasswordBoxErrorState(PasswordBox, true);
             }
-            else if (password.Length < 8)
+            else if (password.Contains(" "))
             {
                 _isPasswordValid = false;
-                PasswordErrorText.Text = "Password must be at least 8 characters long";
+                PasswordErrorText.Text = "Password must not contain spaces";
                 PasswordErrorText.Visibility = Visibility.Visible;
                 SetPasswordBoxErrorState(PasswordBox, true);
             }
-            else if (!IsValidPassword(password))
+            else if (password.Length < 8 || !IsValidPassword(password))
             {
                 _isPasswordValid = false;
-                PasswordErrorText.Text = "Password must contain uppercase, lowercase, number, and special character (@$!%*?&)";
+                PasswordErrorText.Text = "Min 8 characters, uppercase, lowercase, number, and at least one special character";
                 PasswordErrorText.Visibility = Visibility.Visible;
                 SetPasswordBoxErrorState(PasswordBox, true);
             }
@@ -532,15 +552,19 @@ namespace x_phy_wpf_ui.Controls
                 return;
             }
 
-            if (password.Length < 8)
+            if (password.Contains(" "))
             {
-                ShowError("Password must be at least 8 characters long.");
+                ShowError("Password must not contain spaces.");
                 return;
             }
-
+            if (password.Length < 8)
+            {
+                ShowError("Password must be at least 8 characters with uppercase, lowercase, number, and at least one special character.");
+                return;
+            }
             if (!IsValidPassword(password))
             {
-                ShowError("Password must contain at least one uppercase letter, one lowercase letter, one number, and one special character.");
+                ShowError("Password must be at least 8 characters with uppercase, lowercase, number, and at least one special character.");
                 return;
             }
 
@@ -564,12 +588,10 @@ namespace x_phy_wpf_ui.Controls
                 }
 
                 // Legacy path if API does not require verification
-                MessageBox.Show(
+                AppDialog.Show(Window.GetWindow(this),
                     $"Account created successfully!\n\nYour 30-day free trial ends on: {response.TrialEndsAt:MMMM dd, yyyy}\n\nYou can now sign in with your credentials.",
                     "Registration Successful",
-                    MessageBoxButton.OK,
-                    MessageBoxImage.Information
-                );
+                    MessageBoxImage.Information);
                 AccountCreated?.Invoke(this, EventArgs.Empty);
             }
             catch (Exception ex)
@@ -617,10 +639,12 @@ namespace x_phy_wpf_ui.Controls
 
         private bool IsValidPassword(string password)
         {
+            if (string.IsNullOrEmpty(password) || password.Length < 8 || password.Contains(" "))
+                return false;
             var hasUpper = new Regex(@"[A-Z]");
             var hasLower = new Regex(@"[a-z]");
             var hasNumber = new Regex(@"\d");
-            var hasSpecial = new Regex(@"[@$!%*?&]");
+            var hasSpecial = new Regex(@"[^a-zA-Z0-9\s]"); // at least one special character (no spaces)
 
             return hasUpper.IsMatch(password) &&
                    hasLower.IsMatch(password) &&

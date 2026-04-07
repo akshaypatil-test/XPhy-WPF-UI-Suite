@@ -5,9 +5,8 @@
              xmlns:d="http://schemas.microsoft.com/expression/blend/2008" 
              mc:Ignorable="d" Height="540" Width="520">
     <UserControl.Resources>
-        <!-- Figma colors: #0A0E1C (dark blue-black), #0C82A8 (teal-blue), #E2156B (pink), #FFFFFF / #000000 -->
-        <SolidColorBrush x:Key="TextPrimary" Color="#FFFFFF"/>
-        <SolidColorBrush x:Key="TextSecondary" Color="#FFFFFF"/>
+        <SolidColorBrush x:Key="TextPrimary" Color="{DynamicResource Color.TextPrimary}"/>
+        <SolidColorBrush x:Key="TextSecondary" Color="{DynamicResource Color.TextSecondary}"/>
         <!-- bubble.svg radial gradient: #0A0E1C center, transparent at 73%, #0C82A8 81% at edge (explicit Color to avoid hex parse) -->
         <RadialGradientBrush x:Key="BubbleGradient" Center="0.5,0.5" GradientOrigin="0.5,0.5" RadiusX="1" RadiusY="1">
             <GradientStop Color="#0A0E1C" Offset="0.08"/>
@@ -52,7 +51,7 @@
             <Setter Property="Cursor" Value="Hand"/>
             <Setter Property="Foreground" Value="{StaticResource TextPrimary}"/>
             <Setter Property="FontSize" Value="14"/>
-            <Setter Property="FontFamily" Value="Inter, Segoe UI, Sans-Serif"/>
+            <Setter Property="FontFamily" Value="{StaticResource AppFontFamily}"/>
             <Setter Property="FontWeight" Value="Normal"/>
             <Setter Property="Template">
                 <Setter.Value>
@@ -70,15 +69,17 @@
     </UserControl.Resources>
 
     <!-- Card: rounded corners, no border -->
-    <Border CornerRadius="36"
+    <Border x:Name="CardBorder"
+            CornerRadius="36"
             Padding="56,44,56,44"
             BorderThickness="0"
             MaxWidth="560"
             HorizontalAlignment="Center"
             VerticalAlignment="Center"
-            ClipToBounds="True">
+            ClipToBounds="True" Width="374">
         <Border.Background>
-            <ImageBrush ImageSource="pack://application:,,,/facebg.png"
+            <ImageBrush x:Name="BackgroundImageBrush"
+                        ImageSource="pack://application:,,,/facebg.png"
                         Stretch="UniformToFill"
                         AlignmentX="Center"
                         AlignmentY="Center"/>
@@ -86,17 +87,17 @@
         <StackPanel VerticalAlignment="Center">
             <!-- Figma .start_deep: 20px, Inter, weight 500, white -->
             <StackPanel HorizontalAlignment="Center" Margin="0,0,0,0">
-                <TextBlock Text="Start Deepfake Detection" 
+                <TextBlock Text="Deepfake Detector" 
                            FontSize="20" 
-                           FontFamily="Inter, Segoe UI, Sans-Serif"
+                           FontFamily="{StaticResource AppFontFamily}"
                            FontWeight="Medium"
                            Foreground="{StaticResource TextPrimary}"
                            HorizontalAlignment="Center"
                            Margin="0,0,0,12"/>
                 <!-- Figma .monitor_me: 14px, Inter, weight 400, white -->
-                <TextBlock Text="Monitor Meetings And Media Streams" 
+                <TextBlock Text="Trust What You See Again" 
                            FontSize="14" 
-                           FontFamily="Inter, Segoe UI, Sans-Serif"
+                           FontFamily="{StaticResource AppFontFamily}"
                            FontWeight="Normal"
                            Foreground="{StaticResource TextSecondary}"
                            HorizontalAlignment="Center"/>
@@ -151,7 +152,7 @@
                            HorizontalAlignment="Center"
                            Visibility="Collapsed"
                            Margin="0,0,0,6"/>
-                <Button Content="Click To Start Detection"
+                <Button Content="Click To Detect"
                         Style="{StaticResource ClickableTextStyle}"
                         Click="StartButton_Click"/>
             </StackPanel>

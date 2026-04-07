@@ -5,6 +5,7 @@ using System.Linq;
 using System.Windows;
 using System.Windows.Controls;
 using System.Windows.Media;
+using MaterialDesignThemes.Wpf;
 using x_phy_wpf_ui.Models;
 using x_phy_wpf_ui.Services;
 
@@ -75,6 +76,7 @@ namespace x_phy_wpf_ui.Controls
                 {
                     StatusText.Text = $"Error refreshing: {ex.Message}";
                     StatusText.Foreground = new SolidColorBrush(Colors.Red);
+                    StatusText.Visibility = Visibility.Visible;
                 }
             }
         }
@@ -100,6 +102,7 @@ namespace x_phy_wpf_ui.Controls
                 {
                     StatusText.Text = $"Error detecting processes: {ex.Message}";
                     StatusText.Foreground = new SolidColorBrush(Colors.Red);
+                    StatusText.Visibility = Visibility.Visible;
                 }
                 
                 // Show error message in processes panel
@@ -125,9 +128,14 @@ namespace x_phy_wpf_ui.Controls
 
             if (_detectedProcesses.Count == 0)
             {
+                // When no processes: hide titles and status so only the message and buttons show
+                SelectDetectionSourceTitle.Visibility = Visibility.Collapsed;
+                SelectInputTypeHeading.Visibility = Visibility.Collapsed;
+                StatusText.Visibility = Visibility.Collapsed;
+
                 var noProcessesText = new TextBlock
                 {
-                    Text = "No relevant processes detected.\n\nPlease start a video calling app (Zoom, Teams, Google Chat), media player (VLC, Windows Media Player), or open YouTube in your browser.",
+                    Text = "No relevant processes detected.\n\nPlease start a supported app (e.g. Zoom, Teams, Webex, Slack, Discord, VLC, OBS, or open YouTube in Chrome/Edge/Firefox). Only the top 3 detected apps are shown.",
                     Foreground = new SolidColorBrush(Color.FromRgb(153, 153, 153)),
                     TextWrapping = TextWrapping.Wrap,
                     Margin = new Thickness(0, 16, 0, 0),
@@ -139,6 +147,11 @@ namespace x_phy_wpf_ui.Controls
                 return;
             }
 
+            // When processes are detected: show titles; keep status hidden unless there's an error.
+            SelectDetectionSourceTitle.Visibility = Visibility.Visible;
+            SelectInputTypeHeading.Visibility = Visibility.Visible;
+            StatusText.Visibility = Visibility.Collapsed;
+
             for (int i = 0; i < _detectedProcesses.Count; i++)
             {
                 var process = _detectedProcesses[i];
@@ -147,7 +160,7 @@ namespace x_phy_wpf_ui.Controls
                     Content = CreateProcessButtonContent(process),
                     Style = (Style)FindResource(i == 0 ? "SelectedProcessButtonStyle" : "ProcessButtonStyle"),
                     Tag = process,
-                    Margin = new Thickness(0, 0, 0, 8)
+                    Margin = new Thickness(0, 0, 0, 6)
                 };
                 button.Click += ProcessButton_Click;
                 ProcessesPanel.Children.Add(button);
@@ -163,37 +176,40 @@ namespace x_phy_wpf_ui.Controls
         private StackPanel CreateProcessButtonContent(DetectedProcess process)
         {
             var panel = new StackPanel { Orientation = Orientation.Horizontal };
-            
-            // Camera icon (pink color to match Figma)
-            var iconText = new TextBlock
+            // App/source icon (not video – that’s for Input Type). Pink to match design.
+            var packIcon = new PackIcon
             {
-                Text = "📹", // Camera icon for all processes
-                FontSize = 16,
+                Kind = GetProcessIconKind(process.ProcessType),
+                Width = 22,
+                Height = 22,
                 Margin = new Thickness(0, 0, 10, 0),
                 VerticalAlignment = VerticalAlignment.Center,
-                Foreground = new SolidColorBrush(Color.FromRgb(226, 21, 107)) // Pink color
+                Foreground = new SolidColorBrush(Color.FromRgb(226, 21, 107))
             };
-            
-            // Process name
             var processNameText = new TextBlock
             {
                 Text = process.DisplayName,
                 FontSize = 13,
                 FontWeight = FontWeights.Medium,
-                Foreground = new SolidColorBrush(Colors.White),
                 VerticalAlignment = VerticalAlignment.Center
             };
-            
-            panel.Children.Add(iconText);
+            processNameText.SetBinding(TextBlock.ForegroundProperty,
+                new System.Windows.Data.Binding("Foreground") { RelativeSource = new System.Windows.Data.RelativeSource(System.Windows.Data.RelativeSourceMode.FindAncestor, typeof(Button), 1) });
+            panel.Children.Add(packIcon);
             panel.Children.Add(processNameText);
-            
             return panel;
         }
 
-        private string GetProcessIcon(string processType)
+        private static PackIconKind GetProcessIconKind(string processType)
         {
-            // Use camera icon for all processes to match Figma design
-            return "📹";
+            // Detection source = which app; use app-style icon (not Video/Microphone, those are Input Type).
+            switch (processType)
+            {
+                case "Browser": return PackIconKind.Web;
+                case "MediaPlayer": return PackIconKind.Television;
+                case "Streaming": return PackIconKind.Broadcast;
+                default: return PackIconKind.Application; // VideoCalling (Zoom, Teams, etc.)
+            }
         }
 
         private void ProcessButton_Click(object sender, RoutedEventArgs e)
@@ -228,7 +244,7 @@ namespace x_phy_wpf_ui.Controls
             {
                 var conferenceVideoButton = new Button
                 {
-                    Content = CreateSourceButtonContent("Conference Video", "📹"),
+                    Content = CreateSourceButtonContent("Conference Video", PackIconKind.Video),
                     Style = (Style)FindResource("SelectedSourceButtonStyle"),
                     Tag = DetectionSource.ZoomConferenceVideo
                 };
@@ -238,7 +254,7 @@ namespace x_phy_wpf_ui.Controls
                 
                 var conferenceAudioButton = new Button
                 {
-                    Content = CreateSourceButtonContent("Conference Audio", "🎤"),
+                    Content = CreateSourceButtonContent("Conference Audio", PackIconKind.Microphone),
                     Style = (Style)FindResource("SourceButtonStyle"),
                     Tag = DetectionSource.ZoomConferenceAudio
                 };
@@ -250,14 +266,15 @@ namespace x_phy_wpf_ui.Controls
                 _isAudioMode = false;
                 _isLiveCallMode = true;
                 StartDetectionButton.IsEnabled = true;
-                StatusText.Text = "Ready to start detection";
+                StatusText.Text = string.Empty;
+                StatusText.Visibility = Visibility.Collapsed;
             }
-            else if (process.ProcessType == "MediaPlayer" || process.ProcessType == "Browser")
+            else if (process.ProcessType == "MediaPlayer" || process.ProcessType == "Streaming" || process.ProcessType == "Browser")
             {
                 var videoSource = process.ProcessType == "Browser" ? DetectionSource.YouTubeWebStreamVideo : DetectionSource.VLCWebStreamVideo;
                 var webVideoButton = new Button
                 {
-                    Content = CreateSourceButtonContent("Web Stream Video", "📹"),
+                    Content = CreateSourceButtonContent("Web Stream Video", PackIconKind.Video),
                     Style = (Style)FindResource("SelectedSourceButtonStyle"),
                     Tag = videoSource
                 };
@@ -267,9 +284,9 @@ namespace x_phy_wpf_ui.Controls
                 
                 var webAudioButton = new Button
                 {
-                    Content = CreateSourceButtonContent("Web Stream Audio", "🎤"),
+                    Content = CreateSourceButtonContent("Web Stream Audio", PackIconKind.Microphone),
                     Style = (Style)FindResource("SourceButtonStyle"),
-                    Tag = process.ProcessType == "Browser" ? DetectionSource.YouTubeWebStreamAudio : DetectionSource.VLCWebStreamAudio
+                    Tag = (process.ProcessType == "Browser") ? DetectionSource.YouTubeWebStreamAudio : DetectionSource.VLCWebStreamAudio
                 };
                 webAudioButton.Click += SourceButton_Click;
                 Grid.SetColumn(webAudioButton, 2);
@@ -279,36 +296,34 @@ namespace x_phy_wpf_ui.Controls
                 _isAudioMode = false;
                 _isLiveCallMode = false;
                 StartDetectionButton.IsEnabled = true;
-                StatusText.Text = "Ready to start detection";
+                StatusText.Text = string.Empty;
+                StatusText.Visibility = Visibility.Collapsed;
             }
         }
 
-        private StackPanel CreateSourceButtonContent(string text, string icon)
+        private StackPanel CreateSourceButtonContent(string text, PackIconKind iconKind)
         {
             var panel = new StackPanel { Orientation = Orientation.Horizontal };
-            
-            // Camera icon (pink color to match Figma)
-            var iconText = new TextBlock
+            var packIcon = new PackIcon
             {
-                Text = icon, // Use the passed icon parameter
-                FontSize = 16,
+                Kind = iconKind,
+                Width = 22,
+                Height = 22,
                 Margin = new Thickness(0, 0, 10, 0),
                 VerticalAlignment = VerticalAlignment.Center,
-                Foreground = new SolidColorBrush(Color.FromRgb(226, 21, 107)) // Pink color
+                Foreground = new SolidColorBrush(Color.FromRgb(226, 21, 107))
             };
-            
             var textBlock = new TextBlock
             {
                 Text = text,
                 FontSize = 13,
                 FontWeight = FontWeights.Medium,
-                Foreground = new SolidColorBrush(Colors.White),
                 VerticalAlignment = VerticalAlignment.Center
             };
-            
-            panel.Children.Add(iconText);
+            textBlock.SetBinding(TextBlock.ForegroundProperty,
+                new System.Windows.Data.Binding("Foreground") { RelativeSource = new System.Windows.Data.RelativeSource(System.Windows.Data.RelativeSourceMode.FindAncestor, typeof(Button), 1) });
+            panel.Children.Add(packIcon);
             panel.Children.Add(textBlock);
-            
             return panel;
         }
 
@@ -338,7 +353,8 @@ namespace x_phy_wpf_ui.Controls
                 
                 // Enable start button
                 StartDetectionButton.IsEnabled = true;
-                StatusText.Text = "Ready to start detection";
+                StatusText.Text = string.Empty;
+                StatusText.Visibility = Visibility.Collapsed;
             }
         }
 
@@ -356,14 +372,18 @@ namespace x_phy_wpf_ui.Controls
             }
             else
             {
-                MessageBox.Show("Please select a process and source before starting detection.", 
-                    "Selection Required", MessageBoxButton.OK, MessageBoxImage.Information);
+                AppDialog.Show(Window.GetWindow(this), "Please select a process and source before starting detection.", "Selection Required", MessageBoxImage.Information);
             }
         }
 
         private void CloseButton_Click(object sender, RoutedEventArgs e)
         {
-            // Trigger cancel event to go back to previous component
+            CancelRequested?.Invoke(this, EventArgs.Empty);
+        }
+
+        private void CancelButton_Click(object sender, RoutedEventArgs e)
+        {
+            // Go back to home (Start Detection card)
             CancelRequested?.Invoke(this, EventArgs.Empty);
         }
     }

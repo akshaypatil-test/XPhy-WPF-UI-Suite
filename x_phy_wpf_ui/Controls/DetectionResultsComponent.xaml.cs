@@ -38,6 +38,9 @@ namespace x_phy_wpf_ui.Controls
             set => SetValue(DetectionArcOffsetAngleProperty, value);
         }
 
+        /// <summary>Max detection length in seconds. Reported duration is capped at this value.</summary>
+        public const int MaxDetectionDurationSeconds = 60;
+
         // At most 4 notifications in 60s: windows 0-15s, 15-30s, 30-45s, 45-60s
         private const int NotificationWindowSeconds = 15;
         private const int NotificationWindowCount = 4;
@@ -45,11 +48,22 @@ namespace x_phy_wpf_ui.Controls
         private double _windowMaxScore;  // max ProbFakeScore in current window (for notification confidence %)
         private bool _windowHadFake;
         private System.Windows.Media.Imaging.BitmapSource _windowEvidenceImage;  // image from the batch where _windowMaxScore occurred
+        /// <summary>For audio: max score (0-1) in current 15s window. Used for per-notification confidence.</summary>
+        private double _audioWindowMaxScore;
 
-        /// <summary>Last max fake percentage (0-100) when deepfake was detected. Used by deepfake notification.</summary>
+        /// <summary>Last max fake percentage (0-100) when deepfake was detected. Used by 15s deepfake notification.</summary>
         public int LastConfidencePercent { get; private set; }
-        /// <summary>Latest evidence frame image for notification. Used by deepfake notification.</summary>
+        /// <summary>Latest evidence frame image for notification. Used by 15s deepfake notification.</summary>
         public System.Windows.Media.Imaging.BitmapSource LatestEvidenceImage { get; private set; }
+        /// <summary>Max confidence across all 15s windows this run. Used for final Detection Complete notification.</summary>
+        public int RunMaxConfidencePercent { get; private set; }
+        /// <summary>Evidence image from the 15s window that had highest confidence. Used for final notification.</summary>
+        public System.Windows.Media.Imaging.BitmapSource RunMaxEvidenceImage { get; private set; }
+
+        /// <summary>Running sum of ProbFakeScore (0-1) over the run. Used for final "No Fake Detected" confidence: (1 - avg)*100.</summary>
+        private double _runSumProbFake;
+        /// <summary>Count of ProbFake samples in the run. Avg = _runSumProbFake / _runCountProbFake.</summary>
+        private int _runCountProbFake;
 
         public DetectionResultsComponent()
         {
@@ -114,8 +128,14 @@ namespace x_phy_wpf_ui.Controls
             _windowMaxScore = 0;
             _windowHadFake = false;
             _windowEvidenceImage = null;
+            _audioWindowMaxScore = 0;
+            RunMaxConfidencePercent = 0;
+            RunMaxEvidenceImage = null;
+            _runSumProbFake = 0;
+            _runCountProbFake = 0;
 
             DuringDetectionPanel.Visibility = Visibility.Visible;
+            if (DetectionCompleteHintPanel != null) DetectionCompleteHintPanel.Visibility = Visibility.Collapsed;
             if (ClassificationIndicator != null) ClassificationIndicator.Visibility = Visibility.Collapsed;
             if (StatisticsCardsGrid != null) StatisticsCardsGrid.Visibility = Visibility.Collapsed;
             if (FaceListScrollViewer != null) FaceListScrollViewer.Visibility = Visibility.Collapsed;
@@ -170,14 +190,19 @@ namespace x_phy_wpf_ui.Controls
                 System.Diagnostics.Debug.WriteLine($"DetectionResultsComponent image convert: {ex.Message}");
             }
 
-            // When crossing into a new window: flush previous window and show at most one notification with that window's max confidence and combined image
+            // When crossing into a new window: update run-max from previous window (ProbFake-based). Do NOT show notification here — only when native sends ResultNotification(isLast=false).
             if (currentWindow > _lastNotificationWindowIndex && _lastNotificationWindowIndex >= 0)
             {
                 if (_windowHadFake && _windowMaxScore >= 0)
                 {
-                    LastConfidencePercent = (int)Math.Round(Math.Min(100, Math.Max(0, _windowMaxScore * 100)));
+                    int windowConfidence = (int)Math.Round(Math.Min(100, Math.Max(0, _windowMaxScore * 100)));
+                    LastConfidencePercent = windowConfidence;
                     LatestEvidenceImage = _windowEvidenceImage;
-                    DeepfakeDetected?.Invoke(this, EventArgs.Empty);
+                    if (windowConfidence > RunMaxConfidencePercent)
+                    {
+                        RunMaxConfidencePercent = windowConfidence;
+                        RunMaxEvidenceImage = _windowEvidenceImage;
+                    }
                 }
                 _windowMaxScore = 0;
                 _windowHadFake = false;
@@ -196,6 +221,12 @@ namespace x_phy_wpf_ui.Controls
             {
                 _windowMaxScore = maxInBatch;
                 _windowEvidenceImage = currentFrameBitmap;
+            }
+            foreach (var face in faces)
+            {
+                double p = face.ProbFakeScore;
+                _runSumProbFake += p;
+                _runCountProbFake++;
             }
 
             // Keep _detectedFaces for final result when detection completes
@@ -255,6 +286,27 @@ namespace x_phy_wpf_ui.Controls
             }
         }
 
+        /// <summary>Update from voice graph score callback (0.0–1.0). Tracks max per 15s window and run max for deepfake confidence.</summary>
+        public void UpdateAudioScore(double score)
+        {
+            if (score < 0 || score > 1) return;
+            var elapsed = (DateTime.UtcNow - _detectionStartTime).TotalSeconds;
+            int currentWindow = Math.Min(NotificationWindowCount - 1, (int)(elapsed / NotificationWindowSeconds));
+            // When crossing into a new 15s window: push previous window's max into run max
+            if (currentWindow > _lastNotificationWindowIndex && _lastNotificationWindowIndex >= 0)
+            {
+                int windowPct = (int)Math.Round(Math.Min(100, Math.Max(0, _audioWindowMaxScore * 100)));
+                if (windowPct > RunMaxConfidencePercent)
+                    RunMaxConfidencePercent = windowPct;
+                _audioWindowMaxScore = 0;
+            }
+            _lastNotificationWindowIndex = currentWindow;
+            if (score > _audioWindowMaxScore)
+                _audioWindowMaxScore = score;
+            _runSumProbFake += score;
+            _runCountProbFake++;
+        }
+
         /// <summary>Update classification from audio callback (0=Real, 1=Deepfake, 2=Analyzing, 3=Invalid, 4=None).</summary>
         public void UpdateAudioClassification(int classification)
         {
@@ -270,13 +322,16 @@ namespace x_phy_wpf_ui.Controls
                     StopDeepfakeNotificationTimer();
                     break;
                 case 1:
-                    LastConfidencePercent = 0; // Audio has no percentage
+                    // Use max score in current 15s window; update run max. Popup is shown only when native sends ResultNotification(isLast=false), not from classification callback.
+                    int windowConfidence = (int)Math.Round(Math.Min(100, Math.Max(0, _audioWindowMaxScore * 100)));
+                    LastConfidencePercent = windowConfidence;
+                    if (windowConfidence > RunMaxConfidencePercent)
+                        RunMaxConfidencePercent = windowConfidence;
                     ClassificationIcon.Text = "⚠️";
                     ClassificationText.Text = "DEEPFAKE DETECTED";
                     ClassificationText.Foreground = GetBrush("FakeColor");
-                    ClassificationPercentage.Text = "";
+                    ClassificationPercentage.Text = windowConfidence > 0 ? $"{windowConfidence}%" : "";
                     ClassificationSubtext.Text = "Audio classified as deepfake";
-                    DeepfakeDetected?.Invoke(this, EventArgs.Empty);
                     break;
                 case 2:
                     ClassificationIcon.Text = "⏳";
@@ -305,15 +360,53 @@ namespace x_phy_wpf_ui.Controls
             }
         }
 
-        /// <summary>Flush the last 15s window so the 4th notification (45-60s) can be shown if that window had fake.</summary>
+        /// <summary>Flush the last 15s window into RunMax so the final View Results notification shows the maximum fake confidence from the run. Does not show popup (only native ResultNotification does).</summary>
         private void FlushLastNotificationWindow()
         {
             if (_windowHadFake && _windowMaxScore >= 0)
             {
-                LastConfidencePercent = (int)Math.Round(Math.Min(100, Math.Max(0, _windowMaxScore * 100)));
+                int windowConfidence = (int)Math.Round(Math.Min(100, Math.Max(0, _windowMaxScore * 100)));
+                LastConfidencePercent = windowConfidence;
                 LatestEvidenceImage = _windowEvidenceImage;
-                DeepfakeDetected?.Invoke(this, EventArgs.Empty);
+                if (windowConfidence > RunMaxConfidencePercent)
+                {
+                    RunMaxConfidencePercent = windowConfidence;
+                    RunMaxEvidenceImage = _windowEvidenceImage;
+                }
             }
+            // Audio: include last window's max in run max for final notification
+            if (_audioWindowMaxScore > 0)
+            {
+                int audioPct = (int)Math.Round(Math.Min(100, Math.Max(0, _audioWindowMaxScore * 100)));
+                if (audioPct > RunMaxConfidencePercent)
+                    RunMaxConfidencePercent = audioPct;
+            }
+        }
+
+        /// <summary>Called when native sends ResultNotification(isLast=false). Shows richer popup with confidence from ProbFake (RunMax) and saves evidence. MainWindow sets _currentRunArtifactPath before calling.</summary>
+        public void NotifyFakeFromNative()
+        {
+            // For first quick notification we may not have crossed a 15s window yet, so RunMax* is still unset. Flush current window into RunMax so we have image and confidence to show.
+            if (_windowHadFake && _windowMaxScore >= 0)
+            {
+                int windowConfidence = (int)Math.Round(Math.Min(100, Math.Max(0, _windowMaxScore * 100)));
+                if (windowConfidence > RunMaxConfidencePercent)
+                {
+                    RunMaxConfidencePercent = windowConfidence;
+                    RunMaxEvidenceImage = _windowEvidenceImage;
+                }
+            }
+            LastConfidencePercent = RunMaxConfidencePercent;
+            LatestEvidenceImage = RunMaxEvidenceImage ?? _windowEvidenceImage; // use current-window image when run-max not set yet (first quick notification)
+            DeepfakeDetected?.Invoke(this, EventArgs.Empty);
+        }
+
+        /// <summary>Confidence that no AI manipulation was detected: (1 - avg ProbFakeScore)*100 over the detection duration. If no scores were seen, returns 100.</summary>
+        public int GetNoManipulationConfidencePercent()
+        {
+            if (_runCountProbFake <= 0) return 100; // no data
+            double avgProbFake = _runSumProbFake / _runCountProbFake;
+            return (int)Math.Round(Math.Min(100, Math.Max(0, (1.0 - avgProbFake) * 100.0)));
         }
 
         private void StartDeepfakeNotificationTimer()
@@ -336,15 +429,33 @@ namespace x_phy_wpf_ui.Controls
             _deepfakeNotificationTimer = null;
         }
 
-        /// <summary>Show final result and Back to Home button after 60s.</summary>
-        public void ShowFinalResult(string resultPath)
+        /// <summary>Show final result and Back to Home button after 60s. If AI manipulation was detected at any time during the 60s (RunMaxConfidencePercent > 0 or audio deepfake), show that in the final result.</summary>
+        /// <param name="audioDeepfakeDetected">When true, native reported audio as deepfake; use RunMaxConfidencePercent (from voice graph scores) or "—" if no score.</param>
+        public void ShowFinalResult(string resultPath, bool audioDeepfakeDetected = false)
         {
             StopDetectionArcAnimation();
             StopDeepfakeNotificationTimer();
             FlushLastNotificationWindow();
             DuringDetectionPanel.Visibility = Visibility.Collapsed;
 
-            if (_detectedFaces.Count > 0)
+            if (DetectionCompleteHintPanel != null) DetectionCompleteHintPanel.Visibility = Visibility.Visible;
+            if (ClassificationIndicator != null) ClassificationIndicator.Visibility = Visibility.Visible;
+            if (StatisticsCardsGrid != null) StatisticsCardsGrid.Visibility = Visibility.Visible;
+            if (FaceListScrollViewer != null) FaceListScrollViewer.Visibility = Visibility.Visible;
+
+            // Use run-max from any 15s window (video or audio scores), or audio deepfake flag when no score yet
+            bool aiManipulationDetectedDuringRun = RunMaxConfidencePercent > 0 || audioDeepfakeDetected;
+            if (aiManipulationDetectedDuringRun)
+            {
+                ClassificationIcon.Text = "⚠️";
+                ClassificationText.Text = "DEEPFAKE DETECTED";
+                ClassificationText.Foreground = GetBrush("FakeColor");
+                ClassificationPercentage.Text = RunMaxConfidencePercent > 0 ? $"({RunMaxConfidencePercent}% Suspicious)" : "(—)";
+                ClassificationSubtext.Text = !string.IsNullOrEmpty(resultPath)
+                    ? $"Detection completed. Results saved to: {resultPath}"
+                    : "Detection completed. Results saved.";
+            }
+            else if (_detectedFaces.Count > 0)
             {
                 int fakeCount = _detectedFaces.Count(f => f.StatusText == "FAKE");
                 double avgConfidence = _detectedFaces.Average(f => f.ConfidencePercent);
@@ -385,6 +496,7 @@ namespace x_phy_wpf_ui.Controls
             StopDetectionArcAnimation();
             StopDeepfakeNotificationTimer();
             DuringDetectionPanel.Visibility = Visibility.Collapsed;
+            if (DetectionCompleteHintPanel != null) DetectionCompleteHintPanel.Visibility = Visibility.Collapsed;
             _detectedFaces.Clear();
             TotalFacesText.Text = "0";
             FakeFacesText.Text = "0";
@@ -405,11 +517,12 @@ namespace x_phy_wpf_ui.Controls
 
         public int DetectedFacesCount => _detectedFaces?.Count ?? 0;
 
-        /// <summary>Elapsed seconds since detection started. Call when showing final result to send to CreateResult API.</summary>
+        /// <summary>Elapsed seconds since detection started, capped at MaxDetectionDurationSeconds. Call when showing final result to send to CreateResult API.</summary>
         public double GetDetectionDurationSeconds()
         {
             var elapsed = (DateTime.UtcNow - _detectionStartTime).TotalSeconds;
-            return Math.Max(0, Math.Round(elapsed, 1));
+            var capped = Math.Min(elapsed, MaxDetectionDurationSeconds);
+            return Math.Max(0, Math.Round(capped, 1));
         }
 
         private void StopButton_Click(object sender, RoutedEventArgs e)

@@ -35,6 +35,7 @@ namespace InstallerUI
         private string _failureMessage;
         private bool _canGoNext = true;
         private bool _canGoBack = true;
+        private string _installPathError;
         private bool _msiComplete;
         private int _msiExitCode = -1;
 
@@ -43,7 +44,7 @@ namespace InstallerUI
             _installPath = GetDefaultInstallPath();
             NextCommand = new RelayCommand(OnNext, () => CanGoNext);
             BackCommand = new RelayCommand(OnBack, () => CanGoBack);
-            CancelCommand = new RelayCommand(OnCancel);
+            CancelCommand = new RelayCommand(OnCancel, () => !IsInstalling);
         }
 
         public InstallerStep CurrentStep
@@ -55,7 +56,23 @@ namespace InstallerUI
         public string InstallPath
         {
             get => _installPath;
-            set { _installPath = value; OnPropertyChanged(); }
+            set
+            {
+                var changed = _installPath != value;
+                if (changed)
+                {
+                    _installPath = value;
+                    OnPropertyChanged();
+                }
+                InstallPathError = null;
+            }
+        }
+
+        /// <summary>Validation error for install path (e.g. path does not exist). Shown on Install Path step.</summary>
+        public string InstallPathError
+        {
+            get => _installPathError;
+            set { _installPathError = value; OnPropertyChanged(); }
         }
 
         public bool LicenseAccepted
@@ -77,7 +94,11 @@ namespace InstallerUI
             set
             {
                 _isQuickInstall = value;
-                if (value) InstallPath = GetDefaultInstallPath();
+                if (value)
+                {
+                    InstallPath = GetDefaultInstallPath();
+                    InstallPathError = null;
+                }
                 OnPropertyChanged(); UpdateButtonStates();
             }
         }
@@ -97,7 +118,7 @@ namespace InstallerUI
         public bool IsInstalling
         {
             get => _isInstalling;
-            set { _isInstalling = value; OnPropertyChanged(); UpdateButtonStates(); }
+            set { _isInstalling = value; OnPropertyChanged(); UpdateButtonStates(); ((RelayCommand)CancelCommand).RaiseCanExecuteChanged(); }
         }
 
         public string ProgressStage
@@ -141,6 +162,8 @@ namespace InstallerUI
         public bool ShowFinishButton => CurrentStep == InstallerStep.Finish;
         /// <summary>Hide Cancel on Finish screen so only Close is shown.</summary>
         public bool ShowCancelButton => CurrentStep != InstallerStep.Finish;
+        /// <summary>Show Print (blue link) on footer left only on License Agreement step.</summary>
+        public bool ShowPrintLink => CurrentStep == InstallerStep.LicenseAgreement;
         public string NextButtonLabel => CurrentStep == InstallerStep.LicenseAgreement ? "I Accept" : "Next";
         /// <summary>On Finish screen: "Close" when error, "Finish" when success—so user can always exit.</summary>
         public string FinishButtonLabel => CurrentStep == InstallerStep.Finish && !InstallSucceeded ? "Close" : "Finish";
@@ -151,6 +174,9 @@ namespace InstallerUI
 
         public Action<object> OnNavigate { get; set; }
         public Action OnRequestClose { get; set; }
+
+        /// <summary>Optional: called before validating install path so the view can commit the path TextBox binding (avoids stale value when user edits then clicks Next before focus leaves the box).</summary>
+        public Action CommitInstallPathFromView { get; set; }
 
         /// <summary>Get 64-bit Program Files root (e.g. C:\Program Files) even when running as 32-bit process.</summary>
         private static string GetProgramFilesRoot64()
@@ -200,13 +226,34 @@ namespace InstallerUI
             return Path.Combine(root, "X-PHY", "X-PHY Deepfake Detector");
         }
 
+        /// <summary>For custom install, ensures the path ends with an X-PHY folder so all files are contained. Returns path unchanged if it already ends with \X-PHY.</summary>
+        private static string EnsureXphyFolder(string path)
+        {
+            if (string.IsNullOrWhiteSpace(path)) return path;
+            var normalized = path.TrimEnd('\\', '/');
+            if (normalized.EndsWith("X-PHY", StringComparison.OrdinalIgnoreCase))
+                return normalized;
+            return Path.Combine(normalized, "X-PHY");
+        }
+
+        /// <summary>Path to pass to MSI as INSTALLDIR: for Quick Install the default path; for Custom the selected path with \X-PHY appended if needed.</summary>
+        private string GetInstallDirectoryForMsi()
+        {
+            if (IsQuickInstall) return InstallPath?.TrimEnd('\\') ?? "";
+            return EnsureXphyFolder(InstallPath ?? "")?.TrimEnd('\\') ?? "";
+        }
+
         /// <summary>Returns candidate install directories to try when launching (InstallPath first, then Program Files variants, then parent dir).</summary>
         public static string[] GetCandidateInstallDirectories(string installPath)
         {
             if (string.IsNullOrWhiteSpace(installPath))
                 return Array.Empty<string>();
             var normalized = installPath.TrimEnd('\\', '/');
-            var list = new List<string> { normalized };
+            var list = new List<string>();
+            // For custom install we store the parent (e.g. C:\); actual install is in parent\X-PHY — add that first
+            if (!normalized.EndsWith("X-PHY", StringComparison.OrdinalIgnoreCase))
+                list.Add(Path.Combine(normalized, "X-PHY"));
+            list.Add(normalized);
             var pf64 = GetProgramFilesRoot64();
             var pf86 = GetProgramFilesRootX86();
             void AddIfNew(string path)
@@ -378,6 +425,7 @@ namespace InstallerUI
             OnPropertyChanged(nameof(ShowNextButton));
             OnPropertyChanged(nameof(ShowFinishButton));
             OnPropertyChanged(nameof(ShowCancelButton));
+            OnPropertyChanged(nameof(ShowPrintLink));
             OnPropertyChanged(nameof(NextButtonLabel));
             OnPropertyChanged(nameof(FinishButtonLabel));
             switch (CurrentStep)
@@ -419,8 +467,22 @@ namespace InstallerUI
 
             if (CurrentStep == InstallerStep.InstallPath)
             {
+                CommitInstallPathFromView?.Invoke();
+                var path = (InstallPath ?? "").Trim();
+                if (string.IsNullOrEmpty(path))
+                {
+                    InstallPathError = null;
+                    return;
+                }
+                if (!IsQuickInstall && !Directory.Exists(path))
+                {
+                    InstallPathError = "The selected folder does not exist. Please choose an existing folder or create it first.";
+                    return;
+                }
+                InstallPathError = null;
                 // Do not allow install if app is already installed at the selected path (or default)
-                if (IsAlreadyInstalledAt(InstallPath))
+                var pathToCheck = IsQuickInstall ? InstallPath : EnsureXphyFolder(InstallPath);
+                if (IsAlreadyInstalledAt(pathToCheck))
                 {
                     FailureMessage = "X-PHY Deepfake Detector is already installed at the selected location. Please uninstall the existing version from Settings > Apps before running setup again, or choose a different folder.";
                     InstallSucceeded = false;
@@ -502,7 +564,8 @@ namespace InstallerUI
                 return;
             }
 
-            var args = $"/i \"{msiPath}\" /quiet /norestart INSTALLDIR=\"{InstallPath.TrimEnd('\\')}\"";
+            var installDir = GetInstallDirectoryForMsi();
+            var args = $"/i \"{msiPath}\" /quiet /norestart INSTALLDIR=\"{installDir}\"";
 
             var psi = new ProcessStartInfo("msiexec.exe")
             {
@@ -621,52 +684,136 @@ namespace InstallerUI
         }
 
         private const string RunKeyName = "X-PHY Deepfake Detector";
+        private const string StartupShortcutFileName = "X-PHY Deepfake Detector.lnk";
 
-        /// <summary>Apply launch-on-startup: add or remove from the Run key so the app runs when Windows starts.
-        /// Writes to the interactive user's registry when the installer runs elevated (Admin), so it works for the user who will log in.</summary>
+        /// <summary>
+        /// Apply launch-on-startup using a Startup folder shortcut named like the product (Windows Settings shows that name and enables the toggle reliably).
+        /// Removes legacy HKCU Run entries for this app to avoid duplicate launches and wrong labels (x_phy_wpf_ui).
+        /// </summary>
         public void ApplyLaunchOnStartup()
         {
             if (!InstallSucceeded) return;
-            string exePath = null;
+
+            string resolvedExe = null;
+            string installDir = null;
             if (LaunchOnStartup)
             {
-                var (_, path) = TryResolveInstalledExePath(InstallPath);
-                if (path == null || !File.Exists(path)) return;
-                exePath = "\"" + path + "\"";
+                for (var attempt = 0; attempt < 8; attempt++)
+                {
+                    var (dir, path) = TryResolveInstalledExePath(InstallPath);
+                    if (path != null && File.Exists(path))
+                    {
+                        resolvedExe = path;
+                        installDir = dir;
+                        break;
+                    }
+                    System.Threading.Thread.Sleep(250);
+                }
+                if (resolvedExe == null) return;
             }
 
-            // Prefer interactive user's Run key (so when installer runs as Admin we write to the logged-in user, not Administrator)
-            using (var key = InteractiveUserRunKey.OpenInteractiveUserRunKey(writable: true))
+            RemoveStartupRunRegistryEntries();
+
+            if (!LaunchOnStartup)
+            {
+                foreach (var folder in GetCandidateStartupFolders())
+                    TryDeleteStartupFolder(folder);
+                return;
+            }
+
+            if (string.IsNullOrEmpty(installDir)) return;
+
+            var shellType = Type.GetTypeFromProgID("WScript.Shell");
+            foreach (var startupFolder in GetCandidateStartupFolders())
+            {
+                if (string.IsNullOrEmpty(startupFolder)) continue;
+                try { Directory.CreateDirectory(startupFolder); } catch { /* ignore */ }
+
+                var shortcutPath = Path.Combine(startupFolder, StartupShortcutFileName);
+                if (shellType != null && CreateShortcutAt(shellType, shortcutPath, resolvedExe, installDir))
+                    return;
+            }
+
+            FallbackRunRegistryStartup(resolvedExe);
+        }
+
+        /// <summary>All plausible Startup folder paths (interactive SID, SpecialFolder, USERPROFILE fallback).</summary>
+        private static List<string> GetCandidateStartupFolders()
+        {
+            var set = new HashSet<string>(StringComparer.OrdinalIgnoreCase);
+            void Add(string p)
+            {
+                if (string.IsNullOrWhiteSpace(p)) return;
+                set.Add(p.TrimEnd('\\', '/'));
+            }
+
+            try { Add(InteractiveUserRunKey.GetInteractiveUserStartupFolderPath()); } catch { /* ignore */ }
+            try { Add(Environment.GetFolderPath(Environment.SpecialFolder.Startup)); } catch { /* ignore */ }
+            try
+            {
+                var prof = Environment.GetEnvironmentVariable("USERPROFILE");
+                if (!string.IsNullOrEmpty(prof))
+                    Add(Path.Combine(prof, "AppData", "Roaming", "Microsoft", "Windows", "Start Menu", "Programs", "Startup"));
+            }
+            catch { /* ignore */ }
+
+            return new List<string>(set);
+        }
+
+        private static void TryDeleteStartupFolder(string folder)
+        {
+            if (string.IsNullOrEmpty(folder)) return;
+            try
+            {
+                var p = Path.Combine(folder, StartupShortcutFileName);
+                if (File.Exists(p)) File.Delete(p);
+            }
+            catch { /* ignore */ }
+        }
+
+        private static void RemoveStartupRunRegistryEntries()
+        {
+            try
+            {
+                using (var key = InteractiveUserRunKey.OpenInteractiveUserRunKey(writable: true))
+                {
+                    if (key != null)
+                        try { key.DeleteValue(RunKeyName, false); } catch { /* */ }
+                }
+            }
+            catch { /* ignore */ }
+            try
+            {
+                using (var key = Registry.CurrentUser.OpenSubKey(@"Software\Microsoft\Windows\CurrentVersion\Run", true))
+                {
+                    key?.DeleteValue(RunKeyName, false);
+                }
+            }
+            catch { /* ignore */ }
+        }
+
+        private static void FallbackRunRegistryStartup(string exePathUnquoted)
+        {
+            if (string.IsNullOrEmpty(exePathUnquoted)) return;
+            var value = "\"" + exePathUnquoted + "\"";
+            var wrote = false;
+            using (var key = InteractiveUserRunKey.OpenOrCreateInteractiveUserRunKey())
             {
                 if (key != null)
                 {
                     try
                     {
-                        if (LaunchOnStartup)
-                            key.SetValue(RunKeyName, exePath);
-                        else
-                        {
-                            try { key.DeleteValue(RunKeyName, false); } catch { /* value may not exist */ }
-                        }
+                        key.SetValue(RunKeyName, value);
+                        wrote = true;
                     }
                     catch { /* ignore */ }
-                    return;
                 }
             }
-
-            // Fallback: current process user (correct when installer is not elevated)
+            if (wrote) return;
             try
             {
-                using (var key = Registry.CurrentUser.OpenSubKey(@"Software\Microsoft\Windows\CurrentVersion\Run", true))
-                {
-                    if (key == null) return;
-                    if (LaunchOnStartup)
-                        key.SetValue(RunKeyName, exePath);
-                    else
-                    {
-                        try { key.DeleteValue(RunKeyName, false); } catch { /* value may not exist */ }
-                    }
-                }
+                using (var key = Registry.CurrentUser.CreateSubKey(@"Software\Microsoft\Windows\CurrentVersion\Run", true))
+                    key.SetValue(RunKeyName, value);
             }
             catch { /* ignore */ }
         }

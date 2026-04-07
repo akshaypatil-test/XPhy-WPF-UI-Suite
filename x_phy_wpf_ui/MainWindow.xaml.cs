@@ -1,6 +1,7 @@
 using System;
 using System.Collections.Generic;
 using System.Collections.ObjectModel;
+using System.Diagnostics;
 using System.IO;
 using System.Linq;
 using System.Text.RegularExpressions;
@@ -11,12 +12,15 @@ using System.Windows.Controls;
 using System.Windows.Input;
 using System.Windows.Interop;
 using System.Windows.Media;
+using System.Windows.Media.Effects;
+using System.Windows.Media.Imaging;
 using System.Windows.Threading;
 using Forms = System.Windows.Forms;
 using XPhyWrapper;
 using x_phy_wpf_ui.Services;
 using x_phy_wpf_ui.Models;
 using x_phy_wpf_ui.Controls;
+using static x_phy_wpf_ui.Services.ThemeManager;
 
 namespace x_phy_wpf_ui
 {
@@ -34,11 +38,28 @@ namespace x_phy_wpf_ui
         private bool openResultsFolderAfterStop = false;
         /// <summary>When true, CreateResult was already called from "Stop & View Results" click; ShowFinalResult should skip PushDetectionResultToBackend to avoid duplicate.</summary>
         private bool _resultPushedForStopAndViewResults = false;
+        /// <summary>True when CreateResult API succeeded for the current run; used to avoid duplicate push and to retry on notification close if false.</summary>
+        private bool _resultPushSucceeded = false;
+        /// <summary>When set, closing the completion notification will retry push if _resultPushSucceeded is still false.</summary>
+        private string _pendingResultPath = null;
+        private bool _pendingResultHadDeepfake = false;
+        /// <summary>True when we pushed from Stop path (Back to Home) so ShowFinalResult skips duplicate if native sends isLast later.</summary>
+        private bool _resultPushedOnStop = false;
         /// <summary>True when we just navigated to Results after "Stop & View Results"; finally block should skip ResetAppContentToHome so user stays on Results.</summary>
         private bool _openedResultsAfterStop = false;
+        /// <summary>When true, native <c>isLast</c> / ShowFinalResult must not auto-open Results (user stopped without "View Results"). Set at start of StopDetection_Click.</summary>
+        private bool _suppressAutoNavigateToResultsOnComplete = false;
+        /// <summary>True while a detection session is active in the UI (from StartDetection through completion or reset). Suppresses tray/minimized single- and multiple-source process notifications.</summary>
+        private bool _suppressProcessSourceNotificationsDuringDetection = false;
         private bool isAudioDetection = false; // Track if current detection is Audio mode (vs Video mode)
         /// <summary>Display name for current detection source (e.g. "Zoom", "Google Chrome") for CreateResult MediaSource.</summary>
         private string _currentMediaSourceDisplayName = "Local";
+        /// <summary>Evidence image counter for this run; each 15s fake notification saves evidence_N.png so Evidence UI shows all.</summary>
+        private int _evidenceSaveCounter = 0;
+        /// <summary>Result folder for current run; evidence images and final CreateResult use this path.</summary>
+        private string _currentRunArtifactPath = null;
+        /// <summary>When set by floating launcher "Stop & View Results", use this path for opening results so they match the saved result.</summary>
+        private string _pathForResultsAfterStop;
         private LicenseManager licenseManager;
         private ResultsApiService _resultsApiService;
         private bool controllerInitializationAttempted = false; // Track if we've already tried to initialize
@@ -69,8 +90,60 @@ namespace x_phy_wpf_ui
         private string _changePasswordCurrent = "";
         private string _changePasswordNew = "";
         private FloatingWidgetWindow _floatingWidget;
-        /// <summary>Set to true to show the floating app launcher when minimized. Disabled for now; re-enable later.</summary>
-        private const bool FloatingWidgetEnabled = false;
+        /// <summary>Show floating widget when detection is running and app is minimized (arc loader: green, red when deepfake).</summary>
+        private const bool FloatingWidgetEnabled = true;
+
+        /// <summary>True when user chose Exit from tray menu; allows actual close instead of minimize-to-tray.</summary>
+        private bool _isExitingFromTray = false;
+
+        /// <summary>When minimized to tray, run process detection periodically; show single/multiple source notification after 1 minute (from minimize or from when user closed last notification).</summary>
+        private DispatcherTimer _backgroundProcessCheckTimer;
+        /// <summary>When we entered minimized/tray state; first notification is shown only after 1 minute from this time.</summary>
+        private DateTime _minimizedOrTraySince = DateTime.MinValue;
+        /// <summary>Cooldown between showing single/multiple source notifications (1 minute).</summary>
+        private const int MediaSourcePopupCooldownSeconds = 60;
+        /// <summary>Last time the user closed the single-source (media) popup; next single notification only after 1 minute from this.</summary>
+        private DateTime _lastMediaSourcePopupClosedAt = DateTime.MinValue;
+        /// <summary>Last time the user closed the multiple-sources popup; next multiple notification only after 1 minute from this.</summary>
+        private DateTime _lastMultipleSourcesPopupClosedAt = DateTime.MinValue;
+        /// <summary>One-shot timer: fire exactly 1 minute after user closed a notification, then show again if still minimized and sources detected (avoids waiting for next periodic tick which can add an extra minute).</summary>
+        private DispatcherTimer _oneShotAfterNotificationClosedTimer;
+        /// <summary>Whether the pending one-shot retry is for multiple-sources (true) or single-source (false) popup chain.</summary>
+        private bool _oneShotForMultipleSources;
+
+        /// <summary>Ref count for background blur when in-app popups/overlays are visible. Blur is applied when > 0.</summary>
+        private int _blurRefCount = 0;
+
+        /// <summary>Apply blur to main content (behind overlays/dialogs). Call when showing any in-app popup.</summary>
+        private void EnterBlur()
+        {
+            _blurRefCount++;
+            if (_blurRefCount == 1 && MainContentToBlur != null)
+                MainContentToBlur.Effect = new BlurEffect { Radius = 12 };
+        }
+
+        /// <summary>Remove blur when popup/overlay is closed. Call when hiding any in-app popup.</summary>
+        private void ExitBlur()
+        {
+            if (_blurRefCount > 0) _blurRefCount--;
+            if (_blurRefCount == 0 && MainContentToBlur != null)
+                MainContentToBlur.Effect = null;
+        }
+
+        /// <summary>Show or hide the dim overlay and blur when AppDialog is shown. Called by AppDialog so dialog stays within app.</summary>
+        public void SetDialogOverlayVisible(bool visible)
+        {
+            if (visible)
+            {
+                EnterBlur();
+                if (AppDialogOverlay != null) AppDialogOverlay.Visibility = Visibility.Visible;
+            }
+            else
+            {
+                if (AppDialogOverlay != null) AppDialogOverlay.Visibility = Visibility.Collapsed;
+                ExitBlur();
+            }
+        }
 
         // Helper method to get color resources
         private SolidColorBrush GetResourceBrush(string resourceKey)
@@ -95,6 +168,9 @@ namespace x_phy_wpf_ui
 
                 InitializeComponent();
 
+                if (VersionText != null)
+                    VersionText.Text = "Version: " + ApplicationVersion.GetDisplayVersion();
+
                 // Initialize timers (these are safe to initialize immediately)
                 InitializeStatusTimer();
                 
@@ -110,12 +186,19 @@ namespace x_phy_wpf_ui
                 }
 
                 _resultsApiService = new ResultsApiService();
+
+                // When user clicks "Back to Results" from Session Details, refresh the list so any record saved in the meantime (e.g. after completion) appears
+                if (DetectionResultsScreen != null)
+                    DetectionResultsScreen.BackToResultsListRequested += OnBackToResultsListRequested;
                 
                 // Enable window dragging
                 this.MouseDown += MainWindow_MouseDown;
                 
                 // Ensure window fits on screen
                 this.Loaded += MainWindow_Loaded;
+
+                // Refresh license/status when user returns to MainWindow (e.g. after purchase in another window)
+                this.Activated += MainWindow_Activated;
                 
                 // Handle window state changes
                 this.StateChanged += MainWindow_StateChanged;
@@ -125,6 +208,9 @@ namespace x_phy_wpf_ui
 
                 // Logout on close only when Remember Me was unchecked at login
                 this.Closing += MainWindow_Closing;
+
+                // Start/stop background single-process detection when minimizing to tray / restoring
+                this.IsVisibleChanged += MainWindow_IsVisibleChanged;
                 
                 // Shell: Set up auth view (Login/Signup). Controller init happens when we show AppView after login.
                 SetupAuthView();
@@ -159,10 +245,11 @@ namespace x_phy_wpf_ui
             _passwordChangedSuccessDialog = new PasswordChangedSuccessDialog();
             _authServiceForChangePassword = new AuthService();
             ChangePasswordOverlayContent.Content = _changePasswordDialog;
-            _changePasswordDialog.BackRequested += (s, ev) => { ChangePasswordOverlay.Visibility = Visibility.Collapsed; };
+            _changePasswordDialog.BackRequested += (s, ev) => { ChangePasswordOverlay.Visibility = Visibility.Collapsed; ExitBlur(); };
             _changePasswordDialog.UpdatePasswordRequested += ChangePasswordDialog_UpdatePasswordRequested;
             _verifyChangePasswordOtpDialog.VerifyRequested += VerifyChangePasswordOtpDialog_VerifyRequested;
             _verifyChangePasswordOtpDialog.ResendRequested += VerifyChangePasswordOtpDialog_ResendRequested;
+            _verifyChangePasswordOtpDialog.CloseRequested += (s, ev) => { ChangePasswordOverlay.Visibility = Visibility.Collapsed; ExitBlur(); };
 
             // Initial app start: Welcome → Get Started (Launch) → Sign In / Create Account / Corporate Sign In
             _welcomeComponent.NavigateToLaunch += (s, e) => { AuthPanel.SetContent(_launchComponent); };
@@ -183,7 +270,11 @@ namespace x_phy_wpf_ui
             {
                 AuthPanel.SetContent(_signInComponent);
                 if (e != null && !string.IsNullOrEmpty(e.Message))
+                {
                     _signInComponent.SetError(e.Message);
+                    if (e.Message.IndexOf("maximum", StringComparison.OrdinalIgnoreCase) >= 0 && e.Message.IndexOf("machines", StringComparison.OrdinalIgnoreCase) >= 0)
+                        AppDialog.Show(this, e.Message, "License Error", MessageBoxImage.Error);
+                }
             };
             _signInComponent.NavigateBack += (s, e) => { AuthPanel.SetContent(_launchComponent); };
             
@@ -241,7 +332,11 @@ namespace x_phy_wpf_ui
             {
                 AuthPanel.SetContent(_corporateSignInComponent);
                 if (e != null && !string.IsNullOrEmpty(e.Message))
+                {
                     _corporateSignInComponent.SetError(e.Message);
+                    if (e.Message.IndexOf("maximum", StringComparison.OrdinalIgnoreCase) >= 0 && e.Message.IndexOf("machines", StringComparison.OrdinalIgnoreCase) >= 0)
+                        AppDialog.Show(this, e.Message, "License Error", MessageBoxImage.Error);
+                }
             };
 
             _updatePasswordComponent.PasswordUpdated += (s, e) => SignInComponent_SignInSuccessful(s, e);
@@ -269,22 +364,34 @@ namespace x_phy_wpf_ui
             {
                 Dispatcher.Invoke(() =>
                 {
-                    MessageBox.Show("No license key received. Cannot validate license.", "License Error", MessageBoxButton.OK, MessageBoxImage.Error);
+                    AppDialog.Show(this, "No license key received. Cannot validate license.", "License Error", MessageBoxImage.Error);
                     AuthPanel.SetContent(signInComponentOnError);
                 });
                 return;
             }
 
+            var response = args.LoginResponse;
+            var licenseInfo = response.License ?? (response.User != null
+                ? new LicenseInfo
+                {
+                    Status = string.IsNullOrEmpty(response.User.LicenseStatus) ? "Trial" : response.User.LicenseStatus,
+                    TrialEndsAt = response.User.TrialEndsAt
+                }
+                : null);
+            string licenseStatus = licenseInfo?.Status ?? response.User?.LicenseStatus ?? "Trial";
+            bool isExpiredFromLms = licenseStatus.Trim().Equals("Expired", StringComparison.OrdinalIgnoreCase);
+
             var elapsed = (DateTime.UtcNow - _loaderShownAt).TotalSeconds;
-            if (elapsed < 3.0)
+            if (elapsed < 3.0 && !isExpiredFromLms)
             {
                 var delayMs = (int)((3.0 - elapsed) * 1000);
                 await Task.Delay(delayMs);
             }
 
-            // 2. Run native license validation (Keygen) by creating the controller. If invalid (e.g. machine limit), show error and do not complete login.
+            // 2. Always run Keygen validation (native) for both Active and Expired licenses so machine limit is enforced in both cases.
             Dispatcher.Invoke(() =>
             {
+                var tokenStorage = new TokenStorage();
                 try
                 {
                     string appData = Environment.GetFolderPath(Environment.SpecialFolder.ApplicationData);
@@ -310,32 +417,66 @@ namespace x_phy_wpf_ui
                 {
                     controller = null;
                     controllerInitializationAttempted = true;
-                    string message = GetControllerInitFailureMessage(ex);
+                    // Machine limit exceeded: block login for both Active and Expired (same pop-up as native).
+                    if (IsMachineLimitExceededFailure(ex))
+                    {
+                        string msg = GetControllerInitFailureMessage(ex);
+                        AppDialog.Show(this, msg, "License Error", MessageBoxImage.Error);
+                        AuthPanel.SetContent(signInComponentOnError);
+                        return;
+                    }
+                    if (IsLicenseExpiredFailure(ex))
+                    {
+                        System.Diagnostics.Debug.WriteLine("Login: Keygen reported license expired; allowing login and showing expired UI.");
+                        var expiredLicenseInfo = licenseInfo != null
+                            ? new LicenseInfo
+                            {
+                                Key = licenseInfo.Key,
+                                Status = "Expired",
+                                MaxDevices = licenseInfo.MaxDevices,
+                                TrialAttemptsRemaining = 0,
+                                TrialEndsAt = licenseInfo.TrialEndsAt,
+                                PurchaseDate = licenseInfo.PurchaseDate,
+                                ExpiryDate = licenseInfo.ExpiryDate,
+                                PlanId = licenseInfo.PlanId,
+                                PlanName = licenseInfo.PlanName
+                            }
+                            : new LicenseInfo { Key = args.LicenseKey?.Trim(), Status = "Expired" };
+                        var userExpired = response.User != null ? new UserInfo { Id = response.User.Id, Username = response.User.Username, LicenseStatus = "Expired", TrialEndsAt = response.User.TrialEndsAt, UserType = response.User.UserType } : response.User;
+                        tokenStorage.SaveTokens(
+                            response.AccessToken,
+                            response.RefreshToken,
+                            response.ExpiresIn,
+                            response.User.Id,
+                            response.User.Username,
+                            userExpired,
+                            expiredLicenseInfo,
+                            args.RememberMe
+                        );
+                        ShowAppView();
+                        return;
+                    }
+                    string errorMessage = GetControllerInitFailureMessage(ex);
                     bool isLicenseError = IsLicenseValidationFailure(ex);
                     string title = isLicenseError ? "License Error" : "Validation Failed";
-                    MessageBox.Show(message, title, MessageBoxButton.OK, MessageBoxImage.Error);
+                    AppDialog.Show(this, errorMessage, title, MessageBoxImage.Error);
                     AuthPanel.SetContent(signInComponentOnError);
                     return;
                 }
 
-                // 3. License valid: save tokens and complete login.
-                var response = args.LoginResponse;
-                var licenseInfo = response.License ?? (response.User != null
-                    ? new LicenseInfo
-                    {
-                        Status = string.IsNullOrEmpty(response.User.LicenseStatus) ? "Trial" : response.User.LicenseStatus,
-                        TrialEndsAt = response.User.TrialEndsAt
-                    }
-                    : null);
-                var tokenStorage = new TokenStorage();
+                // 3. Normalize license (Expired + 0 attempts if actually expired) so we never persist stale Trial from DB; save with user LicenseStatus in sync.
+                var licenseToSave = NormalizeLicenseFromApi(licenseInfo) ?? licenseInfo;
+                var userToSave = response.User != null
+                    ? new UserInfo { Id = response.User.Id, Username = response.User.Username, LicenseStatus = licenseToSave.Status, TrialEndsAt = response.User.TrialEndsAt, UserType = response.User.UserType }
+                    : response.User;
                 tokenStorage.SaveTokens(
                     response.AccessToken,
                     response.RefreshToken,
                     response.ExpiresIn,
                     response.User.Id,
                     response.User.Username,
-                    response.User,
-                    licenseInfo,
+                    userToSave,
+                    licenseToSave,
                     args.RememberMe
                 );
                 ShowAppView();
@@ -353,7 +494,16 @@ namespace x_phy_wpf_ui
                 AuthPanel.SetContent(_signInComponent);
                 return;
             }
+            string licenseStatus = storedTokens?.LicenseInfo?.Status ?? storedTokens?.UserInfo?.LicenseStatus ?? "";
+            bool isExpiredFromLms = licenseStatus.Trim().Equals("Expired", StringComparison.OrdinalIgnoreCase);
+
             WriteLicenseKeyToExeConfig(licenseKey.Trim());
+            if (isExpiredFromLms)
+            {
+                controllerInitializationAttempted = true;
+                ShowAppView();
+                return;
+            }
             try
             {
                 string appData = Environment.GetFolderPath(Environment.SpecialFolder.ApplicationData);
@@ -379,10 +529,33 @@ namespace x_phy_wpf_ui
             {
                 controller = null;
                 controllerInitializationAttempted = true;
+                if (IsLicenseExpiredFailure(ex))
+                {
+                    System.Diagnostics.Debug.WriteLine("TryValidateStoredTokens: Keygen reported license expired; showing app with expired UI.");
+                    var stored = tokenStorage.GetTokens();
+                    if (stored?.LicenseInfo != null)
+                    {
+                        var updated = new LicenseInfo
+                        {
+                            Key = stored.LicenseInfo.Key,
+                            Status = "Expired",
+                            MaxDevices = stored.LicenseInfo.MaxDevices,
+                            TrialAttemptsRemaining = stored.LicenseInfo.TrialAttemptsRemaining,
+                            TrialEndsAt = stored.LicenseInfo.TrialEndsAt,
+                            PurchaseDate = stored.LicenseInfo.PurchaseDate,
+                            ExpiryDate = stored.LicenseInfo.ExpiryDate,
+                            PlanId = stored.LicenseInfo.PlanId,
+                            PlanName = stored.LicenseInfo.PlanName
+                        };
+                        tokenStorage.UpdateUserAndLicense(stored.UserInfo, updated);
+                    }
+                    ShowAppView();
+                    return;
+                }
                 string message = GetControllerInitFailureMessage(ex);
                 bool isLicenseError = IsLicenseValidationFailure(ex);
                 string title = isLicenseError ? "License Error" : "Validation Failed";
-                MessageBox.Show(message, title, MessageBoxButton.OK, MessageBoxImage.Error);
+                AppDialog.Show(this, message, title, MessageBoxImage.Error);
                 AuthPanel.SetContent(_corporateSignInComponent);
             }
         }
@@ -409,9 +582,10 @@ namespace x_phy_wpf_ui
             // Initialize stats and license display when showing App view
             StatisticsCardsControl.TotalDetections = "0";
             StatisticsCardsControl.TotalDeepfakes = "0";
-            StatisticsCardsControl.TotalAnalysisTime = "0h";
+            StatisticsCardsControl.TotalAnalysisTime = "0m";
             StatisticsCardsControl.LastDetection = "Never";
             UpdateLicenseDisplay();
+            RefreshStatisticsAsync();
             // Deferred refresh so BottomBar sees tokens after file is flushed (avoids No License / 0 days)
             Dispatcher.BeginInvoke(new Action(UpdateLicenseDisplay), DispatcherPriority.ApplicationIdle);
 
@@ -425,6 +599,9 @@ namespace x_phy_wpf_ui
                     InitializeController();
                 }), DispatcherPriority.Loaded);
             }
+
+            // Show system tray when user is logged in (right-click menu: detection agents, Open Results Folder, Version, Exit)
+            ShowTray();
         }
 
         private void ShowAuthView()
@@ -434,6 +611,85 @@ namespace x_phy_wpf_ui
             AuthPanel.SetContent(_signInComponent);
             AuthPanel.Visibility = Visibility.Visible;
             AppPanel.Visibility = Visibility.Collapsed;
+        }
+
+        /// <summary>Show Welcome screen (first run / session expired). Use this instead of Sign In when user is effectively logged out.</summary>
+        private void ShowWelcomeView()
+        {
+            // If we're leaving the verification screen (e.g. restore from tray/desktop), cancel the unverified user
+            if (AuthPanel.CurrentContent == _emailVerificationComponent)
+                _ = _emailVerificationComponent.CancelRegistrationIfPendingAsync();
+            AuthPanel.SetContent(_welcomeComponent);
+            AuthPanel.Visibility = Visibility.Visible;
+            AppPanel.Visibility = Visibility.Collapsed;
+            // When showing Welcome again (e.g. restore from tray), restart 7s timer so it auto-advances to Get Started
+            _welcomeComponent.RestartTimer();
+        }
+
+        /// <summary>Called from App when SessionExpiredException is caught so we show Welcome instead of crashing.</summary>
+        public void ShowWelcomeViewIfNeeded()
+        {
+            Dispatcher.Invoke(ShowWelcomeView);
+        }
+
+        /// <summary>Called when session expired from API (legacy name); use ShowWelcomeViewIfNeeded for new callers.</summary>
+        public void ShowAuthViewIfNeeded()
+        {
+            Dispatcher.Invoke(ShowWelcomeView);
+        }
+
+        /// <summary>Called when the window is restored from a second-instance launch (e.g. user clicked desktop icon while app was in tray).
+        /// If the user was logged out on close (Remember Me false), tokens are cleared; show Welcome screen instead of leaving Home visible.</summary>
+        public void EnsureViewMatchesAuthStateAfterRestore()
+        {
+            try
+            {
+                var tokenStorage = new TokenStorage();
+                var tokens = tokenStorage.GetTokens();
+                if (tokens == null || string.IsNullOrWhiteSpace(tokens.RefreshToken))
+                    ShowWelcomeView();
+            }
+            catch (Exception ex)
+            {
+                System.Diagnostics.Debug.WriteLine($"EnsureViewMatchesAuthStateAfterRestore: {ex.Message}");
+            }
+        }
+
+        /// <summary>
+        /// On startup with stored tokens: try refresh once. If refresh succeeds, show app view; otherwise clear tokens and show Welcome
+        /// so the user gets the first-run flow instead of Sign In (avoids "access token is null" and wrong screen).
+        /// </summary>
+        private async void TryRestoreSessionAndShowAppAsync(TokenStorage tokenStorage, TokenStorage.StoredTokens storedTokens)
+        {
+            // No refresh token or no access token (e.g. corrupted file): clear and show Welcome without calling API
+            if (string.IsNullOrWhiteSpace(storedTokens.RefreshToken) || string.IsNullOrWhiteSpace(storedTokens.AccessToken))
+            {
+                tokenStorage.ClearTokens();
+                Dispatcher.Invoke(ShowWelcomeView);
+                return;
+            }
+            try
+            {
+                var authService = new AuthService();
+                var refreshResponse = await authService.RefreshTokenAsync(storedTokens.RefreshToken).ConfigureAwait(false);
+                if (refreshResponse == null || string.IsNullOrEmpty(refreshResponse.AccessToken))
+                {
+                    tokenStorage.ClearTokens();
+                    Dispatcher.Invoke(ShowWelcomeView);
+                    return;
+                }
+                tokenStorage.UpdateAccessToken(refreshResponse.AccessToken, refreshResponse.ExpiresIn);
+                Dispatcher.Invoke(() =>
+                {
+                    ShowAppView();
+                });
+            }
+            catch (Exception ex)
+            {
+                System.Diagnostics.Debug.WriteLine($"TryRestoreSessionAndShowApp: {ex.Message}");
+                tokenStorage.ClearTokens();
+                Dispatcher.Invoke(ShowWelcomeView);
+            }
         }
         
         private void MainWindow_InitializeComObjects(object sender, RoutedEventArgs e)
@@ -473,9 +729,13 @@ namespace x_phy_wpf_ui
 
         private void MainWindow_Loaded(object sender, RoutedEventArgs e)
         {
-            // Set exact window size (1000x783)
-            this.Width = 1000;
-            this.Height = 783;
+            // Update logo based on theme (and when user changes theme in Settings)
+            UpdateLogo();
+            ThemeManager.ThemeChanged += (_, __) => Dispatcher.BeginInvoke(new Action(UpdateLogo));
+            
+            // Set exact window size
+            this.Width = 920;
+            this.Height = 750;
             
             // Ensure window fits within screen bounds
             var screenWidth = SystemParameters.PrimaryScreenWidth;
@@ -494,6 +754,9 @@ namespace x_phy_wpf_ui
             // Center window on screen
             this.Left = (screenWidth - this.Width) / 2;
             this.Top = (screenHeight - this.Height) / 2;
+
+            // Show tray icon when application starts
+            ShowTray();
             
             // If opened from LaunchWindow with pre-validated controller and tokens, show app view immediately
             if (controller != null && controllerInitializationAttempted)
@@ -518,22 +781,33 @@ namespace x_phy_wpf_ui
                 }
             }
 
-            // Signed in from LaunchWindow (tokens saved, no validation there): show app view; controller will init in ShowAppView
+            // When Remember Me was true, tokens persist across exit and system restart. Restore session so user is logged in on next launch.
             var tokenStorageForLaunch = new TokenStorage();
             var tokensForLaunch = tokenStorageForLaunch.GetTokens();
-            if (tokensForLaunch?.UserInfo != null)
+            if (tokensForLaunch?.RememberMe == true && tokensForLaunch.UserInfo != null && !string.IsNullOrWhiteSpace(tokensForLaunch.RefreshToken))
             {
-                ShowAppView();
+                TryRestoreSessionAndShowAppAsync(tokenStorageForLaunch, tokensForLaunch);
                 return;
             }
+            // Tokens missing, invalid, or Remember Me was false: clear so we don't auto-login or trigger "access token is null" elsewhere
+            if (tokensForLaunch != null && (string.IsNullOrWhiteSpace(tokensForLaunch.RefreshToken) || !tokensForLaunch.RememberMe))
+            {
+                try { tokenStorageForLaunch.ClearTokens(); } catch { }
+            }
+
+            // First run after install or invalid tokens: ensure Welcome screen is shown, not Sign In
+            AuthPanel.SetContent(_welcomeComponent);
+            AuthPanel.Visibility = Visibility.Visible;
+            AppPanel.Visibility = Visibility.Collapsed;
 
             // Stats and controller init happen when App view is shown (after login), not on initial load when Auth is shown
             if (AppPanel.Visibility == Visibility.Visible)
             {
                 StatisticsCardsControl.TotalDetections = "0";
                 StatisticsCardsControl.TotalDeepfakes = "0";
-                StatisticsCardsControl.TotalAnalysisTime = "0h";
+                StatisticsCardsControl.TotalAnalysisTime = "0m";
                 StatisticsCardsControl.LastDetection = "Never";
+                RefreshStatisticsAsync();
                 UpdateLicenseDisplay();
                 if (controller == null)
                 {
@@ -545,6 +819,13 @@ namespace x_phy_wpf_ui
                     }
                 }
             }
+        }
+
+        private void MainWindow_Activated(object sender, EventArgs e)
+        {
+            // Fetch fresh license from server when user returns so trial attempts are up to date (e.g. after detection)
+            if (AppPanel.Visibility == Visibility.Visible)
+                RefreshLicenseDisplayAfterDetectionAsync();
         }
 
         private void MainWindow_MouseDown(object sender, System.Windows.Input.MouseButtonEventArgs e)
@@ -930,6 +1211,45 @@ videoLiveFakeProportionThreshold = 0.7
                 
                 System.Diagnostics.Debug.WriteLine("========================================");
                 
+                // Set controller to null so we can check for it later
+                controller = null;
+
+                if (IsLicenseExpiredFailure(ex))
+                {
+                    // Don't show pop-up: treat as expired and show Home with disabled detection + Expired status
+                    System.Diagnostics.Debug.WriteLine("Controller init failed with license expired; updating stored license to Expired and refreshing UI.");
+                    Dispatcher.BeginInvoke(new Action(() =>
+                    {
+                        try
+                        {
+                            var tokenStorage = new TokenStorage();
+                            var stored = tokenStorage.GetTokens();
+                            if (stored?.LicenseInfo != null)
+                            {
+                                var updated = new LicenseInfo
+                                {
+                                    Key = stored.LicenseInfo.Key,
+                                    Status = "Expired",
+                                    MaxDevices = stored.LicenseInfo.MaxDevices,
+                                    TrialAttemptsRemaining = stored.LicenseInfo.TrialAttemptsRemaining,
+                                    TrialEndsAt = stored.LicenseInfo.TrialEndsAt,
+                                    PurchaseDate = stored.LicenseInfo.PurchaseDate,
+                                    ExpiryDate = stored.LicenseInfo.ExpiryDate,
+                                    PlanId = stored.LicenseInfo.PlanId,
+                                    PlanName = stored.LicenseInfo.PlanName
+                                };
+                                tokenStorage.UpdateUserAndLicense(stored.UserInfo, updated);
+                            }
+                            UpdateLicenseDisplay();
+                        }
+                        catch (Exception updateEx)
+                        {
+                            System.Diagnostics.Debug.WriteLine($"Failed to update license to Expired: {updateEx.Message}");
+                        }
+                    }), DispatcherPriority.Normal);
+                    return;
+                }
+
                 // Show error (license) or warning (other); match old app title for license errors
                 string userMessage = GetControllerInitFailureMessage(ex);
                 bool isLicenseError = IsLicenseValidationFailure(ex);
@@ -937,11 +1257,8 @@ videoLiveFakeProportionThreshold = 0.7
                 var icon = isLicenseError ? MessageBoxImage.Error : MessageBoxImage.Warning;
                 Dispatcher.BeginInvoke(new Action(() =>
                 {
-                    MessageBox.Show(userMessage, title, MessageBoxButton.OK, icon);
+                    AppDialog.Show(this, userMessage, title, icon);
                 }), DispatcherPriority.Normal);
-                
-                // Set controller to null so we can check for it later
-                controller = null;
                 // Note: controllerInitializationAttempted is already set to true above,
                 // but if forceRetry was used, it will be reset on next call
             }
@@ -960,6 +1277,23 @@ videoLiveFakeProportionThreshold = 0.7
                    lower.Contains("unable to validate license") ||
                    lower.Contains("server returned") ||
                    lower.Contains("could not verify");
+        }
+
+        /// <summary>True when the exception indicates machine limit exceeded (Keygen). Enforced for both Active and Expired licenses.</summary>
+        private static bool IsMachineLimitExceededFailure(Exception ex)
+        {
+            string msg = ex?.Message ?? "";
+            string lower = msg.ToLowerInvariant();
+            return lower.Contains("maximum") && lower.Contains("machines");
+        }
+
+        /// <summary>True when the exception indicates the license has expired (Keygen). Use to show expired UI instead of blocking.</summary>
+        private static bool IsLicenseExpiredFailure(Exception ex)
+        {
+            string msg = ex?.Message ?? "";
+            string inner = ex?.InnerException?.Message ?? "";
+            string lower = (msg + " " + inner).ToLowerInvariant();
+            return lower.Contains("license") && lower.Contains("expired");
         }
 
         /// <summary>
@@ -990,26 +1324,102 @@ videoLiveFakeProportionThreshold = 0.7
 
         private void MainWindow_StateChanged(object sender, EventArgs e)
         {
+            // Single-process notification: run background check when minimized to taskbar (user logged in)
+            if (WindowState == WindowState.Minimized && notifyIcon != null)
+                StartBackgroundProcessCheck();
+            else if (WindowState != WindowState.Minimized)
+                StopBackgroundProcessCheck();
+
+            // When user restores window from minimized, refresh license so trial attempts show current value
+            if (WindowState == WindowState.Normal && AppPanel.Visibility == Visibility.Visible)
+                RefreshLicenseDisplayAfterDetectionAsync();
+
             if (!FloatingWidgetEnabled) return;
             if (WindowState == WindowState.Minimized)
-            {
-                if (_floatingWidget == null)
-                {
-                    _floatingWidget = new FloatingWidgetWindow();
-                    _floatingWidget.SetOwnerWindow(this);
-                }
-                _floatingWidget.PositionAtBottomRight();
-                _floatingWidget.SetDetectionState(controller != null && controller.IsDetectionRunning(), overallClassification == true);
-                _floatingWidget.Show();
-            }
+                ShowFloatingWidgetIfDetectionRunning();
             else
+                _floatingWidget?.Hide();
+        }
+
+        /// <summary>Show floating launcher when detection is running and app is minimized or hidden (from app start or single-process popup).</summary>
+        private void ShowFloatingWidgetIfDetectionRunning()
+        {
+            if (!FloatingWidgetEnabled) return;
+            bool windowMinimizedOrHidden = WindowState == WindowState.Minimized || !IsVisible;
+            if (!windowMinimizedOrHidden)
             {
                 _floatingWidget?.Hide();
+                return;
+            }
+            bool isDetectionRunning = controller != null && controller.IsDetectionRunning();
+            if (!isDetectionRunning)
+            {
+                _floatingWidget?.Hide();
+                return;
+            }
+            if (_floatingWidget == null)
+            {
+                _floatingWidget = new FloatingWidgetWindow();
+                _floatingWidget.SetOwnerWindow(this);
+                _floatingWidget.SetActions(FloatingWidget_CancelDetection, FloatingWidget_StopAndViewResults);
+            }
+            // Only position at bottom-right when (re)showing after being hidden; keep user-dragged position otherwise
+            if (!_floatingWidget.IsVisible)
+                _floatingWidget.PositionAtBottomRight();
+            _floatingWidget.SetDetectionState(true, overallClassification == true);
+            _floatingWidget.Show();
+        }
+
+        private void FloatingWidget_CancelDetection()
+        {
+            Dispatcher.Invoke(() =>
+            {
+                openResultsFolderAfterStop = false;
+                StopDetection_Click(null, EventArgs.Empty);
+                _floatingWidget?.Hide();
+            });
+        }
+
+        private void FloatingWidget_StopAndViewResults()
+        {
+            Dispatcher.Invoke(() =>
+            {
+                // Use same logic as Detection Notification "Stop & View Results": same path resolution, same hadDeepfake, same result view.
+                // Only push once per run: if user already clicked "Stop & View Results" on the notification (or vice versa), skip duplicate save.
+                string baseDir = null;
+                try { baseDir = controller?.GetResultsDir() ?? ""; } catch { }
+                string artifactPath = DetectionResultsLoader.ResolveFullArtifactPath(baseDir ?? "", isAudioDetection);
+                if (string.IsNullOrEmpty(artifactPath)) artifactPath = baseDir ?? "Local";
+                if (!_resultPushedForStopAndViewResults)
+                {
+                    _resultPushedForStopAndViewResults = true;
+                    PushDetectionResultToBackend(artifactPath, _deepfakeDetectedDuringRun);
+                }
+                _pathForResultsAfterStop = artifactPath; // so finally block opens this exact result (matches what we saved)
+                openResultsFolderAfterStop = true;
+                StopDetection_Click(null, EventArgs.Empty);
+            });
+        }
+
+        private void UpdateLogo()
+        {
+            if (LogoImage == null) return;
+
+            try
+            {
+                var isLight = ThemeManager.CurrentTheme == Theme.Light;
+                var logoPath = isLight ? "/x-phy-inverted-logo.png" : "/x-phy.png";
+                LogoImage.Source = new BitmapImage(new Uri(logoPath, UriKind.Relative));
+                System.Diagnostics.Debug.WriteLine($"MainWindow: Set logo to {logoPath}");
+            }
+            catch (Exception ex)
+            {
+                System.Diagnostics.Debug.WriteLine($"MainWindow: Error updating logo - {ex.Message}");
             }
         }
 
 
-        private async void StartDetectionFromPopup(DetectionSource source, bool isLiveCallMode, bool isAudioMode, bool isRetry = false)
+        private async void StartDetectionFromPopup(DetectionSource source, bool isLiveCallMode, bool isAudioMode, bool isRetry = false, string? mediaSourceDisplayName = null)
         {
             if (!isRetry)
                 _inferenceEnvRetryCount = 0;
@@ -1026,11 +1436,10 @@ videoLiveFakeProportionThreshold = 0.7
                     var storedTokens = tokenStorage.GetTokens();
                     if (storedTokens?.LicenseInfo == null || string.IsNullOrEmpty(storedTokens.LicenseInfo.Key))
                     {
-                        MessageBox.Show(
+                        AppDialog.Show(this,
                             "Controller not initialized and no license key found.\n\n" +
                             "Please ensure you are logged in and have a valid license.",
                             "Controller Initialization Error", 
-                            MessageBoxButton.OK, 
                             MessageBoxImage.Error);
                         return;
                     }
@@ -1041,11 +1450,10 @@ videoLiveFakeProportionThreshold = 0.7
                     // Check again after initialization attempt
                     if (controller == null)
                     {
-                        MessageBox.Show(
+                        AppDialog.Show(this,
                             "Failed to initialize detection controller.\n\n" +
                             "Please check Debug output for more details.",
                             "Controller Initialization Failed", 
-                            MessageBoxButton.OK, 
                             MessageBoxImage.Error);
                         return;
                     }
@@ -1053,11 +1461,54 @@ videoLiveFakeProportionThreshold = 0.7
 
                 if (controller.IsDetectionRunning())
                 {
-                    MessageBox.Show("Detection is already running.", "Information", 
-                        MessageBoxButton.OK, MessageBoxImage.Information);
+                    Dispatcher.Invoke(() =>
+                    {
+                        ShowAnalyzingScreenWhenDetectionRunning();
+                        AppDialog.Show(this, "Detection is already running.", "Information", MessageBoxImage.Information);
+                    });
                     return;
                 }
-                
+
+                // Consume one trial detection attempt (all entry points: Detection Selection, popup, tray)
+                // Backend: POST /api/License/detection-attempt decrements User.TrialAttemptsRemaining and should return the new value in the response so we can update UI in real time.
+                var licenseService = new LicensePurchaseService();
+                var attemptResult = await licenseService.UseDetectionAttemptAsync();
+                if (!attemptResult.Allowed)
+                {
+                    Dispatcher.Invoke(() =>
+                    {
+                        AppDialog.Show(this,
+                            attemptResult.Message ?? "You have no detection attempts remaining. Please subscribe to continue.",
+                            "Detection Not Allowed",
+                            MessageBoxImage.Warning);
+                    });
+                    return;
+                }
+
+                // Update stored license and UI immediately from detection-attempt response (TrialAttemptsRemaining is on User in DB; backend should return it in response)
+                if (attemptResult.TrialAttemptsRemaining.HasValue)
+                {
+                    var tokenStorage = new TokenStorage();
+                    var tokens = tokenStorage.GetTokens();
+                    if (tokens?.LicenseInfo != null)
+                    {
+                        var updatedLicense = new LicenseInfo
+                        {
+                            Key = tokens.LicenseInfo.Key,
+                            Status = tokens.LicenseInfo.Status,
+                            MaxDevices = tokens.LicenseInfo.MaxDevices,
+                            PlanId = tokens.LicenseInfo.PlanId,
+                            PlanName = tokens.LicenseInfo.PlanName,
+                            TrialEndsAt = tokens.LicenseInfo.TrialEndsAt,
+                            PurchaseDate = tokens.LicenseInfo.PurchaseDate,
+                            ExpiryDate = tokens.LicenseInfo.ExpiryDate,
+                            TrialAttemptsRemaining = attemptResult.TrialAttemptsRemaining
+                        };
+                        tokenStorage.UpdateUserAndLicense(tokens.UserInfo, updatedLicense);
+                    }
+                    Dispatcher.Invoke(() => UpdateLicenseDisplay());
+                }
+
                 // Hide selection container so only results panel is visible (fix broken view)
                 DetectionSelectionContainer.Visibility = Visibility.Collapsed;
                 StartDetectionCard.Visibility = Visibility.Collapsed;
@@ -1071,19 +1522,46 @@ videoLiveFakeProportionThreshold = 0.7
                 {
                     overallClassification = null;
                     _deepfakeDetectedDuringRun = false;
+                    _evidenceSaveCounter = 0;
+                    _resultPushedForStopAndViewResults = false;
+                    _resultPushSucceeded = false;
+                    _resultPushedOnStop = false;
+                    _suppressAutoNavigateToResultsOnComplete = false;
+                    string baseResultsDir = "";
+                    try { baseResultsDir = controller?.GetResultsDir() ?? ""; } catch { }
+                    _currentRunArtifactPath = string.IsNullOrEmpty(baseResultsDir) ? null : Path.Combine(baseResultsDir, isAudioMode ? "audio" : "video", DateTime.Now.ToString("dd-MM-yyyy"), DateTime.Now.ToString("HH-mm"));
+                    if (!string.IsNullOrEmpty(_currentRunArtifactPath))
+                    {
+                        try { if (!Directory.Exists(_currentRunArtifactPath)) Directory.CreateDirectory(_currentRunArtifactPath); } catch { }
+                    }
                     StartDetectionCard.StatusText = $"Identifying Active Media Sources";
+                    _suppressProcessSourceNotificationsDuringDetection = true;
                     DetectionResultsComponent.StartDetection(isAudioMode);
                     string detectionType = isAudioMode ? "Audio" : "Video";
                     ShowNotification("Detection Started",
                         $"{detectionType} detection started for {duration} seconds.",
                         Forms.ToolTipIcon.Info);
+                    // Show floating launcher once detection is running (short delay so native has started; visible before first classification)
+                    var showLauncherTimer = new DispatcherTimer(DispatcherPriority.ApplicationIdle)
+                    {
+                        Interval = TimeSpan.FromMilliseconds(150)
+                    };
+                    showLauncherTimer.Tick += (s, _) =>
+                    {
+                        ((DispatcherTimer)s).Stop();
+                        ShowFloatingWidgetIfDetectionRunning();
+                    };
+                    showLauncherTimer.Start();
                 });
 
-                // Track detection mode and source name for result (Media Source = app name: Zoom, Google Chrome, etc.)
+                // Get fresh license (incl. TrialAttemptsRemaining) from server after detection started so attempts update in real time
+                _ = RefreshLicenseAfterDetectionStartedAsync(licenseService);
+
+                // Track detection mode and source name for result (Media Source = app name: Zoom, Google Chrome, Mozilla Firefox, etc.)
                 isWebSurfingMode = !isLiveCallMode;
                 isAudioDetection = isAudioMode;
                 isStoppingDetection = false;
-                _currentMediaSourceDisplayName = GetMediaSourceDisplayName(source);
+                _currentMediaSourceDisplayName = !string.IsNullOrWhiteSpace(mediaSourceDisplayName) ? mediaSourceDisplayName.Trim() : GetMediaSourceDisplayName(source);
 
                 // Wait for inference env warm-up (from controller init) so first-time Start detection succeeds
                 if (_inferenceWarmUpTask != null)
@@ -1096,7 +1574,11 @@ videoLiveFakeProportionThreshold = 0.7
                     _inferenceWarmUpTask = null;
                 }
 
-                // Start detection based on mode (Video or Audio)
+                // Detection flows (all four converge on the same result/notification/save logic):
+                // - Video Conference (Live Call): result + face + classification callbacks -> ShowFinalResult on isLast -> notification, PushDetectionResultToBackend, RefreshResultsList.
+                // - Video Web Stream: same; Stop & View Results uses _pathForResultsAfterStop so Session Details matches saved record.
+                // - Audio Conference: result + voice classification callbacks -> ShowFinalResult on isLast -> notification (no images), same save/refresh.
+                // - Audio Web Stream: same. Stop opens results from finally using _pathForResultsAfterStop.
                 if (isAudioMode)
                 {
                     // Audio Detection
@@ -1119,14 +1601,18 @@ videoLiveFakeProportionThreshold = 0.7
                                             {
                                                 isStoppingDetection = false;
                                                 if (openResultsFolderAfterStop)
-                                                    OpenResultsAndShowSessionDetailAfterStop(resultPath ?? "");
+                                                    OpenResultsAndShowSessionDetailAfterStop(!string.IsNullOrEmpty(_pathForResultsAfterStop) ? _pathForResultsAfterStop : (resultPath ?? ""));
                                             }
+                                        }
+                                        else
+                                        {
+                                            _currentRunArtifactPath = DetectionResultsLoader.ResolveFullArtifactPath(resultPath ?? "", true) ?? resultPath ?? "";
+                                            DetectionResultsComponent?.NotifyFakeFromNative();
                                         }
                                     }
                                     catch (Exception ex)
                                     {
-                                        MessageBox.Show($"Error handling result: {ex.Message}", "Error",
-                                            MessageBoxButton.OK, MessageBoxImage.Error);
+                                        AppDialog.Show(this, $"Error handling result: {ex.Message}", "Error", MessageBoxImage.Error);
                                     }
                                 });
                             },
@@ -1138,13 +1624,12 @@ videoLiveFakeProportionThreshold = 0.7
                                     UpdateAudioClassification(classification);
                                 });
                             },
-                            // Voice graph score callback
+                            // Voice graph score callback: track max per 15s window and run max for deepfake confidence
                             (score) =>
                             {
                                 Dispatcher.Invoke(() =>
                                 {
-                                    // Update graph score if needed (for future graph visualization)
-                                    System.Diagnostics.Debug.WriteLine($"Voice graph score: {score}");
+                                    DetectionResultsComponent?.UpdateAudioScore(score);
                                 });
                             });
                     }
@@ -1167,14 +1652,18 @@ videoLiveFakeProportionThreshold = 0.7
                                             {
                                                 isStoppingDetection = false;
                                                 if (openResultsFolderAfterStop)
-                                                    OpenResultsAndShowSessionDetailAfterStop(resultPath ?? "");
+                                                    OpenResultsAndShowSessionDetailAfterStop(!string.IsNullOrEmpty(_pathForResultsAfterStop) ? _pathForResultsAfterStop : (resultPath ?? ""));
                                             }
+                                        }
+                                        else
+                                        {
+                                            _currentRunArtifactPath = DetectionResultsLoader.ResolveFullArtifactPath(resultPath ?? "", true) ?? resultPath ?? "";
+                                            DetectionResultsComponent?.NotifyFakeFromNative();
                                         }
                                     }
                                     catch (Exception ex)
                                     {
-                                        MessageBox.Show($"Error handling result: {ex.Message}", "Error",
-                                            MessageBoxButton.OK, MessageBoxImage.Error);
+                                        AppDialog.Show(this, $"Error handling result: {ex.Message}", "Error", MessageBoxImage.Error);
                                     }
                                 });
                             },
@@ -1186,12 +1675,12 @@ videoLiveFakeProportionThreshold = 0.7
                                     UpdateAudioClassification(classification);
                                 });
                             },
-                            // Voice graph score callback
+                            // Voice graph score callback: track max per 15s window and run max for deepfake confidence
                             (score) =>
                             {
                                 Dispatcher.Invoke(() =>
                                 {
-                                    System.Diagnostics.Debug.WriteLine($"Voice graph score: {score}");
+                                    DetectionResultsComponent?.UpdateAudioScore(score);
                                 });
                             });
                     }
@@ -1217,14 +1706,18 @@ videoLiveFakeProportionThreshold = 0.7
                                         {
                                             isStoppingDetection = false;
                                             if (openResultsFolderAfterStop)
-                                                OpenResultsAndShowSessionDetailAfterStop(resultPath ?? "");
+                                                OpenResultsAndShowSessionDetailAfterStop(!string.IsNullOrEmpty(_pathForResultsAfterStop) ? _pathForResultsAfterStop : (resultPath ?? ""));
                                         }
+                                    }
+                                    else
+                                    {
+                                        _currentRunArtifactPath = DetectionResultsLoader.ResolveFullArtifactPath(resultPath ?? "", false) ?? resultPath ?? "";
+                                        DetectionResultsComponent?.NotifyFakeFromNative();
                                     }
                                 }
                                 catch (Exception ex)
                                 {
-                                    MessageBox.Show($"Error handling result: {ex.Message}", "Error",
-                                        MessageBoxButton.OK, MessageBoxImage.Error);
+                                    AppDialog.Show(this, $"Error handling result: {ex.Message}", "Error", MessageBoxImage.Error);
                                 }
                             });
                         },
@@ -1263,14 +1756,18 @@ videoLiveFakeProportionThreshold = 0.7
                                         {
                                             isStoppingDetection = false;
                                             if (openResultsFolderAfterStop)
-                                                OpenResultsAndShowSessionDetailAfterStop(resultPath ?? "");
+                                                OpenResultsAndShowSessionDetailAfterStop(!string.IsNullOrEmpty(_pathForResultsAfterStop) ? _pathForResultsAfterStop : (resultPath ?? ""));
                                         }
+                                    }
+                                    else
+                                    {
+                                        _currentRunArtifactPath = DetectionResultsLoader.ResolveFullArtifactPath(resultPath ?? "", false) ?? resultPath ?? "";
+                                        DetectionResultsComponent?.NotifyFakeFromNative();
                                     }
                                 }
                                 catch (Exception ex)
                                 {
-                                    MessageBox.Show($"Error handling result: {ex.Message}", "Error",
-                                        MessageBoxButton.OK, MessageBoxImage.Error);
+                                    AppDialog.Show(this, $"Error handling result: {ex.Message}", "Error", MessageBoxImage.Error);
                                 }
                             });
                         },
@@ -1309,8 +1806,7 @@ videoLiveFakeProportionThreshold = 0.7
                     return;
                 }
 
-                MessageBox.Show($"Failed to start detection: {message}", "Error",
-                    MessageBoxButton.OK, MessageBoxImage.Error);
+                AppDialog.Show(this, $"Failed to start detection: {message}", "Error", MessageBoxImage.Error);
                 // Return to home so user is not stuck on detection screen
                 ResetAppContentToHome();
             }
@@ -1322,6 +1818,7 @@ videoLiveFakeProportionThreshold = 0.7
         /// </summary>
         private void ResetAppContentToHome()
         {
+            _suppressProcessSourceNotificationsDuringDetection = false;
             DetectionResultsComponent?.Reset();
             DetectionResultsPanel.Visibility = Visibility.Collapsed;
             DetectionSelectionContainer.Visibility = Visibility.Collapsed;
@@ -1332,6 +1829,19 @@ videoLiveFakeProportionThreshold = 0.7
             isAudioDetection = false;
             overallClassification = null;
             _deepfakeDetectedDuringRun = false;
+            _evidenceSaveCounter = 0;
+            _currentRunArtifactPath = null;
+        }
+
+        /// <summary>
+        /// Shows the analyzing screen (DetectionResultsPanel) and hides start card/selection when detection is already running.
+        /// Use when user returns to Home tab or clicks Start Detection while detection is running.
+        /// </summary>
+        private void ShowAnalyzingScreenWhenDetectionRunning()
+        {
+            DetectionSelectionContainer.Visibility = Visibility.Collapsed;
+            StartDetectionCard.Visibility = Visibility.Collapsed;
+            DetectionResultsPanel.Visibility = Visibility.Visible;
         }
 
         private void InitializeStatusTimer()
@@ -1351,16 +1861,25 @@ videoLiveFakeProportionThreshold = 0.7
                 bool isRunning = controller != null && controller.IsDetectionRunning();
                 DetectionResultsComponent.SetStopButtonEnabled(isRunning || onDetectionScreen);
             }
-            // Update floating widget ring (rotate when detecting, red when deepfake) — only when enabled
-            if (FloatingWidgetEnabled && _floatingWidget != null && _floatingWidget.IsVisible)
+            // Update floating widget: show when minimized/hidden and detection running; hide when detection stops; else update ring (green/red)
+            if (FloatingWidgetEnabled)
             {
                 bool isRunning = controller != null && controller.IsDetectionRunning();
-                _floatingWidget.SetDetectionState(isRunning, overallClassification == true);
+                bool windowMinimizedOrHidden = WindowState == WindowState.Minimized || !IsVisible;
+                if (!isRunning)
+                    _floatingWidget?.Hide();
+                else if (windowMinimizedOrHidden)
+                    ShowFloatingWidgetIfDetectionRunning();
+                else if (_floatingWidget != null && _floatingWidget.IsVisible)
+                    _floatingWidget.SetDetectionState(true, overallClassification == true);
             }
         }
 
         private void DetectionResultsComponent_DeepfakeDetected(object sender, EventArgs e)
         {
+            _deepfakeDetectedDuringRun = true; // So final View Results and floater show threat state (triggered by native ResultNotification only now)
+            if (FloatingWidgetEnabled && _floatingWidget != null && _floatingWidget.IsVisible)
+                _floatingWidget.SetDetectionState(true, true);
             ShowDeepfakeNotification();
         }
 
@@ -1370,7 +1889,10 @@ videoLiveFakeProportionThreshold = 0.7
             {
                 case "Home":
                     ShowDetectionContent();
-                    ResetAppContentToHome();
+                    if (controller != null && controller.IsDetectionRunning())
+                        ShowAnalyzingScreenWhenDetectionRunning();
+                    else
+                        ResetAppContentToHome();
                     break;
                 case "Results":
                     ShowDetectionResultsScreen();
@@ -1379,18 +1901,15 @@ videoLiveFakeProportionThreshold = 0.7
                     ShowProfileComponent();
                     break;
                 case "Settings":
-                    // TODO: Show settings page
-                    MessageBox.Show("Settings page coming soon!", "Settings", MessageBoxButton.OK, MessageBoxImage.Information);
+                    ShowSettingsComponent();
                     break;
             }
         }
         
         private void Logout_Click(object sender, RoutedEventArgs e)
         {
-            var result = MessageBox.Show("Are you sure you want to log out?", "Logout", 
-                MessageBoxButton.YesNo, MessageBoxImage.Question);
-            
-            if (result == MessageBoxResult.Yes)
+            var result = AppDialog.ShowYesNo(this, "Are you sure you want to log out?", "Logout");
+            if (result == true)
                 DoLogout();
         }
 
@@ -1398,6 +1917,7 @@ videoLiveFakeProportionThreshold = 0.7
         {
             try
             {
+                // Keep tray running in background; only Exit from tray closes the app
                 var tokenStorage = new TokenStorage();
                 tokenStorage.ClearTokens();
                 controller = null;
@@ -1406,8 +1926,7 @@ videoLiveFakeProportionThreshold = 0.7
             }
             catch (Exception ex)
             {
-                MessageBox.Show($"Error during logout: {ex.Message}", "Error", 
-                    MessageBoxButton.OK, MessageBoxImage.Error);
+                AppDialog.Show(this, $"Error during logout: {ex.Message}", "Error", MessageBoxImage.Error);
             }
         }
         
@@ -1423,6 +1942,7 @@ videoLiveFakeProportionThreshold = 0.7
             PlansComponent.Visibility = Visibility.Collapsed;
             StripePaymentComponentContainer.Visibility = Visibility.Collapsed;
             CorpRegisterComponent.Visibility = Visibility.Collapsed;
+            SettingsComponent.Visibility = Visibility.Collapsed;
             if (DetectionResultsScreen != null)
                 DetectionResultsScreen.Visibility = Visibility.Collapsed;
             if (ProfileComponent != null)
@@ -1430,6 +1950,9 @@ videoLiveFakeProportionThreshold = 0.7
             if (LicenseSubscriptionComponent != null)
                 LicenseSubscriptionComponent.Visibility = Visibility.Collapsed;
             SupportComponent.Visibility = Visibility.Visible;
+            // Clear nav highlight when showing support (opened from footer Support)
+            if (TopNavBar != null)
+                TopNavBar.SelectedPage = "";
         }
 
         private void SupportComponent_BackRequested(object sender, EventArgs e)
@@ -1448,12 +1971,29 @@ videoLiveFakeProportionThreshold = 0.7
             SupportComponent.Visibility = Visibility.Collapsed;
             if (LicenseSubscriptionComponent != null)
                 LicenseSubscriptionComponent.Visibility = Visibility.Collapsed;
+            SettingsComponent.Visibility = Visibility.Collapsed;
             if (DetectionResultsScreen != null)
                 DetectionResultsScreen.Visibility = Visibility.Collapsed;
             if (TopNavBar != null)
                 TopNavBar.SelectedPage = "Profile";
             ProfileComponent.Visibility = Visibility.Visible;
             _ = ProfileComponent.LoadProfileAsync();
+        }
+
+        private void ShowSettingsComponent()
+        {
+            DetectionContentGrid.Visibility = Visibility.Collapsed;
+            StatisticsCardsGrid.Visibility = Visibility.Collapsed;
+            PlansComponent.Visibility = Visibility.Collapsed;
+            StripePaymentComponentContainer.Visibility = Visibility.Collapsed;
+            CorpRegisterComponent.Visibility = Visibility.Collapsed;
+            SupportComponent.Visibility = Visibility.Collapsed;
+            ProfileComponent.Visibility = Visibility.Collapsed;
+            if (DetectionResultsScreen != null)
+                DetectionResultsScreen.Visibility = Visibility.Collapsed;
+            if (TopNavBar != null)
+                TopNavBar.SelectedPage = "Settings";
+            SettingsComponent.Visibility = Visibility.Visible;
         }
 
         private void ProfileComponent_BackRequested(object sender, EventArgs e)
@@ -1491,8 +2031,9 @@ videoLiveFakeProportionThreshold = 0.7
 
         private void ProfileComponent_ChangePasswordRequested(object sender, EventArgs e)
         {
-            _changePasswordDialog.ClearAndHideError();
+            _changePasswordDialog.Clear();
             ChangePasswordOverlayContent.Content = _changePasswordDialog;
+            EnterBlur();
             ChangePasswordOverlay.Visibility = Visibility.Visible;
         }
 
@@ -1556,6 +2097,7 @@ videoLiveFakeProportionThreshold = 0.7
                     Dispatcher.Invoke(() =>
                     {
                         ChangePasswordOverlay.Visibility = Visibility.Collapsed;
+                        ExitBlur();
                         DoLogout();
                     });
                 });
@@ -1592,6 +2134,7 @@ videoLiveFakeProportionThreshold = 0.7
                     tokens.AccessToken);
                 _verifyChangePasswordOtpDialog.Clear();
                 _verifyChangePasswordOtpDialog.ShowError(""); // clear any previous error
+                AppDialog.Show(this, "A new code has been sent to your email.", "Code resent", MessageBoxImage.Information);
             }
             catch (Exception ex)
             {
@@ -1612,7 +2155,7 @@ videoLiveFakeProportionThreshold = 0.7
                 {
                     controller = null;
                     controllerInitializationAttempted = false;
-                    ShowAuthView();
+                    ShowWelcomeView();
                 }
                 catch (Exception ex)
                 {
@@ -1623,19 +2166,314 @@ videoLiveFakeProportionThreshold = 0.7
 
         private void MainWindow_Closing(object? sender, System.ComponentModel.CancelEventArgs e)
         {
-            try
+            // If user chose Exit from tray menu, allow close and shutdown (tokens cleared in ExitFromTray)
+            if (_isExitingFromTray)
+                return;
+
+            // If on Create Account verification screen, cancel the unverified user (same as Back button)
+            if (AuthPanel.CurrentContent == _emailVerificationComponent)
+                _ = _emailVerificationComponent.CancelRegistrationIfPendingAsync();
+
+            // Close (X): minimize to tray; if Remember Me is false, logout (clear tokens) so next open shows login
+            if (notifyIcon != null)
             {
-                var tokenStorage = new TokenStorage();
-                var tokens = tokenStorage.GetTokens();
-                if (tokens != null && !tokens.RememberMe)
+                try
                 {
-                    tokenStorage.ClearTokens();
+                    var tokenStorage = new TokenStorage();
+                    var tokens = tokenStorage.GetTokens();
+                    if (tokens == null || !tokens.RememberMe)
+                        tokenStorage.ClearTokens();
+                }
+                catch (Exception ex)
+                {
+                    System.Diagnostics.Debug.WriteLine($"MainWindow_Closing: {ex.Message}");
+                }
+                e.Cancel = true;
+                Hide();
+            }
+        }
+
+        private void MainWindow_IsVisibleChanged(object sender, DependencyPropertyChangedEventArgs e)
+        {
+            if (e.NewValue is bool visible)
+            {
+                if (visible)
+                {
+                    StopBackgroundProcessCheck();
+                    if (FloatingWidgetEnabled) _floatingWidget?.Hide();
+                }
+                else if (notifyIcon != null)
+                {
+                    StartBackgroundProcessCheck();
+                    if (FloatingWidgetEnabled) ShowFloatingWidgetIfDetectionRunning();
                 }
             }
-            catch (Exception ex)
+        }
+
+        private void StartBackgroundProcessCheck()
+        {
+            // Always refresh "since" when entering minimized/tray so first notification is never before 1 minute
+            _minimizedOrTraySince = DateTime.UtcNow;
+            if (_backgroundProcessCheckTimer != null) return;
+            _backgroundProcessCheckTimer = new DispatcherTimer(DispatcherPriority.Background)
             {
-                System.Diagnostics.Debug.WriteLine($"MainWindow_Closing: {ex.Message}");
+                Interval = TimeSpan.FromMinutes(1)
+            };
+            _backgroundProcessCheckTimer.Tick += BackgroundProcessCheckTimer_Tick;
+            _backgroundProcessCheckTimer.Start();
+        }
+
+        private void StopBackgroundProcessCheck()
+        {
+            _backgroundProcessCheckTimer?.Stop();
+            _backgroundProcessCheckTimer = null;
+            _oneShotAfterNotificationClosedTimer?.Stop();
+            _oneShotAfterNotificationClosedTimer = null;
+            // Reset "closed at" so next time user minimizes, the 1-minute timer restarts from that minimize (rule 5: app opened then minimized again = timer restarts)
+            _lastMediaSourcePopupClosedAt = DateTime.MinValue;
+            _lastMultipleSourcesPopupClosedAt = DateTime.MinValue;
+        }
+
+        /// <summary>True while detection is in progress: suppress minimized/tray auto single- and multiple-source process notifications.</summary>
+        private bool ShouldSuppressProcessSourceNotifications()
+        {
+            if (_suppressProcessSourceNotificationsDuringDetection) return true;
+            try
+            {
+                return controller != null && controller.IsDetectionRunning();
             }
+            catch
+            {
+                return false;
+            }
+        }
+
+        /// <summary>Start a one-shot 1-minute timer so we show the notification again exactly 1 minute after the user closed it (instead of waiting for the next periodic tick which can add an extra minute).</summary>
+        private void StartOneShotNotificationTimer(bool forMultiple)
+        {
+            _oneShotForMultipleSources = forMultiple;
+            _oneShotAfterNotificationClosedTimer?.Stop();
+            _oneShotAfterNotificationClosedTimer = new DispatcherTimer(DispatcherPriority.Background)
+            {
+                Interval = TimeSpan.FromMinutes(1)
+            };
+            _oneShotAfterNotificationClosedTimer.Tick += OneShotNotificationTimer_Tick;
+            _oneShotAfterNotificationClosedTimer.Start();
+        }
+
+        private async void OneShotNotificationTimer_Tick(object sender, EventArgs e)
+        {
+            var timer = _oneShotAfterNotificationClosedTimer;
+            _oneShotAfterNotificationClosedTimer = null;
+            if (timer == null) return;
+            timer.Stop();
+            timer.Tick -= OneShotNotificationTimer_Tick;
+            if (notifyIcon == null) return;
+            if (IsVisible && WindowState != WindowState.Minimized) return;
+            List<DetectedProcess> list = null;
+            await Task.Run(() =>
+            {
+                try
+                {
+                    var svc = new ProcessDetectionService();
+                    list = svc.DetectRelevantProcesses();
+                }
+                catch (Exception ex)
+                {
+                    System.Diagnostics.Debug.WriteLine($"One-shot notification check: {ex.Message}");
+                }
+            }).ConfigureAwait(false);
+            if (list == null) return;
+            var single = list.Count == 1 ? list[0] : null;
+            await Dispatcher.InvokeAsync(() =>
+            {
+                if (notifyIcon == null) return;
+                if (IsVisible && WindowState != WindowState.Minimized) return;
+                try
+                {
+                    var tokenStorage = new TokenStorage();
+                    var tokens = tokenStorage.GetTokens();
+                    if (tokens == null) return;
+                    var status = (tokens.LicenseInfo?.Status ?? tokens.UserInfo?.LicenseStatus ?? "").Trim();
+                    if (status.Equals("Expired", StringComparison.OrdinalIgnoreCase)) return;
+                    if (status.Equals("Trial", StringComparison.OrdinalIgnoreCase) && (tokens.LicenseInfo?.TrialAttemptsRemaining ?? 0) == 0) return;
+                }
+                catch { return; }
+                if (ShouldSuppressProcessSourceNotifications())
+                {
+                    // Detection (or native) still active — try again in 1 min so the post-close chain resumes after session ends.
+                    StartOneShotNotificationTimer(_oneShotForMultipleSources);
+                    return;
+                }
+                if (openResultsFolderAfterStop) return;
+                if (list.Count > 1)
+                {
+                    if (MultipleSourcesDetectedPopup.IsAnyOpen) return;
+                    var multiPopup = new MultipleSourcesDetectedPopup();
+                    multiPopup.Closed += (s, _) =>
+                    {
+                        Dispatcher.BeginInvoke(new Action(() =>
+                        {
+                            _lastMultipleSourcesPopupClosedAt = DateTime.UtcNow;
+                            StartOneShotNotificationTimer(forMultiple: true);
+                        }), DispatcherPriority.Normal);
+                    };
+                    multiPopup.OpenApplicationRequested += (s, _) =>
+                    {
+                        ShowDetectionContent();
+                        Show();
+                        WindowState = WindowState.Normal;
+                        Activate();
+                    };
+                    multiPopup.ShowAtBottomRight();
+                    _floatingWidget?.BringAboveNotifications();
+                    return;
+                }
+                if (list.Count != 1 || single == null) return;
+                if (MultipleSourcesDetectedPopup.IsAnyOpen) return;
+                if (MediaSourceDetectedPopup.IsAnyOpen) return;
+                var popup = new MediaSourceDetectedPopup();
+                popup.Closed += (s, _) =>
+                {
+                    Dispatcher.BeginInvoke(new Action(() =>
+                    {
+                        _lastMediaSourcePopupClosedAt = DateTime.UtcNow;
+                        StartOneShotNotificationTimer(forMultiple: false);
+                    }), DispatcherPriority.Normal);
+                };
+                popup.StartDetectionChosen += (s, ev) =>
+                {
+                    StartDetectionFromPopup(ev.Source, ev.IsLiveCallMode, ev.IsAudioMode);
+                    ShowDetectionContent();
+                    DetectionSelectionContainer.Visibility = Visibility.Collapsed;
+                    DetectionResultsPanel.Visibility = Visibility.Visible;
+                    try
+                    {
+                        WindowState = WindowState.Minimized;
+                        System.Threading.Thread.Sleep(200);
+                        ProcessDetectionService.BringProcessWindowToForeground(single);
+                    }
+                    catch { }
+                };
+                popup.ShowForProcess(single);
+                _floatingWidget?.BringAboveNotifications();
+            });
+        }
+
+        /// <summary>
+        /// Notification rules: (1) Only when app is minimized/tray. (2) First show 1 min after minimize if sources detected.
+        /// (3) No duplicate: if a notification is visible, do not show another. (4) After closing, 1-min timer starts; show again after 1 min if still minimized and sources detected.
+        /// (5) If user opens app then minimizes again, timer restarts (StopBackgroundProcessCheck resets closed-at). (6) Repeat every minute while minimized and sources detected.
+        /// (7) No single/multiple notifications while detection is in progress (UI session or native running); one-shot chain reschedules if suppressed.
+        /// </summary>
+        private async void BackgroundProcessCheckTimer_Tick(object? sender, EventArgs e)
+        {
+            // Rule 1: Only when minimized (or hidden to tray)
+            if (notifyIcon == null) return;
+            if (IsVisible && WindowState != WindowState.Minimized) return;
+            List<DetectedProcess> list = null;
+            await Task.Run(() =>
+            {
+                try
+                {
+                    var svc = new ProcessDetectionService();
+                    list = svc.DetectRelevantProcesses();
+                }
+                catch (Exception ex)
+                {
+                    System.Diagnostics.Debug.WriteLine($"Background process check: {ex.Message}");
+                }
+            }).ConfigureAwait(false);
+            if (list == null) return;
+            var single = list.Count == 1 ? list[0] : null;
+            await Dispatcher.InvokeAsync(() =>
+            {
+                if (notifyIcon == null) return;
+                if (IsVisible && WindowState != WindowState.Minimized) return;
+                // Do not show notifications when user is logged out
+                try
+                {
+                    var tokenStorage = new TokenStorage();
+                    var tokens = tokenStorage.GetTokens();
+                    if (tokens == null) return;
+                    // Do not show single/multiple source notifications when Start Detection card is disabled (Expired or Trial with 0 attempts)
+                    var status = (tokens.LicenseInfo?.Status ?? tokens.UserInfo?.LicenseStatus ?? "").Trim();
+                    if (status.Equals("Expired", StringComparison.OrdinalIgnoreCase)) return;
+                    if (status.Equals("Trial", StringComparison.OrdinalIgnoreCase) && (tokens.LicenseInfo?.TrialAttemptsRemaining ?? 0) == 0) return;
+                }
+                catch { return; }
+                // Do not show single/multiple process notifications during an active detection session (UI + native)
+                if (ShouldSuppressProcessSourceNotifications()) return;
+                // Do not show when user just chose "Stop & View Results" from floating widget (we're about to restore and open results)
+                if (openResultsFolderAfterStop) return;
+
+                // Multiple sources: show after 1 min from minimize or from when user closed the last notification; never duplicate if one is open
+                if (list.Count > 1)
+                {
+                    if (MultipleSourcesDetectedPopup.IsAnyOpen) return;
+                    var nowUtc = DateTime.UtcNow;
+                    var elapsedSinceMinimize = (nowUtc - _minimizedOrTraySince).TotalSeconds;
+                    var elapsedSinceClose = _lastMultipleSourcesPopupClosedAt == DateTime.MinValue
+                        ? double.MaxValue
+                        : (nowUtc - _lastMultipleSourcesPopupClosedAt).TotalSeconds;
+                    if (elapsedSinceMinimize < MediaSourcePopupCooldownSeconds || elapsedSinceClose < MediaSourcePopupCooldownSeconds) return;
+                    var multiPopup = new MultipleSourcesDetectedPopup();
+                    multiPopup.Closed += (s, _) =>
+                    {
+                        Dispatcher.BeginInvoke(new Action(() =>
+                        {
+                            _lastMultipleSourcesPopupClosedAt = DateTime.UtcNow;
+                            StartOneShotNotificationTimer(forMultiple: true);
+                        }), DispatcherPriority.Normal);
+                    };
+                    multiPopup.OpenApplicationRequested += (s, _) =>
+                    {
+                        ShowDetectionContent();
+                        Show();
+                        WindowState = WindowState.Normal;
+                        Activate();
+                    };
+                    multiPopup.ShowAtBottomRight();
+                    _floatingWidget?.BringAboveNotifications();
+                    return;
+                }
+                if (list.Count != 1 || single == null) return;
+                if (MultipleSourcesDetectedPopup.IsAnyOpen) return;
+                if (MediaSourceDetectedPopup.IsAnyOpen) return;
+                // Single source: show after 1 min from minimize or from when user closed the last notification
+                var nowUtcSingle = DateTime.UtcNow;
+                var elapsedSinceMinimizeSingle = (nowUtcSingle - _minimizedOrTraySince).TotalSeconds;
+                var elapsedSinceCloseSingle = _lastMediaSourcePopupClosedAt == DateTime.MinValue
+                    ? double.MaxValue
+                    : (nowUtcSingle - _lastMediaSourcePopupClosedAt).TotalSeconds;
+                if (elapsedSinceMinimizeSingle < MediaSourcePopupCooldownSeconds || elapsedSinceCloseSingle < MediaSourcePopupCooldownSeconds) return;
+                var popup = new MediaSourceDetectedPopup();
+                popup.Closed += (s, _) =>
+                {
+                    Dispatcher.BeginInvoke(new Action(() =>
+                    {
+                        _lastMediaSourcePopupClosedAt = DateTime.UtcNow;
+                        StartOneShotNotificationTimer(forMultiple: false);
+                    }), DispatcherPriority.Normal);
+                };
+                popup.StartDetectionChosen += (s, ev) =>
+                {
+                    StartDetectionFromPopup(ev.Source, ev.IsLiveCallMode, ev.IsAudioMode);
+                    ShowDetectionContent();
+                    DetectionSelectionContainer.Visibility = Visibility.Collapsed;
+                    DetectionResultsPanel.Visibility = Visibility.Visible;
+                    // Minimize our window first so we're not the foreground process (avoids SetForegroundWindow being blocked when user switches quickly).
+                    try
+                    {
+                        WindowState = WindowState.Minimized;
+                        System.Threading.Thread.Sleep(200);
+                        ProcessDetectionService.BringProcessWindowToForeground(single);
+                    }
+                    catch { }
+                };
+                popup.ShowForProcess(single);
+                _floatingWidget?.BringAboveNotifications();
+            });
         }
 
         private void BottomBar_SubscribeClicked(object sender, EventArgs e)
@@ -1647,7 +2485,9 @@ videoLiveFakeProportionThreshold = 0.7
         {
             DetectionContentGrid.Visibility = Visibility.Collapsed;
             StatisticsCardsGrid.Visibility = Visibility.Collapsed;
+            CorpRegisterComponent.Visibility = Visibility.Collapsed;
             SupportComponent.Visibility = Visibility.Collapsed;
+            SettingsComponent.Visibility = Visibility.Collapsed;
             if (DetectionResultsScreen != null)
                 DetectionResultsScreen.Visibility = Visibility.Collapsed;
             if (ProfileComponent != null)
@@ -1656,6 +2496,9 @@ videoLiveFakeProportionThreshold = 0.7
                 LicenseSubscriptionComponent.Visibility = Visibility.Collapsed;
             PlansComponent.Visibility = Visibility.Visible;
             StripePaymentComponentContainer.Visibility = Visibility.Collapsed;
+            // Clear nav highlight when showing plans (opened from footer Subscribe)
+            if (TopNavBar != null)
+                TopNavBar.SelectedPage = "";
         }
 
         private void ShowDetectionResultsScreen()
@@ -1666,6 +2509,7 @@ videoLiveFakeProportionThreshold = 0.7
             StripePaymentComponentContainer.Visibility = Visibility.Collapsed;
             CorpRegisterComponent.Visibility = Visibility.Collapsed;
             SupportComponent.Visibility = Visibility.Collapsed;
+            SettingsComponent.Visibility = Visibility.Collapsed;
             if (ProfileComponent != null)
                 ProfileComponent.Visibility = Visibility.Collapsed;
             if (LicenseSubscriptionComponent != null)
@@ -1674,41 +2518,10 @@ videoLiveFakeProportionThreshold = 0.7
                 TopNavBar.SelectedPage = "Results";
 
             DetectionResultsScreen.Visibility = Visibility.Visible;
+            DetectionResultsScreen.ShowResultsList();
 
-            string resultsDir = null;
-            try
-            {
-                if (controller != null)
-                    resultsDir = controller.GetResultsDir();
-            }
-            catch (Exception ex)
-            {
-                System.Diagnostics.Debug.WriteLine($"GetResultsDir: {ex.Message}");
-            }
-
-            try
-            {
-                DetectionResultsScreen.SetResultsDirectoryAndRefresh(resultsDir);
-            }
-            catch (Exception ex)
-            {
-                System.Diagnostics.Debug.WriteLine($"SetResultsDirectoryAndRefresh failed (e.g. SQLite not available when installed): {ex.Message}");
-                try { DetectionResultsScreen.SetResultsFromApi(Array.Empty<ResultDto>()); } catch { }
-            }
-
-            Dispatcher.InvokeAsync(async () =>
-            {
-                try
-                {
-                    var response = await _resultsApiService.GetResultsAsync();
-                    if (response?.Results != null)
-                        DetectionResultsScreen.SetResultsFromApi(response.Results);
-                }
-                catch (Exception ex)
-                {
-                    System.Diagnostics.Debug.WriteLine($"GetResults API failed: {ex.Message}");
-                }
-            });
+            // Load results from API (or local fallback) so table is populated
+            _ = RefreshResultsListFromApiAsync();
         }
 
         private void ShowDetectionContent()
@@ -1721,12 +2534,16 @@ videoLiveFakeProportionThreshold = 0.7
             StripePaymentComponentContainer.Visibility = Visibility.Collapsed;
             CorpRegisterComponent.Visibility = Visibility.Collapsed;
             SupportComponent.Visibility = Visibility.Collapsed;
+            SettingsComponent.Visibility = Visibility.Collapsed;
             if (ProfileComponent != null)
                 ProfileComponent.Visibility = Visibility.Collapsed;
             if (LicenseSubscriptionComponent != null)
                 LicenseSubscriptionComponent.Visibility = Visibility.Collapsed;
             if (DetectionResultsScreen != null)
                 DetectionResultsScreen.Visibility = Visibility.Collapsed;
+            // Restore Home as selected when returning from Plans/Support (Back to Detection)
+            if (TopNavBar != null)
+                TopNavBar.SelectedPage = "Home";
         }
 
         private void PlansComponent_PlanSelected(object sender, PlanSelectedEventArgs e)
@@ -1734,6 +2551,7 @@ videoLiveFakeProportionThreshold = 0.7
             // Hide plans component and statistics
             PlansComponent.Visibility = Visibility.Collapsed;
             StatisticsCardsGrid.Visibility = Visibility.Collapsed;
+            SettingsComponent.Visibility = Visibility.Collapsed;
             
             // Create new payment component with selected plan
             var paymentComponent = new StripePaymentComponent(e.Plan);
@@ -1760,18 +2578,69 @@ videoLiveFakeProportionThreshold = 0.7
 
         private void StripePaymentComponent_PaymentSuccess(object sender, PaymentSuccessEventArgs e)
         {
-            var successWindow = new PaymentSuccessWindow(
-                e.PlanName,
-                e.DurationDays,
-                e.Price,
-                e.PaymentIntentId
-            );
-            successWindow.Show();
-            successWindow.Closed += (s, args) =>
+            // Payment component is already showing "Please wait...". Run license refresh and controller re-init, then show the success popup.
+            _ = RunPostPurchaseSetupThenShowSuccessPopupAsync(e);
+        }
+
+        /// <summary>Runs license refresh and controller re-init, then shows the Payment Success popup. Payment component shows "Please wait..." until this completes.</summary>
+        private async System.Threading.Tasks.Task RunPostPurchaseSetupThenShowSuccessPopupAsync(PaymentSuccessEventArgs e)
+        {
+            try
             {
-                UpdateLicenseDisplay();
-                ShowDetectionContent();
-            };
+                await RefreshLicenseFromServerAfterActivationAsync();
+                await Dispatcher.InvokeAsync(() =>
+                {
+                    UpdateLicenseDisplay();
+                    try
+                    {
+                        if (controller != null)
+                        {
+                            controller.Dispose();
+                            controller = null;
+                        }
+                        controllerInitializationAttempted = false;
+                        InitializeController(forceRetry: true);
+                    }
+                    catch (Exception ex)
+                    {
+                        System.Diagnostics.Debug.WriteLine($"Post-purchase controller re-init: {ex.Message}");
+                    }
+                });
+            }
+            catch (Exception ex)
+            {
+                System.Diagnostics.Debug.WriteLine($"Post-purchase setup: {ex.Message}");
+            }
+            finally
+            {
+                await Dispatcher.InvokeAsync(() =>
+                {
+                    var popup = PaymentSuccessOverlayContent.Content as Controls.PaymentSuccessPopup;
+                    if (popup == null)
+                    {
+                        popup = new Controls.PaymentSuccessPopup();
+                        popup.CloseRequested += PaymentSuccessPopup_CloseRequested;
+                        PaymentSuccessOverlayContent.Content = popup;
+                    }
+                    popup.SetDetails(e.PlanName, e.DurationDays, e.Price, e.PaymentIntentId);
+                    StripePaymentComponentContainer.Visibility = Visibility.Collapsed;
+                    EnterBlur();
+                    PaymentSuccessOverlay.Visibility = Visibility.Visible;
+                    if (ProfileComponent != null && ProfileComponent.Visibility == Visibility.Visible)
+                        _ = ProfileComponent.LoadProfileAsync();
+                });
+            }
+        }
+
+        private void PaymentSuccessPopup_CloseRequested(object sender, EventArgs e)
+        {
+            PaymentSuccessOverlay.Visibility = Visibility.Collapsed;
+            ExitBlur();
+            PaymentSuccessOverlayContent.Content = null;
+            ShowDetectionContent();
+            // Refresh display from current tokens and fetch latest license from server so remaining days update immediately (backend may have ExpiryDate now).
+            UpdateLicenseDisplay();
+            RefreshLicenseDisplayAfterDetectionAsync();
         }
 
         private void OpenResultsFolder_Click(object sender, RoutedEventArgs e)
@@ -1784,14 +2653,12 @@ videoLiveFakeProportionThreshold = 0.7
                 }
                 else
                 {
-                    MessageBox.Show("Controller is not initialized. Please restart the application.", "Error", 
-                        MessageBoxButton.OK, MessageBoxImage.Warning);
+                    AppDialog.Show(this, "Controller is not initialized. Please restart the application.", "Error", MessageBoxImage.Warning);
                 }
             }
             catch (Exception ex)
             {
-                MessageBox.Show($"Failed to open results folder: {ex.Message}", "Error", 
-                    MessageBoxButton.OK, MessageBoxImage.Error);
+                AppDialog.Show(this, $"Failed to open results folder: {ex.Message}", "Error", MessageBoxImage.Error);
             }
         }
 
@@ -1814,12 +2681,11 @@ videoLiveFakeProportionThreshold = 0.7
                     var storedTokens = tokenStorage.GetTokens();
                     if (storedTokens?.LicenseInfo == null || string.IsNullOrEmpty(storedTokens.LicenseInfo.Key))
                     {
-                        MessageBox.Show(
+                        AppDialog.Show(this,
                             "Controller not initialized and no license key found.\n\n" +
                             "Please ensure you are logged in and have a valid license.\n\n" +
                             "If you have a license, try logging out and logging back in.",
                             "Controller Initialization Error", 
-                            MessageBoxButton.OK, 
                             MessageBoxImage.Error);
                         return;
                     }
@@ -1831,7 +2697,7 @@ videoLiveFakeProportionThreshold = 0.7
                     // Check again after initialization attempt
                     if (controller == null)
                     {
-                        MessageBox.Show(
+                        AppDialog.Show(this,
                             "Failed to initialize detection controller.\n\n" +
                             "Please check:\n" +
                             "1. You are logged in with a valid license\n" +
@@ -1839,7 +2705,6 @@ videoLiveFakeProportionThreshold = 0.7
                             "3. config.toml file exists and is accessible\n\n" +
                             "Check Debug output for more details.",
                             "Controller Initialization Failed", 
-                            MessageBoxButton.OK, 
                             MessageBoxImage.Error);
                         return;
                     }
@@ -1849,8 +2714,8 @@ videoLiveFakeProportionThreshold = 0.7
 
                 if (controller.IsDetectionRunning())
                 {
-                    MessageBox.Show("Detection is already running.", "Information", 
-                        MessageBoxButton.OK, MessageBoxImage.Information);
+                    ShowAnalyzingScreenWhenDetectionRunning();
+                    AppDialog.Show(this, "Detection is already running.", "Information", MessageBoxImage.Information);
                     return;
                 }
 
@@ -1863,8 +2728,7 @@ videoLiveFakeProportionThreshold = 0.7
             }
             catch (Exception ex)
             {
-                MessageBox.Show($"Failed to start detection selection: {ex.Message}", "Error", 
-                    MessageBoxButton.OK, MessageBoxImage.Error);
+                AppDialog.Show(this, $"Failed to start detection selection: {ex.Message}", "Error", MessageBoxImage.Error);
             }
         }
 
@@ -1876,49 +2740,36 @@ videoLiveFakeProportionThreshold = 0.7
                     return;
                 if (controller == null)
                 {
-                    MessageBox.Show("Controller is not initialized.", "Error", 
-                        MessageBoxButton.OK, MessageBoxImage.Error);
+                    AppDialog.Show(this, "Controller is not initialized.", "Error", MessageBoxImage.Error);
                     return;
                 }
 
                 if (controller.IsDetectionRunning())
                 {
-                    MessageBox.Show("Detection is already running.", "Information", 
-                        MessageBoxButton.OK, MessageBoxImage.Information);
+                    ShowAnalyzingScreenWhenDetectionRunning();
+                    AppDialog.Show(this, "Detection is already running.", "Information", MessageBoxImage.Information);
                     return;
                 }
 
-                // Consume one trial detection attempt (Trial users: decrements count; paid: always allowed)
-                var licenseService = new LicensePurchaseService();
-                var attemptResult = await licenseService.UseDetectionAttemptAsync();
-                if (!attemptResult.Allowed)
-                {
-                    MessageBox.Show(
-                        attemptResult.Message ?? "You have no detection attempts remaining. Please subscribe to continue.",
-                        "Detection Not Allowed",
-                        MessageBoxButton.OK,
-                        MessageBoxImage.Warning);
-                    return;
-                }
-                // Update bottom bar with current trial attempts (TrialAttemptsRemaining is null for paid licenses)
-                if (attemptResult.TrialAttemptsRemaining.HasValue)
-                    BottomBar.Attempts = attemptResult.TrialAttemptsRemaining.Value;
+                // Start detection (attempt consumed and get-license refresh run inside StartDetectionFromPopup)
+                StartDetectionFromPopup(e.SelectedSource.Value, e.IsLiveCallMode, e.IsAudioMode, mediaSourceDisplayName: e.SelectedProcess.DisplayName);
 
-                // Start detection with selected parameters
-                StartDetectionFromPopup(e.SelectedSource.Value, e.IsLiveCallMode, e.IsAudioMode);
-                
                 // Hide detection selection container and show results panel
                 DetectionSelectionContainer.Visibility = Visibility.Collapsed;
                 DetectionResultsPanel.Visibility = Visibility.Visible;
 
-                // Minimize MainWindow and bring the selected process window to the foreground
+                // Minimize our window first so we're not the foreground process (avoids SetForegroundWindow being blocked when user switches quickly, e.g. Chrome -> stop -> Edge).
                 this.WindowState = WindowState.Minimized;
-                ProcessDetectionService.BringProcessWindowToForeground(e.SelectedProcess.ProcessId);
+                System.Threading.Thread.Sleep(200);
+                // Now bring the selected app to the foreground; it will restore and activate correctly.
+                if (e.SelectedProcess.ProcessType == "MediaPlayer")
+                    ProcessDetectionService.EnsureMediaPlayerOpenAndForeground(e.SelectedProcess);
+                else
+                    ProcessDetectionService.BringProcessWindowToForeground(e.SelectedProcess);
             }
             catch (Exception ex)
             {
-                MessageBox.Show($"Failed to start detection: {ex.Message}", "Error",
-                    MessageBoxButton.OK, MessageBoxImage.Error);
+                AppDialog.Show(this, $"Failed to start detection: {ex.Message}", "Error", MessageBoxImage.Error);
             }
         }
 
@@ -1935,6 +2786,8 @@ videoLiveFakeProportionThreshold = 0.7
         {
             try
             {
+                // Plain Stop / Cancel: do not auto-navigate when native sends final result; "Stop & View Results" leaves this false.
+                _suppressAutoNavigateToResultsOnComplete = !openResultsFolderAfterStop;
                 if (controller != null)
                 {
                     if (isAudioDetection)
@@ -1986,16 +2839,22 @@ videoLiveFakeProportionThreshold = 0.7
             }
             catch (Exception ex)
             {
-                MessageBox.Show($"Failed to stop detection: {ex.Message}", "Error",
-                    MessageBoxButton.OK, MessageBoxImage.Error);
+                AppDialog.Show(this, $"Failed to stop detection: {ex.Message}", "Error", MessageBoxImage.Error);
             }
             finally
             {
+                // Only save result when user chose "Stop & View Results"; do not save when user cancelled detection
+                if (openResultsFolderAfterStop && !_resultPushSucceeded && !_resultPushedForStopAndViewResults && !string.IsNullOrEmpty(_currentRunArtifactPath))
+                {
+                    _resultPushedOnStop = true;
+                    PushDetectionResultToBackend(_currentRunArtifactPath, _deepfakeDetectedDuringRun);
+                }
                 if (openResultsFolderAfterStop)
                 {
                     _openedResultsAfterStop = true;
-                    string path = null;
-                    try { path = controller?.GetResultsDir(); } catch { }
+                    string path = _pathForResultsAfterStop;
+                    if (string.IsNullOrEmpty(path)) try { path = controller?.GetResultsDir(); } catch { }
+                    _pathForResultsAfterStop = null;
                     var pathCapture = path ?? "";
                     Dispatcher.Invoke(() => OpenResultsAndShowSessionDetailAfterStop(pathCapture));
                 }
@@ -2003,6 +2862,63 @@ videoLiveFakeProportionThreshold = 0.7
                     ResetAppContentToHome();
                 _openedResultsAfterStop = false;
                 RefreshLicenseDisplayAfterDetectionAsync();
+            }
+        }
+
+        /// <summary>Called after detection has started: fetches fresh license (incl. TrialAttemptsRemaining) and updates token storage + UI so attempts show in real time.</summary>
+        private async Task RefreshLicenseAfterDetectionStartedAsync(LicensePurchaseService licenseService)
+        {
+            try
+            {
+                await Task.Delay(400);
+                var result = await licenseService.ValidateLicenseAsync();
+                if (result != null && result.Valid && result.License != null)
+                {
+                    var normalized = NormalizeLicenseFromApi(result.License);
+                    var tokenStorage = new TokenStorage();
+                    var tokens = tokenStorage.GetTokens();
+                    if (tokens != null)
+                    {
+                        var userInfo = tokens.UserInfo != null ? new UserInfo { Id = tokens.UserInfo.Id, Username = tokens.UserInfo.Username, LicenseStatus = normalized.Status, TrialEndsAt = tokens.UserInfo.TrialEndsAt, UserType = tokens.UserInfo.UserType } : tokens.UserInfo;
+                        tokenStorage.UpdateUserAndLicense(userInfo, normalized);
+                    }
+                    Dispatcher.Invoke(() => UpdateLicenseDisplay());
+                }
+            }
+            catch (Exception ex)
+            {
+                System.Diagnostics.Debug.WriteLine($"Refresh license after detection started: {ex.Message}");
+            }
+        }
+
+        /// <summary>
+        /// Called after controller is created (license activated with Keygen). LMS sets expiry at activation time,
+        /// so we retrieve the license from LMS again and update tokens/UI with the correct expiry.
+        /// Returns a task so callers can await completion.
+        /// </summary>
+        private async Task RefreshLicenseFromServerAfterActivationAsync()
+        {
+            try
+            {
+                await Task.Delay(400); // Brief delay for backend to persist new license; we refresh again when user closes the success popup
+                var licenseService = new LicensePurchaseService();
+                var result = await licenseService.ValidateLicenseAsync();
+                if (result != null && result.Valid && result.License != null)
+                {
+                    var normalized = NormalizeLicenseFromApi(result.License);
+                    var tokenStorage = new TokenStorage();
+                    var tokens = tokenStorage.GetTokens();
+                    if (tokens != null)
+                    {
+                        var userInfo = tokens.UserInfo != null ? new UserInfo { Id = tokens.UserInfo.Id, Username = tokens.UserInfo.Username, LicenseStatus = normalized.Status, TrialEndsAt = tokens.UserInfo.TrialEndsAt, UserType = tokens.UserInfo.UserType } : tokens.UserInfo;
+                        tokenStorage.UpdateUserAndLicense(userInfo, normalized);
+                    }
+                    await Dispatcher.InvokeAsync(() => UpdateLicenseDisplay());
+                }
+            }
+            catch (Exception ex)
+            {
+                System.Diagnostics.Debug.WriteLine($"Refresh license after activation: {ex.Message}");
             }
         }
 
@@ -2014,11 +2930,15 @@ videoLiveFakeProportionThreshold = 0.7
                 var result = await licenseService.ValidateLicenseAsync();
                 if (result != null && result.Valid && result.License != null)
                 {
+                    var normalized = NormalizeLicenseFromApi(result.License);
                     var tokenStorage = new TokenStorage();
                     var tokens = tokenStorage.GetTokens();
                     if (tokens != null)
-                        tokenStorage.UpdateUserAndLicense(tokens.UserInfo, result.License);
-                    UpdateLicenseDisplay();
+                    {
+                        var userInfo = tokens.UserInfo != null ? new UserInfo { Id = tokens.UserInfo.Id, Username = tokens.UserInfo.Username, LicenseStatus = normalized.Status, TrialEndsAt = tokens.UserInfo.TrialEndsAt, UserType = tokens.UserInfo.UserType } : tokens.UserInfo;
+                        tokenStorage.UpdateUserAndLicense(userInfo, normalized);
+                    }
+                    Dispatcher.Invoke(() => UpdateLicenseDisplay());
                 }
             }
             catch (Exception ex)
@@ -2036,8 +2956,7 @@ videoLiveFakeProportionThreshold = 0.7
             }
             catch (Exception ex)
             {
-                MessageBox.Show($"Failed to return to home: {ex.Message}", "Error",
-                    MessageBoxButton.OK, MessageBoxImage.Error);
+                AppDialog.Show(this, $"Failed to return to home: {ex.Message}", "Error", MessageBoxImage.Error);
             }
         }
 
@@ -2051,44 +2970,80 @@ videoLiveFakeProportionThreshold = 0.7
         private void UpdateOverallClassification(bool isDeepfake)
         {
             overallClassification = isDeepfake;
-            if (isDeepfake) _deepfakeDetectedDuringRun = true;
+            // Do NOT set _deepfakeDetectedDuringRun here — only set when we actually show the "Fake Detected" popup (NotifyFakeFromNative / ResultNotification isLast=false)
             DetectionResultsComponent?.UpdateOverallClassification(isDeepfake);
+            // Update floating widget immediately so arc turns red when deepfake is detected (don't wait for status timer)
+            if (FloatingWidgetEnabled && _floatingWidget != null && _floatingWidget.IsVisible)
+                _floatingWidget.SetDetectionState(true, isDeepfake);
         }
 
         private void UpdateAudioClassification(int classification)
         {
+            if (isAudioDetection)
+                System.Diagnostics.Debug.WriteLine($"Audio classification from native: {classification} (0=Real, 1=Deepfake, 2=Analyzing, 3=Invalid, 4=None)");
             switch (classification)
             {
                 case 0: overallClassification = false; break;
-                case 1: overallClassification = true; _deepfakeDetectedDuringRun = true; break;
+                case 1: overallClassification = true; break; // Do NOT set _deepfakeDetectedDuringRun — only when we show the popup (ResultNotification isLast=false)
                 default: overallClassification = null; break;
             }
             DetectionResultsComponent?.UpdateAudioClassification(classification);
+            // Update floating widget immediately so arc turns red when audio deepfake is detected (same as video)
+            if (FloatingWidgetEnabled && _floatingWidget != null && _floatingWidget.IsVisible)
+                _floatingWidget.SetDetectionState(true, overallClassification == true);
         }
 
         private void ShowFinalResult(string resultPath)
         {
+            _suppressProcessSourceNotificationsDuringDetection = false;
+            _pendingResultPath = null; // clear so retry-on-close uses only this run's path when set below
+            // Tell floater detection has ended so it stops the arc and closes the Detection Activity popup if open
+            if (FloatingWidgetEnabled && _floatingWidget != null && _floatingWidget.IsVisible)
+                _floatingWidget.SetDetectionState(false, _deepfakeDetectedDuringRun);
+
             DetectionResultsPanel.Visibility = Visibility.Visible;
             string displayPath = resultPath;
             if (string.IsNullOrEmpty(displayPath))
             {
                 try { displayPath = controller?.GetResultsDir() ?? ""; } catch { }
             }
-            // When path is the base results dir (e.g. .../Deepfake - results), resolve to full run folder (.../video/DD-MM-YYYY/HH-mm) so DB and images use correct path.
-            displayPath = DetectionResultsLoader.ResolveFullArtifactPath(displayPath ?? "", isAudioDetection) ?? displayPath;
-            DetectionResultsComponent?.ShowFinalResult(displayPath ?? resultPath);
+            // Use current run folder so Evidence UI (all saved images) and CreateResult use same path.
+            if (!string.IsNullOrEmpty(_currentRunArtifactPath))
+                displayPath = _currentRunArtifactPath;
+            else
+                displayPath = DetectionResultsLoader.ResolveFullArtifactPath(displayPath ?? "", isAudioDetection) ?? displayPath;
+            DetectionResultsComponent?.ShowFinalResult(displayPath ?? resultPath, isAudioDetection && _deepfakeDetectedDuringRun);
 
             int faceCount = DetectionResultsComponent?.DetectedFacesCount ?? 0;
+            // Final "Fake Detected" only if we actually showed at least one "Fake Detected" notification during the run (native sent ResultNotification isLast=false).
             bool hadDeepfake = _deepfakeDetectedDuringRun;
+            // When hadDeepfake: show max confidence from those notifications; otherwise show "No Fake Detected" with (1 - avg ProbFake)*100.
             if (hadDeepfake)
             {
-                int confidence = DetectionResultsComponent?.LastConfidencePercent ?? 97;
-                var evidenceImage = DetectionResultsComponent?.LatestEvidenceImage;
-                ShowDetectionCompletedWithThreatNotification(displayPath ?? "", confidence, evidenceImage);
+                _pendingResultPath = displayPath ?? resultPath ?? "Local";
+                _pendingResultHadDeepfake = true;
+                if (!_resultPushedForStopAndViewResults)
+                    _resultPushSucceeded = false;
+                int rawConfidence = DetectionResultsComponent?.RunMaxConfidencePercent ?? DetectionResultsComponent?.LastConfidencePercent ?? 0;
+                int confidence = GetDisplayConfidence(rawConfidence, true, isAudioDetection);
+                var evidenceImage = isAudioDetection ? Controls.SessionDetailsPanel.GetAudioWaveImageSource() : (DetectionResultsComponent?.RunMaxEvidenceImage ?? DetectionResultsComponent?.LatestEvidenceImage);
+                ShowDetectionCompletedWithThreatNotification(displayPath ?? "", confidence, evidenceImage, isAudioDetection, onClosed: () =>
+                {
+                    if (!_resultPushSucceeded && _pendingResultPath != null)
+                    {
+                        PushDetectionResultToBackend(_pendingResultPath, _pendingResultHadDeepfake);
+                        _pendingResultPath = null;
+                    }
+                });
             }
             else
             {
-                ShowDetectionCompletedNotification("No AI Manipulation Found", displayPath ?? "");
+                int noManipulationConfidence = DetectionResultsComponent?.GetNoManipulationConfidencePercent() ?? 100;
+                ShowDetectionCompletedNotification(
+                    isAudioDetection ? "Audio: No Fake Detected" : "No Fake Detected",
+                    displayPath ?? "",
+                    isAudioDetection,
+                    noManipulationConfidencePercent: noManipulationConfidence);
             }
 
             if (isStoppingDetection)
@@ -2097,28 +3052,81 @@ videoLiveFakeProportionThreshold = 0.7
                 System.Diagnostics.Debug.WriteLine("ShowFinalResult: Final result shown, stopping flag cleared");
             }
 
-            // Save detection result to backend (CreateResult) only when detection is completed or stopped.
-            // Skip if we already saved when user clicked "Stop & View Results" (avoid duplicate).
-            if (!_resultPushedForStopAndViewResults)
+            // Save detection result to backend (CreateResult) when detection completes. Skip if already saved (Stop & View Results or Back to Home push).
+            if (!_resultPushedForStopAndViewResults && !_resultPushedOnStop)
+            {
+                System.Diagnostics.Debug.WriteLine($"ShowFinalResult: Pushing result to backend (audio={isAudioDetection}, hadDeepfake={hadDeepfake})");
                 PushDetectionResultToBackend(displayPath ?? resultPath ?? "Local", hadDeepfake);
+            }
             _resultPushedForStopAndViewResults = false;
+            _resultPushedOnStop = false;
+
+            // After natural completion (timer), open Results tab (list only — not session detail). Skip when user stopped without "View Results".
+            bool suppressAutoNav = _suppressAutoNavigateToResultsOnComplete;
+            _suppressAutoNavigateToResultsOnComplete = false;
+            if (!suppressAutoNav)
+                Dispatcher.BeginInvoke(new Action(NavigateToResultsTabOnly), DispatcherPriority.ContextIdle);
         }
 
-        /// <summary>Navigate to Results tab, show Session Details for the given result path, and bring main window to front. Used by "Stop & View Results" and by "View Results" on detection completion.</summary>
+        /// <summary>Confidence to show in notification, result view, and API. For video, when raw is 0 but deepfake was detected we use fallback 97. For audio the native layer does not provide a score, so we return 0 and the UI shows "—" or N/A.</summary>
+        private static int GetDisplayConfidence(int rawPercent, bool hadDeepfake, bool isAudio = false)
+        {
+            if (rawPercent > 0) return Math.Min(100, Math.Max(0, rawPercent));
+            if (isAudio) return 0; // Audio has no confidence score from native; UI shows "—"
+            return hadDeepfake ? 97 : 0;
+        }
+
+        /// <summary>Subfolder name under the result folder where notification evidence images (evidence_1.png, evidence_2.png, ...) are stored.</summary>
+        private const string EvidenceSubfolderName = "evidence";
+
+        /// <summary>Save evidence image to run folder under an "evidence" subfolder so it is separate from detection frames (1.png, 2.png). Evidence UI loads from this subfolder.</summary>
+        private void SaveEvidenceImageToResultFolder(string artifactFolderPath, System.Windows.Media.Imaging.BitmapSource bitmap)
+        {
+            if (bitmap == null || string.IsNullOrEmpty(artifactFolderPath)) return;
+            try
+            {
+                string evidenceDir = Path.Combine(artifactFolderPath, EvidenceSubfolderName);
+                if (!Directory.Exists(evidenceDir))
+                    Directory.CreateDirectory(evidenceDir);
+                _evidenceSaveCounter++;
+                string fileName = $"evidence_{_evidenceSaveCounter}.png";
+                string filePath = Path.Combine(evidenceDir, fileName);
+                var encoder = new PngBitmapEncoder();
+                encoder.Frames.Add(BitmapFrame.Create(bitmap));
+                using (var stream = new FileStream(filePath, FileMode.Create, FileAccess.Write, FileShare.None))
+                    encoder.Save(stream);
+            }
+            catch (Exception ex)
+            {
+                System.Diagnostics.Debug.WriteLine($"SaveEvidenceImageToResultFolder: {ex.Message}");
+            }
+        }
+
+        /// <summary>Navigate to Results tab and show the results list only (no session detail drill-in). Used when detection completes naturally.
+        /// Does not restore or activate the window — if the app is minimized or hidden, it stays that way until the user opens it.</summary>
+        private void NavigateToResultsTabOnly()
+        {
+            ShowDetectionResultsScreen();
+        }
+
+        /// <summary>Navigate to Results tab, show Session Details for the given result path, and bring main window to front. Used by "Stop & View Results" and notification "View Results".</summary>
         private void NavigateToResultsAndShowSessionDetail(string resultPath)
         {
             string resultsDir = null;
             try { resultsDir = controller?.GetResultsDir(); } catch { }
             resultsDir = resultsDir ?? DetectionResultsLoader.GetDefaultResultsDir();
-            // When path is the base results dir, resolve to full run folder (.../video/DD-MM-YYYY/HH-mm) so Session Details can load images.
-            string artifactPath = DetectionResultsLoader.ResolveFullArtifactPath(resultPath ?? resultsDir ?? "", isAudioDetection);
+            string artifactPath = !string.IsNullOrEmpty(_currentRunArtifactPath) ? _currentRunArtifactPath : (DetectionResultsLoader.ResolveFullArtifactPath(resultPath ?? resultsDir ?? "", isAudioDetection) ?? resultPath ?? resultsDir ?? "");
             if (string.IsNullOrEmpty(artifactPath)) artifactPath = resultPath ?? resultsDir ?? "";
+            bool hadDeepfakeForResult = _deepfakeDetectedDuringRun;
+            int confidenceForItem = hadDeepfakeForResult
+                ? GetDisplayConfidence(DetectionResultsComponent?.RunMaxConfidencePercent ?? DetectionResultsComponent?.LastConfidencePercent ?? 0, true, isAudioDetection)
+                : (DetectionResultsComponent?.GetNoManipulationConfidencePercent() ?? 100);
             var item = new DetectionResultItem
             {
                 Timestamp = DateTime.Now,
                 Type = isAudioDetection ? "Audio" : "Video",
-                IsAiManipulationDetected = _deepfakeDetectedDuringRun,
-                ConfidencePercent = DetectionResultsComponent?.LastConfidencePercent ?? 97,
+                IsAiManipulationDetected = hadDeepfakeForResult,
+                ConfidencePercent = confidenceForItem,
                 ResultPathOrId = artifactPath,
                 MediaSourceDisplay = _currentMediaSourceDisplayName ?? "Local",
                 SerialNumber = 0,
@@ -2138,21 +3146,29 @@ videoLiveFakeProportionThreshold = 0.7
             catch { }
         }
 
-        /// <summary>Called when "Stop & View Results" was used: navigate to Results tab and show Session Details for the just-saved result.</summary>
+        /// <summary>Called when "Stop & View Results" was used: navigate to Results tab and show Session Details for the just-saved result. Do not clear _resultPushedForStopAndViewResults here; ShowFinalResult clears it after skipping the duplicate push.</summary>
         private void OpenResultsAndShowSessionDetailAfterStop(string resultPath)
         {
             openResultsFolderAfterStop = false;
-            _resultPushedForStopAndViewResults = false;
             _openedResultsAfterStop = true;
             NavigateToResultsAndShowSessionDetail(resultPath);
         }
 
-        /// <summary>Calls CreateResult API with current detection outcome so result is saved in DB and appears in Results tab.</summary>
+        /// <summary>Calls CreateResult API with current detection outcome so result is saved in DB and appears in Results tab. Runs immediately (no dispatcher delay) so save is not missed if user dismisses notification.</summary>
         private void PushDetectionResultToBackend(string artifactPath, bool aiManipulationDetected)
         {
             try
             {
-                int confidence = DetectionResultsComponent?.LastConfidencePercent ?? 0;
+                int confidence;
+                if (aiManipulationDetected)
+                {
+                    int rawConfidence = DetectionResultsComponent?.RunMaxConfidencePercent ?? DetectionResultsComponent?.LastConfidencePercent ?? 0;
+                    confidence = GetDisplayConfidence(rawConfidence, true, isAudioDetection);
+                }
+                else
+                {
+                    confidence = DetectionResultsComponent?.GetNoManipulationConfidencePercent() ?? 100;
+                }
                 double durationSec = DetectionResultsComponent?.GetDetectionDurationSeconds() ?? 60;
                 string machineFingerprint = null;
                 try { machineFingerprint = new DeviceFingerprintService().GetDeviceFingerprint(); } catch { }
@@ -2162,37 +3178,49 @@ videoLiveFakeProportionThreshold = 0.7
                     Type = isAudioDetection ? "Audio" : "Video",
                     Outcome = aiManipulationDetected ? "AI Manipulation Detected" : "No AI Manipulation detected",
                     DetectionConfidence = (decimal)Math.Min(100, Math.Max(0, confidence)),
-                    MediaSource = _currentMediaSourceDisplayName ?? "Local", // App name (Zoom, Google Chrome)
-                    ArtifactPath = string.IsNullOrEmpty(artifactPath) || artifactPath == "Local" ? null : artifactPath, // Path for loading evidence images
+                    MediaSource = _currentMediaSourceDisplayName ?? "Local",
+                    ArtifactPath = string.IsNullOrEmpty(artifactPath) || artifactPath == "Local" ? null : artifactPath,
                     MachineFingerprint = machineFingerprint,
                     Duration = (decimal)durationSec
                 };
-#pragma warning disable CS4014
-                Dispatcher.InvokeAsync(async () =>
-                {
-                    try
-                    {
-                        var response = await _resultsApiService.CreateResultAsync(request);
-                        if (response != null)
-                            System.Diagnostics.Debug.WriteLine($"CreateResult succeeded: Id={response.Id}");
-                        else
-                            System.Diagnostics.Debug.WriteLine("CreateResult: no response (e.g. not logged in or API error)");
-                    }
-                    catch (Exception ex)
-                    {
-                        System.Diagnostics.Debug.WriteLine($"CreateResult failed: {ex.Message}");
-                    }
-                });
-#pragma warning restore CS4014
+                _ = SendResultToBackendAsync(request);
             }
             catch (Exception ex)
             {
                 System.Diagnostics.Debug.WriteLine($"PushDetectionResultToBackend: {ex.Message}");
+                try { ShowResultSaveFailureMessage(); } catch { }
+            }
+        }
+
+        /// <summary>Sends CreateResult request to API; sets _resultPushSucceeded on success so notification close can skip retry.</summary>
+        private async Task SendResultToBackendAsync(CreateResultRequest request)
+        {
+            try
+            {
+                var response = await _resultsApiService.CreateResultAsync(request);
+                if (response != null)
+                {
+                    _resultPushSucceeded = true;
+                    System.Diagnostics.Debug.WriteLine($"CreateResult succeeded: Id={response.Id}");
+                    RefreshStatisticsAsync();
+                    await RefreshResultsListFromApiAsync();
+                }
+                else
+                {
+                    System.Diagnostics.Debug.WriteLine("CreateResult: no response (e.g. not logged in or API error)");
+                    Dispatcher.Invoke(() => ShowResultSaveFailureMessage());
+                }
+            }
+            catch (Exception ex)
+            {
+                System.Diagnostics.Debug.WriteLine($"CreateResult failed: {ex.Message}");
+                Dispatcher.Invoke(() => ShowResultSaveFailureMessage());
             }
         }
 
         // Notification helper
         private Forms.NotifyIcon notifyIcon;
+        private Forms.ContextMenuStrip _trayContextMenu;
         
         private void InitializeLicenseManager()
         {
@@ -2219,17 +3247,106 @@ videoLiveFakeProportionThreshold = 0.7
             }
         }
 
-        /// <summary>Derives license duration in days from plan name (e.g. "1 Month" -> 30, "12 Months" -> 365).</summary>
-        private static int GetDurationDaysFromPlanName(string planName)
+        /// <summary>When the backend returns Trial but the license has actually expired (by date or LMS says Expired), normalize to Expired and 0 attempts so we never overwrite correct state with stale DB values.</summary>
+        private static LicenseInfo? NormalizeLicenseFromApi(LicenseInfo? license)
         {
-            if (string.IsNullOrWhiteSpace(planName)) return 30;
-            var name = planName.ToLowerInvariant();
-            if (name.StartsWith("3") || name.Contains("3month") || name.Contains("three")) return 90;
-            if (name.StartsWith("6") || name.Contains("6month") || name.Contains("six") || name.Contains("semi")) return 180;
-            if (name.StartsWith("12") || name.Contains("12month") || name.Contains("year") || name.Contains("annual")) return 365;
-            var m = Regex.Match(name, @"\d+");
-            if (m.Success && int.TryParse(m.Value, out int months)) return months * 30;
-            return 30; // 1 month default
+            if (license == null) return null;
+            bool isExpired = license.Status?.Trim().Equals("Expired", StringComparison.OrdinalIgnoreCase) == true
+                || (license.ExpiryDate.HasValue && license.ExpiryDate.Value.ToUniversalTime() < DateTime.UtcNow)
+                || (license.TrialEndsAt.HasValue && license.TrialEndsAt.Value.ToUniversalTime() < DateTime.UtcNow);
+            if (!isExpired) return license;
+            return new LicenseInfo
+            {
+                Key = license.Key,
+                Status = "Expired",
+                MaxDevices = license.MaxDevices,
+                PlanId = license.PlanId,
+                PlanName = license.PlanName,
+                TrialEndsAt = license.TrialEndsAt,
+                PurchaseDate = license.PurchaseDate,
+                ExpiryDate = license.ExpiryDate,
+                TrialAttemptsRemaining = 0
+            };
+        }
+
+        /// <summary>Call after purchase or when returning to MainWindow so the bottom bar shows current license status.</summary>
+        public void RefreshLicenseDisplay()
+        {
+            UpdateLicenseDisplay();
+        }
+
+        /// <summary>Shows a brief message when detection result could not be saved to the server (so user knows why the record is missing from the table).</summary>
+        private void ShowResultSaveFailureMessage()
+        {
+            try
+            {
+                AppDialog.Show(this,
+                    "The detection result could not be saved to the server. It will not appear in the Results table.\n\nPlease check that you are logged in and your connection is working, then try again.",
+                    "Result Not Saved",
+                    MessageBoxImage.Warning);
+            }
+            catch { }
+        }
+
+        private void OnBackToResultsListRequested(object sender, EventArgs e)
+        {
+            _ = RefreshResultsListFromApiAsync();
+        }
+
+        /// <summary>Load results list from API (or local fallback) and update the Results table. Call after CreateResult succeeds so the new record appears.</summary>
+        private async Task RefreshResultsListFromApiAsync()
+        {
+            string resultsDir = null;
+            try { if (controller != null) resultsDir = controller.GetResultsDir(); } catch { }
+            var resultsDirCapture = resultsDir ?? DetectionResultsLoader.GetDefaultResultsDir();
+            try
+            {
+                var response = await _resultsApiService.GetResultsAsync().ConfigureAwait(false);
+                Dispatcher.Invoke(() =>
+                {
+                    if (response?.Results != null)
+                        DetectionResultsScreen.SetResultsFromApi(response.Results);
+                    else
+                        DetectionResultsScreen.SetResultsFromApi(Array.Empty<ResultDto>());
+                });
+            }
+            catch (Exception ex)
+            {
+                System.Diagnostics.Debug.WriteLine($"RefreshResultsListFromApi: {ex.Message}");
+                try
+                {
+                    await Dispatcher.InvokeAsync(() =>
+                    {
+                        try { DetectionResultsScreen.SetResultsDirectoryAndRefresh(resultsDirCapture); }
+                        catch (Exception ex2) { System.Diagnostics.Debug.WriteLine($"SetResultsDirectoryAndRefresh: {ex2.Message}"); }
+                    });
+                }
+                catch { }
+            }
+        }
+
+        /// <summary>Load statistics from API and update the Statistics Cards (Total Detections, Total Deepfakes, Total Analysis Time, Last Detection).</summary>
+        private async void RefreshStatisticsAsync()
+        {
+            if (StatisticsCardsControl == null) return;
+            try
+            {
+                var stats = await _resultsApiService.GetStatisticsAsync().ConfigureAwait(false);
+                if (stats != null)
+                {
+                    Dispatcher.Invoke(() =>
+                    {
+                        StatisticsCardsControl.TotalDetections = stats.TotalDetections.ToString();
+                        StatisticsCardsControl.TotalDeepfakes = stats.TotalDeepfakes.ToString();
+                        StatisticsCardsControl.TotalAnalysisTime = stats.TotalAnalysisTimeFormatted ?? "0m";
+                        StatisticsCardsControl.LastDetection = stats.LastDetectionTimeAgo ?? "Never";
+                    });
+                }
+            }
+            catch (Exception ex)
+            {
+                System.Diagnostics.Debug.WriteLine($"RefreshStatistics: {ex.Message}");
+            }
         }
 
         private async void UpdateLicenseDisplay()
@@ -2263,71 +3380,63 @@ videoLiveFakeProportionThreshold = 0.7
                 {
                     var userInfo = storedTokens.UserInfo;
                     var licenseInfo = storedTokens.LicenseInfo;
-                    // When LicenseInfo is null (e.g. old session), treat as Trial if User has TrialEndsAt
-                    string status = licenseInfo?.Status ?? (!string.IsNullOrEmpty(userInfo.LicenseStatus) ? userInfo.LicenseStatus : "Trial");
+                    // Prefer Expired when LMS says so (license or user); never show Trial when license is Expired.
+                    bool isExpiredFromLms = licenseInfo?.Status?.Trim().Equals("Expired", StringComparison.OrdinalIgnoreCase) == true
+                        || userInfo.LicenseStatus?.Trim().Equals("Expired", StringComparison.OrdinalIgnoreCase) == true;
+                    string status = isExpiredFromLms ? "Expired" : (licenseInfo?.Status ?? (!string.IsNullOrEmpty(userInfo.LicenseStatus) ? userInfo.LicenseStatus : "Trial"));
                     int daysRemaining = 0;
-                    
-                    // Calculate remaining days based on license status
+
+                    // Only show remaining days when we have ExpiryDate from backend; do not derive from plan name.
+                    var expiryForDays = licenseInfo?.ExpiryDate ?? (status.Equals("Trial", StringComparison.OrdinalIgnoreCase) ? userInfo.TrialEndsAt : null) ?? licenseInfo?.TrialEndsAt;
+                    if (expiryForDays.HasValue)
+                        daysRemaining = Math.Max(0, (int)Math.Ceiling((expiryForDays.Value - DateTime.UtcNow).TotalDays));
+
+                    bool isCorpUser = string.Equals(userInfo.UserType, "Corp", StringComparison.OrdinalIgnoreCase);
+
                     if (status.Equals("Trial", StringComparison.OrdinalIgnoreCase))
                     {
-                        if (userInfo.TrialEndsAt.HasValue)
-                            daysRemaining = Math.Max(0, (int)Math.Ceiling((userInfo.TrialEndsAt.Value - DateTime.UtcNow).TotalDays));
-                        else if (licenseInfo?.TrialEndsAt.HasValue == true)
-                            daysRemaining = Math.Max(0, (int)Math.Ceiling((licenseInfo.TrialEndsAt.Value - DateTime.UtcNow).TotalDays));
                         BottomBar.Status = "Trial";
                         BottomBar.RemainingDays = daysRemaining;
                         BottomBar.Attempts = licenseInfo?.TrialAttemptsRemaining;
                         BottomBar.ShowSubscribeButton = true;
+                        BottomBar.ShowContactAdminButton = false;
+                        // When trial attempts are zero, disable Start Detection card (grey overlay, "Subscribe To Start Detection")
+                        bool trialAttemptsExhausted = (licenseInfo?.TrialAttemptsRemaining ?? 0) == 0;
+                        if (StartDetectionCard != null)
+                        {
+                            StartDetectionCard.IsLicenseExpired = trialAttemptsExhausted;
+                            StartDetectionCard.StatusText = trialAttemptsExhausted ? "Subscribe To Start Detection" : "Ready to start detection";
+                        }
                     }
                     else if (licenseInfo != null && status.Equals("Active", StringComparison.OrdinalIgnoreCase))
                     {
-                        // For Active: Prefer ExpiryDate from License table; else compute from PurchaseDate + plan duration
-                        if (licenseInfo.ExpiryDate.HasValue)
-                        {
-                            daysRemaining = Math.Max(0, (int)Math.Ceiling((licenseInfo.ExpiryDate.Value - DateTime.UtcNow).TotalDays));
-                        }
-                        else if (licenseInfo.PurchaseDate.HasValue)
-                        {
-                            // Backend sends PurchaseDate only (no ExpiryDate); derive duration from plan name
-                            int durationDays = 365; // Default 1 year
-                            if (!string.IsNullOrWhiteSpace(licenseInfo.PlanName))
-                            {
-                                durationDays = GetDurationDaysFromPlanName(licenseInfo.PlanName);
-                            }
-                            else if (licenseInfo.PlanId.HasValue)
-                            {
-                                try
-                                {
-                                    var planService = new LicensePlanService();
-                                    var plans = await planService.GetPlansAsync();
-                                    var plan = plans.FirstOrDefault(p => p.EffectivePlanId == licenseInfo.PlanId.Value);
-                                    if (plan != null)
-                                        durationDays = GetDurationDaysFromPlanName(plan.Name);
-                                }
-                                catch (Exception ex)
-                                {
-                                    System.Diagnostics.Debug.WriteLine($"Error fetching plan for duration: {ex.Message}");
-                                }
-                            }
-                            var expiryDate = licenseInfo.PurchaseDate.Value.AddDays(durationDays);
-                            daysRemaining = Math.Max(0, (int)Math.Ceiling((expiryDate - DateTime.UtcNow).TotalDays));
-                        }
-                        else
-                        {
-                            daysRemaining = 0;
-                        }
-                        
                         BottomBar.Status = "Active";
                         BottomBar.RemainingDays = daysRemaining;
-                        BottomBar.Attempts = null; // Paid license: no trial attempts display
+                        BottomBar.Attempts = null;
                         BottomBar.ShowSubscribeButton = false;
+                        BottomBar.ShowContactAdminButton = false;
+                        if (StartDetectionCard != null) { StartDetectionCard.IsLicenseExpired = false; StartDetectionCard.StatusText = "Ready to start detection"; }
                     }
                     else
                     {
                         BottomBar.Status = "Expired";
                         BottomBar.RemainingDays = 0;
                         BottomBar.Attempts = null;
-                        BottomBar.ShowSubscribeButton = true;
+                        if (isCorpUser)
+                        {
+                            BottomBar.ShowSubscribeButton = false;
+                            BottomBar.ShowContactAdminButton = true;
+                        }
+                        else
+                        {
+                            BottomBar.ShowSubscribeButton = true;
+                            BottomBar.ShowContactAdminButton = false;
+                        }
+                        if (StartDetectionCard != null)
+                        {
+                            StartDetectionCard.IsLicenseExpired = true;
+                            StartDetectionCard.StatusText = "Subscribe To Start Detection";
+                        }
                     }
                 }
                 else
@@ -2336,6 +3445,8 @@ videoLiveFakeProportionThreshold = 0.7
                     BottomBar.RemainingDays = 0;
                     BottomBar.Attempts = null;
                     BottomBar.ShowSubscribeButton = true;
+                    BottomBar.ShowContactAdminButton = false;
+                    if (StartDetectionCard != null) StartDetectionCard.IsLicenseExpired = true;
                 }
                 if (TopNavBar != null && storedTokens == null)
                     TopNavBar.IsAdmin = false;
@@ -2349,7 +3460,9 @@ videoLiveFakeProportionThreshold = 0.7
                     BottomBar.Status = "No License";
                     BottomBar.RemainingDays = 0;
                     BottomBar.ShowSubscribeButton = true;
+                    BottomBar.ShowContactAdminButton = false;
                 }
+                if (StartDetectionCard != null) StartDetectionCard.IsLicenseExpired = true;
                 if (TopNavBar != null)
                     TopNavBar.IsAdmin = false;
             }
@@ -2363,6 +3476,12 @@ videoLiveFakeProportionThreshold = 0.7
             StatisticsCardsGrid.Visibility = Visibility.Collapsed;
             PlansComponent.Visibility = Visibility.Collapsed;
             StripePaymentComponentContainer.Visibility = Visibility.Collapsed;
+            SettingsComponent.Visibility = Visibility.Collapsed;
+            SupportComponent.Visibility = Visibility.Collapsed;
+            if (ProfileComponent != null)
+                ProfileComponent.Visibility = Visibility.Collapsed;
+            if (LicenseSubscriptionComponent != null)
+                LicenseSubscriptionComponent.Visibility = Visibility.Collapsed;
             if (DetectionResultsScreen != null)
                 DetectionResultsScreen.Visibility = Visibility.Collapsed;
             CorpRegisterComponent.ClearInputs();
@@ -2385,48 +3504,173 @@ videoLiveFakeProportionThreshold = 0.7
             ShowDetectionContent();
         }
 
-        private void SubscribeNow_Click(object sender, RoutedEventArgs e)
+        /// <summary>Show system tray icon. Right-click shows menu (Open Application, Open Result Directory, Exit).</summary>
+        private void ShowTray()
+        {
+            if (notifyIcon != null) return;
+            notifyIcon = new Forms.NotifyIcon();
+            try
+            {
+                string exePath = Process.GetCurrentProcess().MainModule?.FileName;
+                if (!string.IsNullOrEmpty(exePath) && File.Exists(exePath))
+                {
+                    using (var ico = System.Drawing.Icon.ExtractAssociatedIcon(exePath))
+                    {
+                        if (ico != null)
+                            notifyIcon.Icon = (System.Drawing.Icon)ico.Clone();
+                    }
+                }
+            }
+            catch { }
+            if (notifyIcon.Icon == null)
+                notifyIcon.Icon = System.Drawing.SystemIcons.Application;
+            notifyIcon.Text = "X-PHY Deepfake Detector";
+            notifyIcon.Visible = true;
+            notifyIcon.BalloonTipClicked += (s, e) => { notifyIcon.Visible = true; };
+
+            // Assign context menu so right-click shows it (reliable on all Windows)
+            _trayContextMenu = CreateTrayContextMenu();
+            notifyIcon.ContextMenuStrip = _trayContextMenu;
+        }
+
+        /// <summary>Hide and dispose tray icon when user logs out.</summary>
+        private void HideTray()
+        {
+            if (notifyIcon == null) return;
+            StopBackgroundProcessCheck();
+            try
+            {
+                notifyIcon.ContextMenuStrip = null;
+                notifyIcon.Visible = false;
+                notifyIcon.Dispose();
+            }
+            catch { }
+            notifyIcon = null;
+            try
+            {
+                _trayContextMenu?.Dispose();
+            }
+            catch { }
+            _trayContextMenu = null;
+        }
+
+        /// <summary>Create the right-click context menu: Open Application, Open Result Directory, Exit.</summary>
+        private Forms.ContextMenuStrip CreateTrayContextMenu()
+        {
+            var menu = new Forms.ContextMenuStrip();
+            menu.BackColor = System.Drawing.Color.White;
+            menu.ForeColor = System.Drawing.Color.FromArgb(0x1A, 0x1A, 0x1A);
+            menu.Font = new System.Drawing.Font("Segoe UI", 11f);
+            menu.Padding = new Forms.Padding(6, 8, 6, 8);
+            menu.Renderer = new TrayMenuNotificationStyleRenderer();
+
+            menu.Items.Add("Open Application", null, (_, __) => OpenApplicationFromTray());
+            menu.Items.Add("Open Result Directory", null, (_, __) => OpenResultsFolderFromTray());
+            menu.Items.Add(new Forms.ToolStripSeparator());
+            menu.Items.Add("Exit", null, (_, __) => ExitFromTray());
+            return menu;
+        }
+
+        private void OpenApplicationFromTray()
+        {
+            Dispatcher.Invoke(() =>
+            {
+                // If window was hidden (user closed with X), opening from tray should show Get Started. If window was only minimized (taskbar), preserve current screen (e.g. verification).
+                bool wasClosedWithX = !IsVisible;
+                Show();
+                WindowState = WindowState.Normal;
+                Activate();
+                try
+                {
+                    var tokenStorage = new TokenStorage();
+                    var tokens = tokenStorage.GetTokens();
+                    if (tokens == null)
+                    {
+                        if (wasClosedWithX)
+                        {
+                            // User had closed with X on Auth → always go to Get Started (and cancel unverified user if they were on verification)
+                            if (AuthPanel.CurrentContent == _emailVerificationComponent)
+                                _ = _emailVerificationComponent.CancelRegistrationIfPendingAsync();
+                            AuthPanel.SetContent(_launchComponent);
+                        }
+                        else
+                        {
+                            // Minimized (not closed with X) → preserve verification screen like taskbar restore
+                            if (AuthPanel.CurrentContent != _emailVerificationComponent)
+                                AuthPanel.SetContent(_launchComponent);
+                        }
+                        AuthPanel.Visibility = Visibility.Visible;
+                        AppPanel.Visibility = Visibility.Collapsed;
+                        return;
+                    }
+                }
+                catch { }
+            });
+        }
+
+        /// <summary>Start detection from tray menu; invokes native controller on UI thread.</summary>
+        private void TrayStartDetection(DetectionSource source, bool isLiveCallMode, bool isAudioMode)
+        {
+            Dispatcher.Invoke(() =>
+            {
+                StartDetectionFromPopup(source, isLiveCallMode, isAudioMode);
+            });
+        }
+
+        private void OpenResultsFolderFromTray()
         {
             try
             {
-                // Hide this window before opening plans window
-                this.Hide();
-                
-                var plansWindow = new PlansWindow();
-                plansWindow.Show();
-                
-                // Handle plans window closed event
-                plansWindow.Closed += (s, args) =>
-                {
-                    // Show this window again when plans window closes
-                    this.Show();
-                    UpdateLicenseDisplay();
-                };
+                string path = null;
+                if (controller != null)
+                    path = controller.GetResultsDir();
+                if (string.IsNullOrEmpty(path) || !Directory.Exists(path))
+                    path = DetectionResultsLoader.GetDefaultResultsDir();
+                if (!string.IsNullOrEmpty(path) && Directory.Exists(path))
+                    Process.Start("explorer.exe", path);
+                else
+                    AppDialog.Show(this, "Results folder not found.", "X-PHY", MessageBoxImage.Information);
             }
             catch (Exception ex)
             {
-                MessageBox.Show($"Failed to open plans: {ex.Message}", 
-                    "Error", MessageBoxButton.OK, MessageBoxImage.Error);
-                // Show this window again if there was an error
-                this.Show();
+                AppDialog.Show(this, $"Failed to open results folder: {ex.Message}", "Error", MessageBoxImage.Error);
             }
         }
-        
+
+        /// <summary>Exit from tray: close the application. Clear tokens only when Remember Me was false so user stays logged in next launch when they had checked Remember Me.</summary>
+        private void ExitFromTray()
+        {
+            StopBackgroundProcessCheck();
+            try
+            {
+                var tokenStorage = new TokenStorage();
+                var tokens = tokenStorage.GetTokens();
+                if (tokens == null || !tokens.RememberMe)
+                    tokenStorage.ClearTokens();
+            }
+            catch { }
+            HideTray();
+            controller = null;
+            _isExitingFromTray = true;
+            Dispatcher.Invoke(Close);
+        }
+
         private void InitializeNotifications()
         {
-            notifyIcon = new Forms.NotifyIcon();
-            notifyIcon.Icon = System.Drawing.SystemIcons.Information;
-            notifyIcon.Visible = true;
-            notifyIcon.BalloonTipClicked += (s, e) => { notifyIcon.Visible = false; };
+            // Tray is initialized in InitializeTray(). Balloon/toast use DetectionNotificationWindow.
+            if (notifyIcon != null)
+                notifyIcon.BalloonTipClicked += (s, e) => { /* keep visible */ };
         }
         
         private void ShowNotification(string title, string message, Forms.ToolTipIcon icon)
         {
             Dispatcher.BeginInvoke(new Action(() =>
             {
+                DetectionNotificationWindow.CloseAllOpen();
                 var popup = new DetectionNotificationWindow();
                 popup.SetContent(title ?? "", message ?? "");
                 popup.ShowAtBottomRight(autoCloseSeconds: 5);
+                _floatingWidget?.BringAboveNotifications();
             }));
         }
 
@@ -2434,44 +3678,54 @@ videoLiveFakeProportionThreshold = 0.7
         {
             Dispatcher.BeginInvoke(new Action(() =>
             {
+                DetectionNotificationWindow.CloseAllOpen();
                 string resultPath = "";
                 try { resultPath = controller?.GetResultsDir() ?? ""; } catch { }
-                int confidence = DetectionResultsComponent?.LastConfidencePercent ?? 0;
-                if (confidence <= 0) confidence = 97;
-                var evidenceImage = DetectionResultsComponent?.LatestEvidenceImage;
+                string artifactPath = !string.IsNullOrEmpty(_currentRunArtifactPath) ? _currentRunArtifactPath : (DetectionResultsLoader.ResolveFullArtifactPath(resultPath ?? "", isAudioDetection) ?? resultPath ?? "");
+                if (!string.IsNullOrEmpty(artifactPath))
+                    _currentRunArtifactPath = artifactPath;
+                // 1. Save this 15s fake detection to evidence so Evidence UI shows all deepfake images.
+                if (!isAudioDetection && DetectionResultsComponent?.LatestEvidenceImage != null && !string.IsNullOrEmpty(artifactPath))
+                    SaveEvidenceImageToResultFolder(artifactPath, DetectionResultsComponent.LatestEvidenceImage);
+                int rawConfidence = DetectionResultsComponent?.LastConfidencePercent ?? 0;
+                int confidence = GetDisplayConfidence(rawConfidence, true, isAudioDetection);
+                var evidenceImage = isAudioDetection ? Controls.SessionDetailsPanel.GetAudioWaveImageSource() : DetectionResultsComponent?.LatestEvidenceImage;
 
                 var popup = new DetectionNotificationWindow();
+                popup.Owner = this;
                 popup.SetDeepfakeContent(
                     confidence,
                     resultPath,
                     openResultsFolder: () =>
                     {
                         try { if (controller != null) controller.OpenResultsFolder(); }
-                        catch (Exception ex) { MessageBox.Show($"Failed to open results folder: {ex.Message}", "Error", MessageBoxButton.OK, MessageBoxImage.Error); }
+                        catch (Exception ex) { AppDialog.Show(this, $"Failed to open results folder: {ex.Message}", "Error", MessageBoxImage.Error); }
                     },
                     stopDetectionAndOpenResults: () =>
                     {
-                        // 1) Call CreateResult now (native may not invoke result callback on stop) using resolved full path so DB has correct ArtifactPath.
-                        string baseDir = resultPath;
-                        if (string.IsNullOrEmpty(baseDir)) try { baseDir = controller?.GetResultsDir() ?? ""; } catch { }
-                        string artifactPath = DetectionResultsLoader.ResolveFullArtifactPath(baseDir ?? "", isAudioDetection);
-                        if (string.IsNullOrEmpty(artifactPath)) artifactPath = baseDir ?? "Local";
-                        _resultPushedForStopAndViewResults = true;
-                        PushDetectionResultToBackend(artifactPath, true);
-                        // 2) Stop detection; when done, OpenResultsAndShowSessionDetailAfterStop will show Session Details.
+                        string pathToPush = !string.IsNullOrEmpty(_currentRunArtifactPath) ? _currentRunArtifactPath : (DetectionResultsLoader.ResolveFullArtifactPath(resultPath ?? "", isAudioDetection) ?? resultPath ?? "Local");
+                        if (!_resultPushedForStopAndViewResults)
+                        {
+                            _resultPushedForStopAndViewResults = true;
+                            PushDetectionResultToBackend(pathToPush, true);
+                        }
+                        _pathForResultsAfterStop = pathToPush;
                         openResultsFolderAfterStop = true;
                         StopDetection_Click(null, EventArgs.Empty);
                     },
                     evidenceImageLeft: evidenceImage,
-                    evidenceImageRight: null);
+                    evidenceImageRight: null,
+                    isAudio: isAudioDetection);
                 popup.ShowAtBottomRight(autoCloseSeconds: 4);
+                _floatingWidget?.BringAboveNotifications();
             }));
         }
 
-        private void ShowDetectionCompletedNotification(string message, string resultPath)
+        private void ShowDetectionCompletedNotification(string message, string resultPath, bool isAudio = false, int? noManipulationConfidencePercent = null)
         {
             Dispatcher.BeginInvoke(new Action(() =>
             {
+                DetectionNotificationWindow.CloseAllOpen();
                 var popup = new DetectionNotificationWindow();
                 popup.SetDetectionCompletedContent(message, resultPath,
                     openResultsFolder: () =>
@@ -2482,20 +3736,25 @@ videoLiveFakeProportionThreshold = 0.7
                         }
                         catch (Exception ex)
                         {
-                            MessageBox.Show($"Failed to open results folder: {ex.Message}", "Error",
-                                MessageBoxButton.OK, MessageBoxImage.Error);
+                            AppDialog.Show(this, $"Failed to open results folder: {ex.Message}", "Error", MessageBoxImage.Error);
                         }
                     },
-                    navigateToResultsPage: () => NavigateToResultsAndShowSessionDetail(resultPath));
+                    navigateToResultsPage: () => NavigateToResultsAndShowSessionDetail(resultPath),
+                    isAudio: isAudio,
+                    noManipulationConfidencePercent: noManipulationConfidencePercent);
                 popup.ShowAtBottomRight(autoCloseSeconds: 0);
+                _floatingWidget?.BringAboveNotifications();
             }));
         }
 
-        private void ShowDetectionCompletedWithThreatNotification(string resultPath, int confidencePercent, System.Windows.Media.Imaging.BitmapSource evidenceImage)
+        private void ShowDetectionCompletedWithThreatNotification(string resultPath, int confidencePercent, System.Windows.Media.ImageSource evidenceImage, bool isAudio = false, Action onClosed = null)
         {
             Dispatcher.BeginInvoke(new Action(() =>
             {
+                DetectionNotificationWindow.CloseAllOpen();
                 var popup = new DetectionNotificationWindow();
+                if (onClosed != null)
+                    popup.Closed += (s, e) => onClosed();
                 popup.SetDetectionCompletedWithThreatContent(confidencePercent, resultPath,
                     openResultsFolder: () =>
                     {
@@ -2505,14 +3764,15 @@ videoLiveFakeProportionThreshold = 0.7
                         }
                         catch (Exception ex)
                         {
-                            MessageBox.Show($"Failed to open results folder: {ex.Message}", "Error",
-                                MessageBoxButton.OK, MessageBoxImage.Error);
+                            AppDialog.Show(this, $"Failed to open results folder: {ex.Message}", "Error", MessageBoxImage.Error);
                         }
                     },
                     evidenceImageLeft: evidenceImage,
                     evidenceImageRight: null,
-                    navigateToResultsPage: () => NavigateToResultsAndShowSessionDetail(resultPath));
+                    navigateToResultsPage: () => NavigateToResultsAndShowSessionDetail(resultPath),
+                    isAudio: isAudio);
                 popup.ShowAtBottomRight(autoCloseSeconds: 0);
+                _floatingWidget?.BringAboveNotifications();
             }));
         }
 
@@ -2528,8 +3788,7 @@ videoLiveFakeProportionThreshold = 0.7
             catch (Exception ex)
             {
                 System.Diagnostics.Debug.WriteLine($"Error minimizing window: {ex.Message}");
-                MessageBox.Show($"Error minimizing window: {ex.Message}", "Error", 
-                    MessageBoxButton.OK, MessageBoxImage.Error);
+                AppDialog.Show(this, $"Error minimizing window: {ex.Message}", "Error", MessageBoxImage.Error);
             }
         }
 
@@ -2551,6 +3810,8 @@ videoLiveFakeProportionThreshold = 0.7
         {
             Close();
         }
+
+        // Theme toggle removed - now handled in Settings screen
 
         protected override void OnClosed(EventArgs e)
         {
@@ -2582,5 +3843,30 @@ videoLiveFakeProportionThreshold = 0.7
             // Shell: Single window - shutdown when Shell closes
             Application.Current.Shutdown();
         }
+    }
+
+    /// <summary>Color table for tray context menu to match notification UI (white, light blue hover, dark text).</summary>
+    internal class TrayMenuColorTable : Forms.ProfessionalColorTable
+    {
+        private static readonly System.Drawing.Color _notificationHeader = System.Drawing.Color.FromArgb(0xE8, 0xF4, 0xFC);
+        private static readonly System.Drawing.Color _menuBorder = System.Drawing.Color.FromArgb(0xD0, 0xD0, 0xD0);
+        private static readonly System.Drawing.Color _pressed = System.Drawing.Color.FromArgb(0xD0, 0xE8, 0xF4);
+        private static readonly System.Drawing.Color _imageMarginEnd = System.Drawing.Color.FromArgb(0xEE, 0xEE, 0xEE);
+
+        public override System.Drawing.Color MenuBorder => _menuBorder;
+        public override System.Drawing.Color MenuItemSelected => _notificationHeader;
+        public override System.Drawing.Color MenuItemSelectedGradientBegin => _notificationHeader;
+        public override System.Drawing.Color MenuItemSelectedGradientEnd => _notificationHeader;
+        public override System.Drawing.Color MenuItemPressedGradientBegin => _pressed;
+        public override System.Drawing.Color MenuItemPressedGradientEnd => _pressed;
+        public override System.Drawing.Color ToolStripDropDownBackground => System.Drawing.Color.White;
+        public override System.Drawing.Color ImageMarginGradientBegin => System.Drawing.Color.White;
+        public override System.Drawing.Color ImageMarginGradientEnd => _imageMarginEnd;
+    }
+
+    /// <summary>Renderer for tray context menu using notification-style colors.</summary>
+    internal class TrayMenuNotificationStyleRenderer : Forms.ToolStripProfessionalRenderer
+    {
+        public TrayMenuNotificationStyleRenderer() : base(new TrayMenuColorTable()) { }
     }
 }

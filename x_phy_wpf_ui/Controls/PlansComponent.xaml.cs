@@ -23,11 +23,21 @@ namespace x_phy_wpf_ui.Controls
             InitializeComponent();
             _planService = new LicensePlanService();
             Loaded += PlansComponent_Loaded;
+            IsVisibleChanged += PlansComponent_IsVisibleChanged;
         }
 
         private async void PlansComponent_Loaded(object sender, RoutedEventArgs e)
         {
             await LoadPlans();
+        }
+
+        /// <summary>Reload plans when component becomes visible so we use current license (disable Stripe / highlight current plan).</summary>
+        private async void PlansComponent_IsVisibleChanged(object sender, DependencyPropertyChangedEventArgs e)
+        {
+            if (IsVisible && _plans != null && _plans.Count > 0)
+            {
+                await LoadPlans();
+            }
         }
 
         private async Task LoadPlans()
@@ -47,8 +57,19 @@ namespace x_phy_wpf_ui.Controls
                     return;
                 }
 
+                // Current user license: disable Stripe and highlight current plan when user has an active paid plan (not Trial)
+                var tokens = new TokenStorage().GetTokens();
+                var licenseInfo = tokens?.LicenseInfo;
+                var userInfo = tokens?.UserInfo;
+                // Use same status resolution as MainWindow (LicenseInfo.Status else UserInfo.LicenseStatus else Trial)
+                string status = licenseInfo?.Status ?? (!string.IsNullOrEmpty(userInfo?.LicenseStatus) ? userInfo.LicenseStatus : "Trial");
+                bool hasActivePaidPlan = string.Equals(status, "Active", StringComparison.OrdinalIgnoreCase)
+                    && !string.Equals(licenseInfo?.PlanName?.Trim(), "Trial", StringComparison.OrdinalIgnoreCase);
+                int? currentPlanId = licenseInfo?.PlanId;
+                string currentPlanName = licenseInfo?.PlanName?.Trim() ?? "";
+
                 // Convert to view models
-                var planViewModels = _plans.Select(p => new PlanViewModel(p)).ToList();
+                var planViewModels = _plans.Select(p => new PlanViewModel(p, currentPlanId, currentPlanName, hasActivePaidPlan)).ToList();
 
                 PlansItemsControl.ItemsSource = planViewModels;
                 PlansScrollViewer.Visibility = Visibility.Visible;
@@ -68,7 +89,15 @@ namespace x_phy_wpf_ui.Controls
                 var planViewModel = border.DataContext as PlanViewModel ?? border.Tag as PlanViewModel;
                 if (planViewModel != null)
                 {
+                    // Match screenshot: gradient background + thin light blue/cyan border
                     border.Background = planViewModel.CardGradient;
+                    border.BorderThickness = new Thickness(1);
+                    border.BorderBrush = new SolidColorBrush((Color)ColorConverter.ConvertFromString("#70C8E0")); // thin light blue/cyan border
+                    if (planViewModel.IsCurrentPlan)
+                    {
+                        border.BorderBrush = (SolidColorBrush)FindResource("PrimaryColor");
+                        border.BorderThickness = new Thickness(2);
+                    }
                 }
             }
         }
@@ -108,26 +137,60 @@ namespace x_phy_wpf_ui.Controls
             public List<string> Features { get; }
             public Brush CardGradient { get; }
             public int CardIndex { get; }
+            /// <summary>True when user has an active paid plan and this plan is the one they are on.</summary>
+            public bool IsCurrentPlan { get; }
+            /// <summary>False when user has an active paid plan (Stripe button disabled).</summary>
+            public bool IsStripeButtonEnabled { get; }
 
             private static int _cardIndexCounter = 0;
 
-            public PlanViewModel(LicensePlanDto plan)
+            public PlanViewModel(LicensePlanDto plan, int? currentPlanId, string currentPlanName, bool hasActivePaidPlan)
             {
                 Plan = plan;
+                bool matchesById = currentPlanId.HasValue && plan.EffectivePlanId == currentPlanId.Value;
+                bool matchesByName = !string.IsNullOrEmpty(currentPlanName) && PlanNamesMatch(plan.Name, currentPlanName);
+                IsCurrentPlan = hasActivePaidPlan && (matchesById || matchesByName);
+                IsStripeButtonEnabled = !hasActivePaidPlan;
                 CardIndex = _cardIndexCounter++;
                 
-                // Use the actual plan name from API
-                DisplayName = plan.Name;
+                // Display name: match reference (1-Month, 6-Months, 12-Months)
+                DisplayName = GetDisplayName(plan.Name);
                 
                 // Use the actual price from API
                 PriceText = $"${plan.Price:F0}";
                 PriceSuffix = " / per device";
                 
-                // Parse plan name to determine duration, features, and gradient
-                var name = plan.Name.ToLower();
-                if (name.StartsWith("3") || name.Contains("3month") || name.Contains("three"))
+                // Parse plan name to determine duration, features, and gradient (match Figma)
+                // Use explicit matching so 1-Month and 6-Month never get the same details
+                var name = (plan.Name ?? "").Trim().ToLowerInvariant();
+                var nameNorm = name.Replace(" ", "").Replace("-", "");
+                if (nameNorm.StartsWith("12") || name.Contains("12month") || name.Contains("year") || name.Contains("annual"))
                 {
-                    DurationDays = 90; // 3 months = 90 days
+                    DurationDays = 365;
+                    Features = new List<string>
+                    {
+                        "Everything in Semi-Annual",
+                        "Dedicated account manager",
+                        "Advanced analytics",
+                        "Save 21%"
+                    };
+                    CardGradient = CreateGradientBrush("#2A5A8B", "#1A2A4A"); // dark teal / greenish-blue
+                }
+                else if (nameNorm.StartsWith("6") || name.Contains("6month") || name.Contains("6 month") || name.Contains("six") || name.Contains("semi"))
+                {
+                    DurationDays = 180;
+                    Features = new List<string>
+                    {
+                        "Everything in Monthly",
+                        "Priority support",
+                        "Custom scan schedules",
+                        "Save 13%"
+                    };
+                    CardGradient = CreateGradientBrush("#5A3A8B", "#2A1A4A"); // dark indigo / deep violet
+                }
+                else if (nameNorm.StartsWith("3") || name.Contains("3month") || name.Contains("3 month") || name.Contains("three"))
+                {
+                    DurationDays = 90;
                     Features = new List<string>
                     {
                         "Unlimited detections",
@@ -135,31 +198,20 @@ namespace x_phy_wpf_ui.Controls
                         "Advanced reporting",
                         "Email support"
                     };
-                    CardGradient = CreateGradientBrush("#8B2D8B", "#4A1A4A");
+                    CardGradient = CreateGradientBrush("#6B3A8B", "#3A1A4A"); // dark purple
                 }
-                else if (name.StartsWith("6") || name.Contains("6month") || name.Contains("six") || name.Contains("semi"))
+                else if ((nameNorm == "1month" || nameNorm == "1months" || (nameNorm.StartsWith("1") && !nameNorm.StartsWith("10") && !nameNorm.StartsWith("12") && name.Contains("month"))))
                 {
-                    DurationDays = 180; // 6 months = 180 days
+                    // 1-Month only (exclude 10-Month, 12-Month)
+                    DurationDays = 30;
                     Features = new List<string>
                     {
-                        "Everything in 3-Month",
-                        "Priority support",
-                        "Custom scan schedules",
-                        "Save 13%"
+                        "Unlimited detections",
+                        "Real-time alerts",
+                        "Advanced reporting",
+                        "Email support"
                     };
-                    CardGradient = CreateGradientBrush("#5A3A8B", "#2A1A4A");
-                }
-                else if (name.StartsWith("12") || name.Contains("12month") || name.Contains("year") || name.Contains("annual"))
-                {
-                    DurationDays = 365; // 12 months = 365 days
-                    Features = new List<string>
-                    {
-                        "Everything in 6-Month",
-                        "Dedicated account manager",
-                        "Advanced analytics",
-                        "Save 21%"
-                    };
-                    CardGradient = CreateGradientBrush("#2A5A8B", "#1A2A4A");
+                    CardGradient = CreateGradientBrush("#8B2D8B", "#4A1A4A"); // deep dark purple / magenta
                 }
                 else
                 {
@@ -182,12 +234,11 @@ namespace x_phy_wpf_ui.Controls
                         "Email support"
                     };
                     
-                    // Use different gradients based on card index
                     var gradients = new[]
                     {
-                        CreateGradientBrush("#8B2D8B", "#4A1A4A"),
-                        CreateGradientBrush("#5A3A8B", "#2A1A4A"),
-                        CreateGradientBrush("#2A5A8B", "#1A2A4A")
+                        CreateGradientBrush("#8B2D8B", "#4A1A4A"),   // dark purple/magenta
+                        CreateGradientBrush("#5A3A8B", "#2A1A4A"),   // dark indigo
+                        CreateGradientBrush("#2A5A8B", "#1A2A4A")   // dark teal
                     };
                     CardGradient = gradients[CardIndex % 3];
                 }
@@ -203,6 +254,27 @@ namespace x_phy_wpf_ui.Controls
                 brush.GradientStops.Add(new GradientStop(
                     (Color)ColorConverter.ConvertFromString(color2), 1));
                 return brush;
+            }
+
+            private static string GetDisplayName(string planName)
+            {
+                if (string.IsNullOrWhiteSpace(planName)) return planName ?? "";
+                var n = planName.Trim();
+                if (n.Equals("3-Month", StringComparison.OrdinalIgnoreCase) || n.Equals("3 Month", StringComparison.OrdinalIgnoreCase))
+                    return "3-Months";
+                if (n.Equals("6-Month", StringComparison.OrdinalIgnoreCase) || n.Equals("6 Month", StringComparison.OrdinalIgnoreCase))
+                    return "6-Months";
+                if (n.Equals("12-Month", StringComparison.OrdinalIgnoreCase) || n.Equals("12 Month", StringComparison.OrdinalIgnoreCase))
+                    return "12-Months";
+                return n;
+            }
+
+            private static bool PlanNamesMatch(string planName, string currentPlanName)
+            {
+                if (string.IsNullOrWhiteSpace(planName) || string.IsNullOrWhiteSpace(currentPlanName)) return false;
+                var a = planName.Trim().ToLowerInvariant().Replace(" ", "").Replace("-", "");
+                var b = currentPlanName.Trim().ToLowerInvariant().Replace(" ", "").Replace("-", "");
+                return a == b || a.Contains(b) || b.Contains(a);
             }
         }
     }

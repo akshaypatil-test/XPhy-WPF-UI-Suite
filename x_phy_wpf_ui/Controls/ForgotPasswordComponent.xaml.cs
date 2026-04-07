@@ -13,17 +13,17 @@ namespace x_phy_wpf_ui.Controls
 
         private readonly AuthService _authService;
         private const int MaxAttempts = 3;
+        private bool _isEmailValid;
 
         public ForgotPasswordComponent()
         {
             InitializeComponent();
             _authService = new AuthService();
             AttemptsText.Text = $"Attempts Left: {MaxAttempts}/{MaxAttempts}";
-            Loaded += (s, e) => UpdateEmailPlaceholder();
-            IsVisibleChanged += (s, e) =>
+            Loaded += (s, e) =>
             {
-                if (e.NewValue is true)
-                    SendOtpButton.IsEnabled = true;
+                UpdateEmailPlaceholder();
+                UpdateSendOtpButtonState();
             };
         }
 
@@ -34,8 +34,10 @@ namespace x_phy_wpf_ui.Controls
             ErrorMessageText.Text = "";
             ErrorMessageText.Visibility = Visibility.Collapsed;
             EmailErrorText.Visibility = Visibility.Collapsed;
+            _isEmailValid = false;
             UpdateEmailPlaceholder();
             SetEmailFieldError(false);
+            UpdateSendOtpButtonState();
         }
 
         private void UpdateEmailPlaceholder()
@@ -47,26 +49,50 @@ namespace x_phy_wpf_ui.Controls
         private void EmailTextBox_TextChanged(object sender, TextChangedEventArgs e)
         {
             UpdateEmailPlaceholder();
+            ValidateEmail();
+            UpdateSendOtpButtonState();
         }
 
         private void EmailTextBox_GotFocus(object sender, RoutedEventArgs e)
         {
             if (EmailFieldBorder != null)
-                EmailFieldBorder.BorderBrush = (System.Windows.Media.Brush)FindResource("InputBorderFocused");
+                EmailFieldBorder.BorderBrush = (System.Windows.Media.Brush)FindResource("Brush.Primary");
         }
 
         private void EmailTextBox_LostFocus(object sender, RoutedEventArgs e)
         {
+            ValidateEmail();
+            UpdateSendOtpButtonState();
+        }
+
+        private void ValidateEmail()
+        {
             var email = EmailTextBox?.Text?.Trim();
-            if (!string.IsNullOrWhiteSpace(email) && IsValidEmail(email))
+            if (string.IsNullOrWhiteSpace(email))
             {
+                _isEmailValid = false;
+                EmailErrorText.Text = "Email is required";
+                EmailErrorText.Visibility = Visibility.Visible;
+                SetEmailFieldError(true);
+            }
+            else if (!IsValidEmail(email))
+            {
+                _isEmailValid = false;
+                EmailErrorText.Text = "Please enter a valid email address";
+                EmailErrorText.Visibility = Visibility.Visible;
+                SetEmailFieldError(true);
+            }
+            else
+            {
+                _isEmailValid = true;
                 EmailErrorText.Visibility = Visibility.Collapsed;
                 SetEmailFieldError(false);
             }
-            else if (EmailFieldBorder != null && EmailErrorText.Visibility != Visibility.Visible)
-            {
-                EmailFieldBorder.BorderBrush = (System.Windows.Media.Brush)FindResource("InputBorder");
-            }
+        }
+
+        private void UpdateSendOtpButtonState()
+        {
+            SendOtpButton.IsEnabled = _isEmailValid;
         }
 
         private void SetEmailFieldError(bool hasError)
@@ -74,12 +100,12 @@ namespace x_phy_wpf_ui.Controls
             if (EmailFieldBorder == null) return;
             if (hasError)
             {
-                EmailFieldBorder.BorderBrush = new System.Windows.Media.SolidColorBrush(System.Windows.Media.Color.FromRgb(255, 107, 107));
+                EmailFieldBorder.BorderBrush = (System.Windows.Media.Brush)FindResource("Brush.Error");
                 EmailFieldBorder.BorderThickness = new Thickness(1);
             }
             else
             {
-                EmailFieldBorder.BorderBrush = (System.Windows.Media.Brush)FindResource("InputBorder");
+                EmailFieldBorder.BorderBrush = (System.Windows.Media.Brush)FindResource("Brush.Border");
                 EmailFieldBorder.BorderThickness = new Thickness(1);
             }
         }
@@ -128,6 +154,17 @@ namespace x_phy_wpf_ui.Controls
                 var response = await _authService.ForgotPasswordAsync(email);
                 UpdateAttemptsDisplay(response.AttemptsRemaining);
 
+                if (response.AccountFound == false)
+                {
+                    ErrorMessageText.Text = string.IsNullOrWhiteSpace(response.Message)
+                        ? "No account found with this email address. Please check the email or create an account."
+                        : response.Message;
+                    ErrorMessageText.Visibility = Visibility.Visible;
+                    SetEmailFieldError(true);
+                    UpdateSendOtpButtonState();
+                    return;
+                }
+
                 if (response.AttemptsRemaining == 0)
                 {
                     ErrorMessageText.Text = "You have used all recovery attempts for this email. Please try again after 24 hours.";
@@ -143,7 +180,7 @@ namespace x_phy_wpf_ui.Controls
             {
                 ErrorMessageText.Text = ex.Message;
                 ErrorMessageText.Visibility = Visibility.Visible;
-                SendOtpButton.IsEnabled = true;
+                UpdateSendOtpButtonState();
             }
         }
 

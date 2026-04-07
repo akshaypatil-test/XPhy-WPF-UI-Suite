@@ -6,23 +6,23 @@
              mc:Ignorable="d"
              d:DesignHeight="500" d:DesignWidth="900">
     <UserControl.Resources>
-        <SolidColorBrush x:Key="CardBg" Color="#FFFFFF" Opacity="0.08"/>
-        <SolidColorBrush x:Key="TextPrimaryBrush" Color="#FFFFFF"/>
-        <SolidColorBrush x:Key="TextSecondaryBrush" Color="#999999"/>
-        <SolidColorBrush x:Key="PrimaryPinkBrush" Color="#E2156B"/>
-        <SolidColorBrush x:Key="ResultRedBrush" Color="#E53935"/>
-        <SolidColorBrush x:Key="ResultGreenBrush" Color="#43A047"/>
-        <SolidColorBrush x:Key="TealBrush" Color="#1AB4CC"/>
-        <SolidColorBrush x:Key="TypePillBg" Color="#353535"/>
-        <!-- Results Directory: dark teal background, teal border (matches reference) -->
+        <!-- Using theme-aware brushes -->
+        <SolidColorBrush x:Key="CardBg" Color="{DynamicResource Color.Card}"/>
+        <SolidColorBrush x:Key="TextPrimaryBrush" Color="{DynamicResource Color.TextPrimary}"/>
+        <SolidColorBrush x:Key="TextSecondaryBrush" Color="{DynamicResource Color.TextSecondary}"/>
+        <SolidColorBrush x:Key="PrimaryPinkBrush" Color="{DynamicResource Color.Primary}"/>
+        <SolidColorBrush x:Key="ResultRedBrush" Color="{DynamicResource Color.Error}"/>
+        <SolidColorBrush x:Key="ResultGreenBrush" Color="{DynamicResource Color.Success}"/>
+        <SolidColorBrush x:Key="TealBrush" Color="{DynamicResource Color.Secondary}"/>
+        <SolidColorBrush x:Key="TypePillBg" Color="{DynamicResource Color.Surface}"/>
         <Style x:Key="TealButtonStyle" TargetType="Button">
-            <Setter Property="Background" Value="#102124"/>
-            <Setter Property="Foreground" Value="White"/>
+            <Setter Property="Background" Value="{DynamicResource Brush.Surface}"/>
+            <Setter Property="Foreground" Value="{DynamicResource Brush.TextPrimary}"/>
             <Setter Property="FontSize" Value="14"/>
             <Setter Property="FontWeight" Value="Medium"/>
             <Setter Property="Padding" Value="20,10"/>
             <Setter Property="BorderThickness" Value="1"/>
-            <Setter Property="BorderBrush" Value="#20707C"/>
+            <Setter Property="BorderBrush" Value="{DynamicResource Brush.Border}"/>
             <Setter Property="Cursor" Value="Hand"/>
             <Setter Property="Template">
                 <Setter.Value>
@@ -35,14 +35,13 @@
             </Setter>
             <Style.Triggers>
                 <Trigger Property="IsMouseOver" Value="True">
-                    <Setter Property="Background" Value="#1A3540"/>
-                    <Setter Property="BorderBrush" Value="#2A8A96"/>
+                    <Setter Property="Background" Value="{DynamicResource Brush.ResultsRowHover}"/>
                 </Trigger>
             </Style.Triggers>
         </Style>
         <Style x:Key="PinkButtonStyle" TargetType="Button">
-            <Setter Property="Background" Value="{StaticResource PrimaryPinkBrush}"/>
-            <Setter Property="Foreground" Value="White"/>
+            <Setter Property="Background" Value="{DynamicResource Brush.Primary}"/>
+            <Setter Property="Foreground" Value="{DynamicResource Brush.White}"/>
             <Setter Property="FontSize" Value="14"/>
             <Setter Property="FontWeight" Value="SemiBold"/>
             <Setter Property="Padding" Value="20,10"/>
@@ -59,15 +58,16 @@
             </Setter>
             <Style.Triggers>
                 <Trigger Property="IsMouseOver" Value="True">
-                    <Setter Property="Background" Value="#F0458A"/>
+                    <Setter Property="Background" Value="{DynamicResource Brush.PrimaryHover}"/>
                 </Trigger>
             </Style.Triggers>
         </Style>
-        <SolidColorBrush x:Key="PanelBorder" Color="#2A2A2A"/>
-        <SolidColorBrush x:Key="PanelGlowBorder" Color="#1AB4CC"/>
-        <SolidColorBrush x:Key="FieldBlockBg" Color="#252525"/>
-        <SolidColorBrush x:Key="MetadataRowBg" Color="#1C1C1C"/>
-        <SolidColorBrush x:Key="MetadataLabelBrush" Color="#E8E8E8"/>
+        <SolidColorBrush x:Key="PanelBorder" Color="{DynamicResource Color.Border}"/>
+        <SolidColorBrush x:Key="PanelGlowBorder" Color="{DynamicResource Color.Secondary}"/>
+        <SolidColorBrush x:Key="FieldBlockBg" Color="{DynamicResource Color.Surface}"/>
+        <SolidColorBrush x:Key="MetadataRowBg" Color="{DynamicResource Color.Card}"/>
+        <SolidColorBrush x:Key="MetadataLabelBrush" Color="{DynamicResource Color.TextPrimary}"/>
+        <!-- Row hover uses Brush.ResultsRowHover (theme-aware; slightly darker in light mode so hover is visible, dark in dark mode) -->
     </UserControl.Resources>
     <Grid>
         <Grid.RowDefinitions>
@@ -75,15 +75,14 @@
             <RowDefinition Height="Auto"/>
         </Grid.RowDefinitions>
 
-        <!-- List view: DETECTION RESULTS table (scrollable; buttons are in row below) -->
-        <ScrollViewer x:Name="ResultsListView" Grid.Row="0" VerticalScrollBarVisibility="Auto" HorizontalScrollBarVisibility="Disabled">
-            <Grid Margin="0,0,0,0" HorizontalAlignment="Stretch">
+        <!-- Title row fixed; table row * fills space. DataGrid scrolls inside itself — column headers stay sticky (standard WPF behavior). -->
+        <Grid x:Name="ResultsListView" Grid.Row="0" Margin="0,0,0,0" HorizontalAlignment="Stretch" VerticalAlignment="Stretch" Focusable="True" FocusVisualStyle="{x:Null}">
                 <Grid.RowDefinitions>
                     <RowDefinition Height="Auto"/>
-                    <RowDefinition Height="Auto"/>
+                    <RowDefinition Height="*"/>
                 </Grid.RowDefinitions>
                 <!-- Title and Legend -->
-                <Grid Grid.Row="0" Margin="0,0,0,20">
+                <Grid x:Name="ResultsTitleRow" Grid.Row="0" Margin="0,0,0,20">
                     <Grid.ColumnDefinitions>
                         <ColumnDefinition Width="*"/>
                         <ColumnDefinition Width="Auto"/>
@@ -102,21 +101,26 @@
                     </StackPanel>
                 </Grid>
 
-                <!-- Results Table: cyan top border (1px to match row lines) + glass look; stretches to full width -->
-                <Border Grid.Row="1" CornerRadius="8" Margin="0,0,0,0" BorderBrush="{StaticResource PanelGlowBorder}" BorderThickness="0,1,0,0" HorizontalAlignment="Stretch">
-                    <Border CornerRadius="8" Padding="0" UseLayoutRounding="True">
-                        <Border.Background>
-                            <LinearGradientBrush StartPoint="0,0" EndPoint="0,1">
-                                <GradientStop Color="#1AFFFFFF" Offset="0"/>
-                                <GradientStop Color="#0CFFFFFF" Offset="0.5"/>
-                                <GradientStop Color="#08FFFFFF" Offset="1"/>
-                            </LinearGradientBrush>
-                        </Border.Background>
-                        <Border.Effect>
-                            <DropShadowEffect Color="#1AB4CC" BlurRadius="8" ShadowDepth="0" Opacity="0.15"/>
-                        </Border.Effect>
+                <!-- Results area: table when items exist, or "No results to show" when empty -->
+                <Grid x:Name="ResultsBodyGrid" Grid.Row="1" MinHeight="0" Margin="0,0,0,0" VerticalAlignment="Stretch">
+                    <!-- Empty state: centered message -->
+                    <Border x:Name="NoResultsPanel" Visibility="Collapsed"
+                            VerticalAlignment="Center" HorizontalAlignment="Center"
+                            CornerRadius="8" Padding="24,20" Background="{DynamicResource Brush.Surface}"
+                            BorderBrush="{StaticResource PanelBorder}" BorderThickness="1">
+                        <TextBlock Text="No results to show" FontSize="15" Foreground="{StaticResource TextSecondaryBrush}"/>
+                    </Border>
+                    <!-- Results Table: cyan top border + glass look -->
+                    <!-- ClipToBounds false: rounded rect + scroll viewer would clip the last rows at the bottom -->
+                    <Border x:Name="ResultsTablePanel" CornerRadius="8" Margin="0,0,0,0" BorderBrush="{StaticResource PanelGlowBorder}" BorderThickness="0,1,0,0" HorizontalAlignment="Stretch" VerticalAlignment="Stretch" ClipToBounds="False" Focusable="False">
+                    <!-- No Effect / no translucent gradient on this border: DropShadow + glass on a ScrollViewer parent
+                         causes WPF to bitmap-cache children and row content disappears or clips while scrolling. -->
+                    <Border CornerRadius="8" Padding="0,0,0,2" Background="Transparent" UseLayoutRounding="True"
+                            VerticalAlignment="Stretch" ClipToBounds="False" Focusable="False"
+                            SnapsToDevicePixels="True">
                     <DataGrid x:Name="ResultsDataGrid"
                               AutoGenerateColumns="False"
+                              EnableRowVirtualization="False"
                               IsReadOnly="True"
                               CanUserAddRows="False"
                               CanUserDeleteRows="False"
@@ -126,20 +130,31 @@
                               CanUserSortColumns="True"
                               HeadersVisibility="Column"
                               GridLinesVisibility="None"
-                              RowBackground="Transparent"
-                              AlternatingRowBackground="#0CFFFFFF"
+                              RowBackground="{DynamicResource Brush.Card}"
+                              AlternatingRowBackground="{DynamicResource Brush.Card}"
                               BorderThickness="0"
-                              Background="Transparent"
+                              Background="{DynamicResource Brush.Card}"
                               Foreground="{StaticResource TextPrimaryBrush}"
                               RowHeight="44"
                               FontSize="13"
                               SelectionMode="Single"
                               SelectionUnit="FullRow"
                               UseLayoutRounding="True"
-                              HorizontalAlignment="Stretch">
+                              HorizontalAlignment="Stretch"
+                              VerticalAlignment="Stretch"
+                              VerticalScrollBarVisibility="Hidden"
+                              HorizontalScrollBarVisibility="Disabled"
+                              FocusVisualStyle="{x:Null}">
+                        <DataGrid.Resources>
+                            <!-- Pixel scrolling avoids logical scroll + hidden bar fighting row measure (squashed / blank rows in video). -->
+                            <Style TargetType="ScrollViewer">
+                                <Setter Property="Background" Value="{DynamicResource Brush.Card}"/>
+                                <Setter Property="CanContentScroll" Value="False"/>
+                            </Style>
+                        </DataGrid.Resources>
                         <DataGrid.ColumnHeaderStyle>
                             <Style TargetType="DataGridColumnHeader">
-                                <Setter Property="Background" Value="#1A1A1A"/>
+                                <Setter Property="Background" Value="{DynamicResource Brush.Surface}"/>
                                 <Setter Property="Foreground" Value="{StaticResource TextPrimaryBrush}"/>
                                 <Setter Property="FontWeight" Value="Bold"/>
                                 <Setter Property="Padding" Value="12,14,24,14"/>
@@ -152,7 +167,7 @@
                                         <ControlTemplate TargetType="DataGridColumnHeader">
                                             <Border Background="{TemplateBinding Background}"
                                                     BorderThickness="0,0,0,1"
-                                                    BorderBrush="#333333"
+                                                    BorderBrush="{DynamicResource Brush.Border}"
                                                     Padding="{TemplateBinding Padding}">
                                                 <ContentPresenter HorizontalAlignment="{TemplateBinding HorizontalContentAlignment}"
                                                                   VerticalAlignment="{TemplateBinding VerticalContentAlignment}"
@@ -165,31 +180,31 @@
                         </DataGrid.ColumnHeaderStyle>
                         <DataGrid.RowStyle>
                             <Style TargetType="DataGridRow">
-                                <Setter Property="Background" Value="Transparent"/>
+                                <Setter Property="Background" Value="{DynamicResource Brush.Card}"/>
                                 <Setter Property="MinHeight" Value="44"/>
+                                <Setter Property="FocusVisualStyle" Value="{x:Null}"/>
                                 <Setter Property="Template">
                                     <Setter.Value>
+                                        <!-- Default-style row: no SelectiveScrollingGrid (it desyncs with column-header scroll when scrollbar is hidden). -->
                                         <ControlTemplate TargetType="DataGridRow">
                                             <Border Background="{TemplateBinding Background}"
                                                     BorderThickness="0,0,0,1"
-                                                    BorderBrush="#333333">
-                                                <SelectiveScrollingGrid>
-                                                    <SelectiveScrollingGrid.ColumnDefinitions>
-                                                        <ColumnDefinition/>
-                                                        <ColumnDefinition Width="Auto"/>
-                                                    </SelectiveScrollingGrid.ColumnDefinitions>
-                                                    <DataGridCellsPresenter Grid.Column="0"
-                                                                           ItemsPanel="{TemplateBinding ItemsPanel}"
-                                                                           SelectiveScrollingGrid.SelectiveScrollingOrientation="Horizontal"/>
-                                                    <DataGridRowHeader Grid.Column="1"
-                                                                       SelectiveScrollingGrid.SelectiveScrollingOrientation="Vertical"
-                                                                       Visibility="Collapsed"/>
-                                                </SelectiveScrollingGrid>
+                                                    BorderBrush="{DynamicResource Brush.Border}"
+                                                    SnapsToDevicePixels="True">
+                                                <DataGridCellsPresenter SnapsToDevicePixels="{TemplateBinding SnapsToDevicePixels}"
+                                                                        ItemsPanel="{TemplateBinding ItemsPanel}"/>
                                             </Border>
                                         </ControlTemplate>
                                     </Setter.Value>
                                 </Setter>
+                                <!-- IsSelected after IsMouseOver so selected row keeps visible highlight when both apply -->
                                 <Style.Triggers>
+                                    <Trigger Property="IsMouseOver" Value="True">
+                                        <Setter Property="Background" Value="{DynamicResource Brush.ResultsRowHover}"/>
+                                    </Trigger>
+                                    <Trigger Property="IsSelected" Value="True">
+                                        <Setter Property="Background" Value="{DynamicResource Brush.Surface}"/>
+                                    </Trigger>
                                     <DataTrigger Binding="{Binding}" Value="{x:Null}">
                                         <Setter Property="Visibility" Value="Collapsed"/>
                                     </DataTrigger>
@@ -202,6 +217,8 @@
                                 <Setter Property="Padding" Value="12,10,24,10"/>
                                 <Setter Property="VerticalAlignment" Value="Center"/>
                                 <Setter Property="HorizontalContentAlignment" Value="Center"/>
+                                <Setter Property="FocusVisualStyle" Value="{x:Null}"/>
+                                <Setter Property="Background" Value="Transparent"/>
                                 <Setter Property="Template">
                                     <Setter.Value>
                                         <ControlTemplate TargetType="DataGridCell">
@@ -216,26 +233,34 @@
                                     </Setter.Value>
                                 </Setter>
                                 <Style.Triggers>
+                                    <Trigger Property="IsKeyboardFocused" Value="True">
+                                        <Setter Property="Background" Value="Transparent"/>
+                                    </Trigger>
                                     <Trigger Property="IsSelected" Value="True">
-                                        <Setter Property="Background" Value="#2A2A2A"/>
-                                        <Setter Property="Foreground" Value="{StaticResource TextPrimaryBrush}"/>
+                                        <Setter Property="Background" Value="Transparent"/>
                                     </Trigger>
                                 </Style.Triggers>
                             </Style>
                         </DataGrid.CellStyle>
                         <DataGrid.Columns>
-                            <DataGridTextColumn Header="Timestamp" Binding="{Binding Timestamp, StringFormat='HH:mm MMM d, yyyy'}" Width="1.2*" MinWidth="120">
+                            <DataGridTextColumn Binding="{Binding TimestampDisplay}" Width="1.2*" MinWidth="120" CanUserSort="True">
+                                <DataGridTextColumn.Header>
+                                    <StackPanel Orientation="Horizontal" HorizontalAlignment="Center">
+                                        <TextBlock Text="Timestamp" VerticalAlignment="Center"/>
+                                        <TextBlock Text="▼" FontSize="9" VerticalAlignment="Center" Margin="4,0,0,0" Opacity="0.9"/>
+                                    </StackPanel>
+                                </DataGridTextColumn.Header>
                                 <DataGridTextColumn.ElementStyle>
                                     <Style TargetType="TextBlock">
                                         <Setter Property="HorizontalAlignment" Value="Center"/>
                                     </Style>
                                 </DataGridTextColumn.ElementStyle>
                             </DataGridTextColumn>
-                            <DataGridTemplateColumn Header="Type" Width="0.5*" MinWidth="70">
+                            <DataGridTemplateColumn Header="Type" Width="0.6*" MinWidth="100">
                                 <DataGridTemplateColumn.CellTemplate>
                                     <DataTemplate>
-                                        <Border Background="{StaticResource TypePillBg}" CornerRadius="14" Padding="8,3" HorizontalAlignment="Center">
-                                            <TextBlock Text="{Binding Type}" Foreground="{StaticResource TextPrimaryBrush}" FontSize="12"/>
+                                        <Border Background="{StaticResource TypePillBg}" CornerRadius="14" Padding="10,4" HorizontalAlignment="Center">
+                                            <TextBlock Text="{Binding Type}" Foreground="{StaticResource TextPrimaryBrush}" FontSize="12" TextTrimming="None"/>
                                         </Border>
                                     </DataTemplate>
                                 </DataGridTemplateColumn.CellTemplate>
@@ -282,19 +307,28 @@
                                     </DataTemplate>
                                 </DataGridTemplateColumn.CellTemplate>
                             </DataGridTemplateColumn>
-                            <DataGridTemplateColumn Header="Actions" Width="0.6*" MinWidth="90">
+                            <DataGridTemplateColumn Header="Evidence" Width="*" MinWidth="110">
                                 <DataGridTemplateColumn.CellTemplate>
                                     <DataTemplate>
                                         <Button Background="Transparent"
                                                 BorderThickness="0"
                                                 Cursor="Hand"
                                                 FontSize="12"
-                                                Padding="0"
+                                                Padding="4,0"
                                                 HorizontalAlignment="Center"
+                                                FocusVisualStyle="{x:Null}"
                                                 Click="ViewResult_Click">
+                                            <Button.Template>
+                                                <ControlTemplate TargetType="Button">
+                                                    <Border Background="{TemplateBinding Background}" BorderBrush="{TemplateBinding BorderBrush}" BorderThickness="0" Padding="{TemplateBinding Padding}">
+                                                        <ContentPresenter HorizontalAlignment="{TemplateBinding HorizontalContentAlignment}" VerticalAlignment="{TemplateBinding VerticalContentAlignment}"/>
+                                                    </Border>
+                                                </ControlTemplate>
+                                            </Button.Template>
                                             <TextBlock Text="View Result"
                                                        Foreground="{StaticResource TextPrimaryBrush}"
-                                                       TextDecorations="Underline"/>
+                                                       TextDecorations="Underline"
+                                                       TextTrimming="None"/>
                                         </Button>
                                     </DataTemplate>
                                 </DataGridTemplateColumn.CellTemplate>
@@ -303,21 +337,44 @@
                     </DataGrid>
                     </Border>
                 </Border>
-            </Grid>
-        </ScrollViewer>
+                </Grid>
+        </Grid>
 
-        <!-- Buttons: always at bottom right -->
-        <StackPanel Grid.Row="1" Orientation="Horizontal" HorizontalAlignment="Right" Margin="0,16,0,0">
-            <Button x:Name="ResultsDirectoryButton"
-                    Content="Results Directory"
-                    Style="{StaticResource TealButtonStyle}"
-                    Click="ResultsDirectory_Click"
-                    Margin="0,0,12,0"/>
-            <Button x:Name="ExportExcelButton"
-                    Content="Export to Excel"
-                    Style="{StaticResource PinkButtonStyle}"
-                    Click="ExportExcel_Click"/>
-        </StackPanel>
+        <!-- Buttons row with popup overlay (toast shown over the two buttons) -->
+        <Grid x:Name="ResultsButtonsPanel" Grid.Row="1" Margin="0,16,0,0">
+            <!-- Buttons layer -->
+            <StackPanel Orientation="Horizontal" HorizontalAlignment="Right">
+                <Button x:Name="ResultsDirectoryButton"
+                        Content="Results Directory"
+                        Style="{StaticResource TealButtonStyle}"
+                        Click="ResultsDirectory_Click"
+                        Margin="0,0,12,0"/>
+                <Button x:Name="ExportExcelButton"
+                        Content="Export to Excel"
+                        Style="{StaticResource PinkButtonStyle}"
+                        Click="ExportExcel_Click"/>
+            </StackPanel>
+            <!-- In-page export toast: overlays on top of the two buttons (same area, right-aligned) -->
+            <Border x:Name="ExportToastCard" Visibility="Collapsed" CornerRadius="10" Padding="16,12" MinWidth="340"
+                    HorizontalAlignment="Right" VerticalAlignment="Bottom" Margin="0,0,0,0"
+                    Background="{DynamicResource Brush.Surface}" BorderBrush="{DynamicResource Brush.Secondary}" BorderThickness="1"
+                    Panel.ZIndex="1">
+                <Border.Effect>
+                    <DropShadowEffect Color="#1AB4CC" BlurRadius="8" ShadowDepth="0" Opacity="0.2"/>
+                </Border.Effect>
+                <Grid>
+                    <Grid.ColumnDefinitions>
+                        <ColumnDefinition Width="*"/>
+                        <ColumnDefinition Width="Auto"/>
+                    </Grid.ColumnDefinitions>
+                    <StackPanel Grid.Column="0" Orientation="Vertical">
+                        <TextBlock x:Name="ExportToastTitle" Text="Export Started" FontWeight="SemiBold" FontSize="14" Foreground="{DynamicResource Brush.TextPrimary}" Margin="0,0,0,4"/>
+                        <TextBlock x:Name="ExportToastMessage" Text="Detection Results Are Being Exported To Excel." FontSize="12" Foreground="{DynamicResource Brush.TextSecondary}" TextWrapping="Wrap"/>
+                    </StackPanel>
+                    <Button Grid.Column="1" Content="✕" FontSize="12" Foreground="{DynamicResource Brush.TextSecondary}" Background="Transparent" BorderThickness="0" Cursor="Hand" Padding="8,0" VerticalAlignment="Top" Click="ExportToastClose_Click"/>
+                </Grid>
+            </Border>
+        </Grid>
 
         <!-- Detail view: Session Details (replaces list when View Result is clicked). Panel is created in code-behind to avoid XAML type resolution issues. -->
         <ScrollViewer x:Name="SessionDetailView" Grid.Row="0" Visibility="Collapsed" VerticalScrollBarVisibility="Hidden" HorizontalScrollBarVisibility="Disabled">

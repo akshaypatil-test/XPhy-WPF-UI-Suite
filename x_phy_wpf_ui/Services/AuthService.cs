@@ -17,8 +17,8 @@ namespace x_phy_wpf_ui.Services
 
         public AuthService()
         {
-            /*_baseUrl = "http://localhost:5163";*/
-            _baseUrl = "https://xphy-web-c5e3v.ondigitalocean.app";
+            //_baseUrl = "http://localhost:5163";
+            _baseUrl = "https://deepfakedetector.x-phy.com";
             _httpClient = new HttpClient
             {
                 BaseAddress = new Uri(_baseUrl),
@@ -255,11 +255,26 @@ namespace x_phy_wpf_ui.Services
             }
         }
 
+        public async Task CancelRegistrationAsync(string email)
+        {
+            try
+            {
+                var request = new { email };
+                var json = JsonConvert.SerializeObject(request);
+                var content = new StringContent(json, Encoding.UTF8, "application/json");
+                await _httpClient.PostAsync("/api/auth/cancel-registration", content);
+            }
+            catch
+            {
+                // Best effort: ignore errors (user may already be deleted or offline)
+            }
+        }
+
         public async Task<ResendOtpResponse> ResendOtpAsync(string email)
         {
             try
             {
-                var request = new ResendOtpRequest { Email = email };
+                var request = new ResendOtpRequest { Email = email?.Trim() ?? "" };
                 var json = JsonConvert.SerializeObject(request);
                 var content = new StringContent(json, Encoding.UTF8, "application/json");
                 var response = await _httpClient.PostAsync("/api/auth/resend-otp", content);

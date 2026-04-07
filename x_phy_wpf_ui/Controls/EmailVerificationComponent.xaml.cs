@@ -32,6 +32,21 @@ namespace x_phy_wpf_ui.Controls
             UpdateCreateAccountButtonState();
         }
 
+        /// <summary>Cancel registration for the pending email (e.g. when user closes app on verification screen). Does nothing if no email.</summary>
+        public async Task CancelRegistrationIfPendingAsync()
+        {
+            if (string.IsNullOrWhiteSpace(_email))
+                return;
+            try
+            {
+                await _authService.CancelRegistrationAsync(_email);
+            }
+            catch
+            {
+                // Best-effort; ignore errors when closing
+            }
+        }
+
         /// <summary>Clear OTP and errors when navigating back to this screen.</summary>
         public void ClearInputs()
         {
@@ -124,22 +139,43 @@ namespace x_phy_wpf_ui.Controls
             }
         }
 
-        private void Back_Click(object sender, RoutedEventArgs e)
+        private async void Back_Click(object sender, RoutedEventArgs e)
         {
+            if (!string.IsNullOrWhiteSpace(_email))
+                await _authService.CancelRegistrationAsync(_email);
             NavigateBack?.Invoke(this, EventArgs.Empty);
         }
 
         private async void ResendCode_Click(object sender, RoutedEventArgs e)
         {
-            if (string.IsNullOrWhiteSpace(_email)) return;
+            var email = _email?.Trim() ?? "";
+            if (string.IsNullOrEmpty(email))
+            {
+                AppDialog.Show(Window.GetWindow(this), "Email is missing. Please go back and try again.", "Resend code", MessageBoxImage.Warning);
+                return;
+            }
+            var btn = sender as System.Windows.Controls.Button;
+            if (btn != null)
+            {
+                btn.IsEnabled = false;
+                btn.Content = "Sending...";
+            }
             try
             {
-                await _authService.ResendOtpAsync(_email);
-                MessageBox.Show("A new code has been sent to your email.", "Code resent", MessageBoxButton.OK, MessageBoxImage.Information);
+                var response = await _authService.ResendOtpAsync(email);
+                AppDialog.Show(Window.GetWindow(this), response?.Message ?? "A new code has been sent to your email.", "Code resent", MessageBoxImage.Information);
             }
             catch (Exception ex)
             {
-                MessageBox.Show(ex.Message, "Resend failed", MessageBoxButton.OK, MessageBoxImage.Warning);
+                AppDialog.Show(Window.GetWindow(this), ex.Message, "Resend failed", MessageBoxImage.Warning);
+            }
+            finally
+            {
+                if (btn != null)
+                {
+                    btn.IsEnabled = true;
+                    btn.Content = "Resend code";
+                }
             }
         }
     }

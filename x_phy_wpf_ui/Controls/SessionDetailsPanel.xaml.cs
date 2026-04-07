@@ -1,10 +1,12 @@
 using System;
 using System.Collections.Generic;
+using System.Diagnostics;
 using System.IO;
 using System.Linq;
 using System.Windows;
 using System.Windows.Controls;
 using System.Windows.Media;
+using System.Windows.Media.Animation;
 using System.Windows.Media.Imaging;
 using x_phy_wpf_ui.Models;
 
@@ -17,6 +19,8 @@ namespace x_phy_wpf_ui.Controls
 
         private readonly List<BitmapSource> _carouselImages = new List<BitmapSource>();
         private int _carouselIndex;
+        private string _resultsDirectory;
+        private DetectionResultItem _currentResult;
 
         public SessionDetailsPanel()
         {
@@ -29,8 +33,10 @@ namespace x_phy_wpf_ui.Controls
         public void SetResult(DetectionResultItem result, string resultsDirectory = null)
         {
             if (result == null) return;
+            _currentResult = result;
+            _resultsDirectory = resultsDirectory;
 
-            DetailConfidencePercent.Text = result.ConfidencePercent + "%";
+            DetailConfidencePercent.Text = result.ConfidenceText;
             DetailConfidencePercent.Foreground = result.IsAiManipulationDetected
                 ? (Brush)Resources["ResultRedBrush"]
                 : (Brush)Resources["ResultGreenBrush"];
@@ -49,7 +55,7 @@ namespace x_phy_wpf_ui.Controls
             }
             DetailOutcomePill.Effect = null;
 
-            DetailDateAndTime.Text = result.Timestamp.ToString("HH:mm MMM d, yyyy");
+            DetailDateAndTime.Text = result.TimestampDisplay;
             // Show application name (Zoom, Google Chrome, etc.) when available; otherwise "Local"
             DetailMediaSource.Text = !string.IsNullOrEmpty(result.MediaSourceDisplay)
                 ? result.MediaSourceDisplay
@@ -59,22 +65,33 @@ namespace x_phy_wpf_ui.Controls
 
             _carouselImages.Clear();
             _carouselIndex = 0;
-            CarouselImageLeft.Source = null;
-            CarouselImageRight.Source = null;
+            CarouselImage.Source = null;
             CarouselPrevButton.Visibility = Visibility.Collapsed;
             CarouselNextButton.Visibility = Visibility.Collapsed;
             CarouselCounterText.Visibility = Visibility.Collapsed;
 
-            if (result.IsAiManipulationDetected)
+            var isAudio = string.Equals(result.Type, "Audio", StringComparison.OrdinalIgnoreCase)
+                || (result.Type != null && result.Type.IndexOf("Audio", StringComparison.OrdinalIgnoreCase) >= 0)
+                || (result.DetectionTypeDisplay != null && result.DetectionTypeDisplay.IndexOf("Audio", StringComparison.OrdinalIgnoreCase) >= 0);
+            if (isAudio)
             {
                 MediaEvidenceNoManipulationPanel.Visibility = Visibility.Collapsed;
+                MediaEvidenceImagesGrid.Visibility = Visibility.Collapsed;
+                MediaEvidenceAudioPanel.Visibility = Visibility.Visible;
+                LoadAudioWaveGraphic();
+            }
+            else if (result.IsAiManipulationDetected)
+            {
+                MediaEvidenceNoManipulationPanel.Visibility = Visibility.Collapsed;
+                MediaEvidenceAudioPanel.Visibility = Visibility.Collapsed;
                 MediaEvidenceImagesGrid.Visibility = Visibility.Visible;
                 TryLoadMediaEvidence(result, resultsDirectory);
             }
             else
             {
-                MediaEvidenceNoManipulationPanel.Visibility = Visibility.Visible;
+                MediaEvidenceAudioPanel.Visibility = Visibility.Collapsed;
                 MediaEvidenceImagesGrid.Visibility = Visibility.Collapsed;
+                MediaEvidenceNoManipulationPanel.Visibility = Visibility.Visible;
             }
         }
 
@@ -128,6 +145,23 @@ namespace x_phy_wpf_ui.Controls
                     if (bitmap != null)
                         _carouselImages.Add(bitmap);
                 }
+                // Load evidence images from the evidence subfolder (evidence_1.png, evidence_2.png, ...)
+                var evidenceDir = new DirectoryInfo(Path.Combine(folderToUse, "evidence"));
+                if (evidenceDir.Exists)
+                {
+                    var evidenceFiles = evidenceDir.GetFiles("*.png")
+                        .Cast<FileInfo>()
+                        .Concat(evidenceDir.GetFiles("*.jpg"))
+                        .Concat(evidenceDir.GetFiles("*.jpeg"))
+                        .OrderBy(f => f.Name)
+                        .ToList();
+                    foreach (var fi in evidenceFiles)
+                    {
+                        var bitmap = LoadBitmapFromPath(fi.FullName);
+                        if (bitmap != null)
+                            _carouselImages.Add(bitmap);
+                    }
+                }
                 UpdateCarouselDisplay();
             }
             catch { /* ignore */ }
@@ -164,15 +198,14 @@ namespace x_phy_wpf_ui.Controls
             }
         }
 
-        /// <summary>Number of "slides" (each slide shows 2 images: left + right).</summary>
-        private int CarouselSlideCount => (_carouselImages.Count + 1) / 2;
+        /// <summary>Number of slides (one image per slide).</summary>
+        private int CarouselSlideCount => _carouselImages.Count;
 
         private void UpdateCarouselDisplay()
         {
             if (_carouselImages.Count == 0)
             {
-                CarouselImageLeft.Source = null;
-                CarouselImageRight.Source = null;
+                CarouselImage.Source = null;
                 CarouselPrevButton.Visibility = Visibility.Collapsed;
                 CarouselNextButton.Visibility = Visibility.Collapsed;
                 CarouselCounterText.Visibility = Visibility.Collapsed;
@@ -180,10 +213,7 @@ namespace x_phy_wpf_ui.Controls
             }
             var slideCount = CarouselSlideCount;
             _carouselIndex = Math.Max(0, Math.Min(_carouselIndex, slideCount - 1));
-            var leftIdx = 2 * _carouselIndex;
-            var rightIdx = 2 * _carouselIndex + 1;
-            CarouselImageLeft.Source = leftIdx < _carouselImages.Count ? _carouselImages[leftIdx] : null;
-            CarouselImageRight.Source = rightIdx < _carouselImages.Count ? _carouselImages[rightIdx] : null;
+            CarouselImage.Source = _carouselImages[_carouselIndex];
             var showNav = slideCount > 1;
             CarouselPrevButton.Visibility = showNav ? Visibility.Visible : Visibility.Collapsed;
             CarouselNextButton.Visibility = showNav ? Visibility.Visible : Visibility.Collapsed;
@@ -194,20 +224,119 @@ namespace x_phy_wpf_ui.Controls
         private void CarouselPrev_Click(object sender, RoutedEventArgs e)
         {
             if (CarouselSlideCount <= 1) return;
-            _carouselIndex = _carouselIndex <= 0 ? CarouselSlideCount - 1 : _carouselIndex - 1;
-            UpdateCarouselDisplay();
+            var newIndex = _carouselIndex <= 0 ? CarouselSlideCount - 1 : _carouselIndex - 1;
+            TransitionToSlide(newIndex);
         }
 
         private void CarouselNext_Click(object sender, RoutedEventArgs e)
         {
             if (CarouselSlideCount <= 1) return;
-            _carouselIndex = _carouselIndex >= CarouselSlideCount - 1 ? 0 : _carouselIndex + 1;
-            UpdateCarouselDisplay();
+            var newIndex = _carouselIndex >= CarouselSlideCount - 1 ? 0 : _carouselIndex + 1;
+            TransitionToSlide(newIndex);
+        }
+
+        private const int CarouselTransitionDurationMs = 180;
+
+        private void TransitionToSlide(int newIndex)
+        {
+            if (newIndex == _carouselIndex) return;
+            var grid = MediaEvidenceTwoColumnGrid;
+            var fadeOut = new DoubleAnimation(1, 0, TimeSpan.FromMilliseconds(CarouselTransitionDurationMs),
+                FillBehavior.HoldEnd) { EasingFunction = new QuadraticEase { EasingMode = EasingMode.EaseOut } };
+            fadeOut.Completed += (_, __) =>
+            {
+                _carouselIndex = newIndex;
+                UpdateCarouselDisplay();
+                grid.Opacity = 0;
+                var fadeIn = new DoubleAnimation(0, 1, TimeSpan.FromMilliseconds(CarouselTransitionDurationMs),
+                    FillBehavior.HoldEnd) { EasingFunction = new QuadraticEase { EasingMode = EasingMode.EaseIn } };
+                grid.BeginAnimation(UIElement.OpacityProperty, fadeIn);
+            };
+            grid.BeginAnimation(UIElement.OpacityProperty, fadeOut);
         }
 
         private void BackToResults_Click(object sender, RoutedEventArgs e)
         {
             BackToResultsRequested?.Invoke(this, EventArgs.Empty);
+        }
+
+        private void OpenMediaDirectory_Click(object sender, RoutedEventArgs e)
+        {
+            if (_currentResult == null) return;
+            var dir = ResolveAudioResultDirectory(_currentResult, _resultsDirectory);
+            if (string.IsNullOrEmpty(dir) || !Directory.Exists(dir))
+            {
+                try { if (!string.IsNullOrEmpty(dir)) Directory.CreateDirectory(dir); } catch { }
+                if (string.IsNullOrEmpty(dir) || !Directory.Exists(dir))
+                {
+                    AppDialog.Show(Window.GetWindow(this), "Result directory could not be found or created.", "Media Directory", MessageBoxImage.Warning);
+                    return;
+                }
+            }
+            try
+            {
+                Process.Start("explorer.exe", "\"" + dir + "\"");
+            }
+            catch (Exception ex)
+            {
+                AppDialog.Show(Window.GetWindow(this), "Failed to open folder: " + ex.Message, "Error", MessageBoxImage.Error);
+            }
+        }
+
+        private void LoadAudioWaveGraphic()
+        {
+            AudioWaveImage.Source = GetAudioWaveImageSource();
+        }
+
+        /// <summary>Returns the audio wave image (audio-wave.jpg) from Resources for evidence display (Session Details and notifications). Returns null if not found.</summary>
+        public static ImageSource GetAudioWaveImageSource()
+        {
+            string[] names = { "audio-wave.jpg", "AudioWave.jpg", "audio-wave.jpeg" };
+            foreach (string name in names)
+            {
+                try
+                {
+                    var uri = new Uri("pack://application:,,,/x_phy_wpf_ui;component/" + name, UriKind.Absolute);
+                    var img = new BitmapImage(uri);
+                    return img;
+                }
+                catch { }
+            }
+            string baseDir = AppDomain.CurrentDomain.BaseDirectory;
+            string resourcesDir = Path.Combine(baseDir, "Resources");
+            foreach (string name in names)
+            {
+                try
+                {
+                    string path = Path.Combine(resourcesDir, name);
+                    if (File.Exists(path))
+                    {
+                        var uri = new Uri(path, UriKind.Absolute);
+                        return new BitmapImage(uri);
+                    }
+                }
+                catch { }
+            }
+            return null;
+        }
+
+        private static string ResolveAudioResultDirectory(DetectionResultItem result, string resultsDirectory)
+        {
+            var resultPathOrId = result?.ResultPathOrId;
+            if (!string.IsNullOrWhiteSpace(resultPathOrId) && resultPathOrId != "Local")
+            {
+                if (Directory.Exists(resultPathOrId))
+                    return resultPathOrId;
+                if (File.Exists(resultPathOrId))
+                    return Path.GetDirectoryName(resultPathOrId);
+            }
+            if (string.IsNullOrEmpty(resultsDirectory))
+                return resultsDirectory;
+            var typeFolder = "audio";
+            var dateFolder = result?.Timestamp.ToString("dd-MM-yyyy") ?? DateTime.Now.ToString("dd-MM-yyyy");
+            var timeFolder = result?.Timestamp.ToString("HH-mm") ?? DateTime.Now.ToString("HH-mm");
+            var builtPath = Path.Combine(resultsDirectory, typeFolder, dateFolder, timeFolder);
+            return Directory.Exists(builtPath) ? builtPath : resultsDirectory;
         }
     }
 }

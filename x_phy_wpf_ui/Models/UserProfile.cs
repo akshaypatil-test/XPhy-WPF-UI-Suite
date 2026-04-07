@@ -24,10 +24,14 @@ namespace x_phy_wpf_ui.Models
 
         private static string FormatLastLogin(DateTime dt)
         {
+            // API stores UTC; convert to local time for display
+            var local = (dt.Kind == DateTimeKind.Utc || dt.Kind == DateTimeKind.Unspecified)
+                ? DateTime.SpecifyKind(dt, DateTimeKind.Utc).ToLocalTime()
+                : dt;
             var now = DateTime.Now;
-            if (dt.Date == now.Date) return $"Today, {dt:h:mm tt}";
-            if (dt.Date == now.Date.AddDays(-1)) return $"Yesterday, {dt:h:mm tt}";
-            return dt.ToString("MMMM d, yyyy, h:mm tt");
+            if (local.Date == now.Date) return $"Today, {local:h:mm tt}";
+            if (local.Date == now.Date.AddDays(-1)) return $"Yesterday, {local:h:mm tt}";
+            return local.ToString("MMMM d, yyyy, h:mm tt");
         }
 
         private static string MemberSinceYears(DateTime created)

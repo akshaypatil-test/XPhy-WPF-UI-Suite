@@ -1,6 +1,6 @@
 using System;
-using System.Reflection;
 using System.Windows;
+using x_phy_wpf_ui.Services;
 using System.Windows.Input;
 using System.Windows.Media;
 using System.Windows.Threading;
@@ -17,23 +17,29 @@ namespace x_phy_wpf_ui
         /// <summary>When set, "Stop & View Results" calls this (stop detection, then open results when saved) instead of only opening folder.</summary>
         private Action _stopDetectionAndOpenResults;
 
+        /// <summary>Seconds to auto-close when user collapses the details (after having expanded).</summary>
+        private const int AutoCloseSecondsAfterCollapse = 10;
+
         public DetectionNotificationWindow()
         {
             InitializeComponent();
-            VersionText.Text = "Version: " + GetAppVersion();
+            VersionText.Text = "Version: " + ApplicationVersion.GetDisplayVersion();
         }
 
-        private static string GetAppVersion()
+        /// <summary>Closes any open detection notification windows so a new one does not overlap.</summary>
+        public static void CloseAllOpen()
         {
             try
             {
-                var v = Assembly.GetExecutingAssembly().GetName().Version;
-                return v != null ? $"{v.Major}.{v.Minor}.{v.Build}" : "1.0.10";
+                foreach (Window w in Application.Current.Windows)
+                {
+                    if (w is DetectionNotificationWindow dnw && w.IsLoaded)
+                    {
+                        try { dnw.Close(); } catch { }
+                    }
+                }
             }
-            catch
-            {
-                return "1.0.10";
-            }
+            catch { }
         }
 
         /// <summary>Set content for simple notifications (Detection Started only).</summary>
@@ -49,15 +55,26 @@ namespace x_phy_wpf_ui
 
         /// <summary>Set content for Detection Completed: message and View Result action.</summary>
         /// <param name="navigateToResultsPage">If set, "View Result" navigates to the Results page; otherwise uses openResultsFolder.</param>
-        public void SetDetectionCompletedContent(string message, string resultPath, Action openResultsFolder, Action navigateToResultsPage = null)
+        /// <param name="isAudio">When true, prefix with "Audio" so notification matches result view.</param>
+        /// <param name="noManipulationConfidencePercent">When set, shows "Confidence X% (no AI manipulation)" from (1 - avg ProbFake) over the run so lower avg prob fake = higher confidence.</param>
+        public void SetDetectionCompletedContent(string message, string resultPath, Action openResultsFolder, Action navigateToResultsPage = null, bool isAudio = false, int? noManipulationConfidencePercent = null)
         {
             SimpleContentPanel.Visibility = Visibility.Collapsed;
             DeepfakeContentPanel.Visibility = Visibility.Collapsed;
             CompletedWithThreatContentPanel.Visibility = Visibility.Collapsed;
             CompletedContentPanel.Visibility = Visibility.Visible;
 
-            CompletedTitleText.Text = "Detection Completed";
-            CompletedMessageText.Text = message ?? "No AI Manipulation Found";
+            CompletedTitleText.Text = isAudio ? "Audio Detection Complete" : "Detection Complete";
+            CompletedMessageText.Text = message ?? (isAudio ? "Audio: NOT DETECTED" : "NOT DETECTED");
+            if (noManipulationConfidencePercent.HasValue)
+            {
+                CompletedNoThreatConfidenceText.Text = $"Confidence {noManipulationConfidencePercent.Value}% (No AI manipulation)";
+                CompletedNoThreatConfidenceText.Visibility = Visibility.Visible;
+            }
+            else
+            {
+                CompletedNoThreatConfidenceText.Visibility = Visibility.Collapsed;
+            }
             _resultPath = resultPath ?? "";
             _openResultsFolder = openResultsFolder;
             _navigateToResultsPage = navigateToResultsPage;
@@ -65,17 +82,18 @@ namespace x_phy_wpf_ui
 
         /// <summary>Set content for Detection Completed when AI manipulated content was detected: title, red alert, confidence, timestamp, evidence, Close + View Result.</summary>
         /// <param name="navigateToResultsPage">If set, "View Result" navigates to the Results page; otherwise uses openResultsFolder.</param>
+        /// <param name="isAudio">When true, prefix with "Audio" so notification matches result view and no evidence images.</param>
         public void SetDetectionCompletedWithThreatContent(int confidencePercent, string resultPath, Action openResultsFolder,
-            ImageSource evidenceImageLeft = null, ImageSource evidenceImageRight = null, Action navigateToResultsPage = null)
+            ImageSource evidenceImageLeft = null, ImageSource evidenceImageRight = null, Action navigateToResultsPage = null, bool isAudio = false)
         {
             SimpleContentPanel.Visibility = Visibility.Collapsed;
             DeepfakeContentPanel.Visibility = Visibility.Collapsed;
             CompletedContentPanel.Visibility = Visibility.Collapsed;
             CompletedWithThreatContentPanel.Visibility = Visibility.Visible;
 
-            CompletedThreatAlertText.Text = "AI Manipulated Content Detected";
-            CompletedThreatConfidenceText.Text = $"Confidence {confidencePercent}%";
-            CompletedThreatTimestampText.Text = DateTime.Now.ToString("HH:mm MMM d, yyyy");
+            CompletedThreatAlertText.Text = isAudio ? "Audio: DEEPFAKE DETECTED" : "DEEPFAKE DETECTED";
+            CompletedThreatConfidenceText.Text = (isAudio && confidencePercent == 0) ? "Confidence: —" : $"Confidence {confidencePercent}%";
+            CompletedThreatTimestampText.Text = DateTime.Now.ToString("dd/MM/yyyy, HH:mm");
             _resultPath = resultPath ?? "";
             _openResultsFolder = openResultsFolder;
             _navigateToResultsPage = navigateToResultsPage;
@@ -87,9 +105,10 @@ namespace x_phy_wpf_ui
         /// <summary>Set content for deepfake alert: confidence, result path, evidence images. Stop &amp; View Results stops detection, saves results, then opens folder.</summary>
         /// <param name="openResultsFolder">Opens the results folder (used when no stop-and-save flow).</param>
         /// <param name="stopDetectionAndOpenResults">If set, "Stop & View Results" calls this to stop detection and open results when saved; otherwise uses openResultsFolder.</param>
+        /// <param name="isAudio">When true, prefix with "Audio" so notification matches result view.</param>
         public void SetDeepfakeContent(int confidencePercent, string resultPath, Action openResultsFolder,
             Action stopDetectionAndOpenResults = null,
-            ImageSource evidenceImageLeft = null, ImageSource evidenceImageRight = null)
+            ImageSource evidenceImageLeft = null, ImageSource evidenceImageRight = null, bool isAudio = false)
         {
             SimpleContentPanel.Visibility = Visibility.Collapsed;
             CompletedContentPanel.Visibility = Visibility.Collapsed;
@@ -97,9 +116,9 @@ namespace x_phy_wpf_ui
             DeepfakeContentPanel.Visibility = Visibility.Visible;
             WarningSection.Visibility = Visibility.Collapsed;
 
-            AlertTitleText.Text = "AI Manipulated Content Detected";
-            ConfidenceText.Text = $"Confidence {confidencePercent}%";
-            TimestampText.Text = DateTime.Now.ToString("HH:mm MMM d, yyyy");
+            AlertTitleText.Text = isAudio ? "Audio: AI Manipulated Content Detected" : "AI Manipulated Content Detected";
+            ConfidenceText.Text = (isAudio && confidencePercent == 0) ? "Confidence: —" : $"Confidence {confidencePercent}%";
+            TimestampText.Text = DateTime.Now.ToString("dd/MM/yyyy, HH:mm");
 
             _resultPath = resultPath ?? "";
             _openResultsFolder = openResultsFolder;
@@ -107,6 +126,9 @@ namespace x_phy_wpf_ui
 
             EvidenceImageLeft.Source = evidenceImageLeft;
             EvidenceImageRight.Source = evidenceImageRight ?? evidenceImageLeft;
+            // Hide evidence section when no image (e.g. first notification fired before any face frame was available)
+            if (DeepfakeEvidenceBorder != null)
+                DeepfakeEvidenceBorder.Visibility = (evidenceImageLeft != null) ? Visibility.Visible : Visibility.Collapsed;
         }
 
         public void ShowAtBottomRight(int autoCloseSeconds = 5)
@@ -116,6 +138,67 @@ namespace x_phy_wpf_ui
             Show();
             Activate();
             Dispatcher.BeginInvoke(new Action(EnsureFitsScreen), DispatcherPriority.Loaded);
+
+            _autoCloseTimer?.Stop();
+            if (autoCloseSeconds > 0)
+            {
+                _autoCloseTimer = new DispatcherTimer { Interval = TimeSpan.FromSeconds(autoCloseSeconds) };
+                _autoCloseTimer.Tick += (s, e) =>
+                {
+                    _autoCloseTimer.Stop();
+                    _autoCloseTimer = null;
+                    Close();
+                };
+                _autoCloseTimer.Start();
+            }
+        }
+
+        /// <summary>Shows the window positioned above the given element (e.g. Results Directory / Export buttons). Keeps popup on screen.</summary>
+        public void ShowAbove(FrameworkElement anchor, int autoCloseSeconds = 5)
+        {
+            if (anchor == null)
+            {
+                ShowAtBottomRight(autoCloseSeconds);
+                return;
+            }
+            try
+            {
+                anchor.UpdateLayout();
+                var screenPos = anchor.PointToScreen(new Point(0, 0));
+                ShowAtPosition(screenPos.X, screenPos.Y, anchor.ActualWidth, autoCloseSeconds);
+                return;
+            }
+            catch { }
+            ShowAtBottomRight(autoCloseSeconds);
+        }
+
+        /// <summary>Shows the window at the given screen position (above the point, horizontally centered). Call after SetContent. Clamps to work area.</summary>
+        public void ShowAtPosition(double anchorScreenX, double anchorScreenY, double anchorWidth, int autoCloseSeconds = 5)
+        {
+            const int gap = 8;
+            const int margin = 16;
+            double w = Width;
+            double h = 140; // approximate height before load; refined in Loaded
+            double left = anchorScreenX + (anchorWidth * 0.5) - (w * 0.5);
+            double top = anchorScreenY - h - gap;
+            var workArea = SystemParameters.WorkArea;
+            Left = Math.Max(workArea.Left + margin, Math.Min(workArea.Right - w - margin, left));
+            Top = Math.Max(workArea.Top + margin, Math.Min(top, workArea.Bottom - h - margin));
+
+            void ClampToWorkArea()
+            {
+                if (!IsLoaded || ActualWidth <= 0) return;
+                var wa = SystemParameters.WorkArea;
+                Left = Math.Max(wa.Left + margin, Math.Min(wa.Right - ActualWidth - margin, Left));
+                Top = Math.Max(wa.Top + margin, Math.Min(wa.Bottom - ActualHeight - margin, Top));
+            }
+            Loaded += (s, e) => ClampToWorkArea();
+            SizeChanged += (s, e) => ClampToWorkArea();
+
+            WindowStartupLocation = WindowStartupLocation.Manual;
+            Show();
+            Activate();
+            Dispatcher.BeginInvoke(new Action(ClampToWorkArea), DispatcherPriority.Loaded);
 
             _autoCloseTimer?.Stop();
             if (autoCloseSeconds > 0)
@@ -154,19 +237,38 @@ namespace x_phy_wpf_ui
                     string pathMessage = string.IsNullOrEmpty(_resultPath)
                         ? "Results folder opened."
                         : "Results folder opened.\n\nPath: " + _resultPath;
-                    MessageBox.Show(pathMessage, "Results", MessageBoxButton.OK, MessageBoxImage.Information);
+                    AppDialog.Show(this, pathMessage, "Results", MessageBoxImage.Information);
                 }
             }
             catch (Exception ex)
             {
-                MessageBox.Show("Failed: " + ex.Message, "Error", MessageBoxButton.OK, MessageBoxImage.Warning);
+                AppDialog.Show(this, "Failed: " + ex.Message, "Error", MessageBoxImage.Warning);
             }
             Close();
         }
 
         private void CriticalThreatButton_Click(object sender, RoutedEventArgs e)
         {
+            bool expanding = WarningSection.Visibility != Visibility.Visible;
             WarningSection.Visibility = WarningSection.Visibility == Visibility.Visible ? Visibility.Collapsed : Visibility.Visible;
+            if (expanding)
+            {
+                _autoCloseTimer?.Stop();
+                _autoCloseTimer = null;
+            }
+            else
+            {
+                // User collapsed the details: start auto-close so popup disappears and doesn't overlap with subsequent ones
+                _autoCloseTimer?.Stop();
+                _autoCloseTimer = new DispatcherTimer { Interval = TimeSpan.FromSeconds(AutoCloseSecondsAfterCollapse) };
+                _autoCloseTimer.Tick += (s, ev) =>
+                {
+                    _autoCloseTimer.Stop();
+                    _autoCloseTimer = null;
+                    Close();
+                };
+                _autoCloseTimer.Start();
+            }
             Dispatcher.BeginInvoke(new Action(EnsureFitsScreen), DispatcherPriority.Loaded);
         }
 
@@ -201,14 +303,14 @@ namespace x_phy_wpf_ui
                     _openResultsFolder?.Invoke();
                     if (!string.IsNullOrEmpty(_resultPath))
                     {
-                        MessageBox.Show("Results folder opened.\n\nPath: " + _resultPath, "Results", MessageBoxButton.OK, MessageBoxImage.Information);
+                        AppDialog.Show(this, "Results folder opened.\n\nPath: " + _resultPath, "Results", MessageBoxImage.Information);
                     }
                     Close();
                 }
             }
             catch (Exception ex)
             {
-                MessageBox.Show("Failed: " + ex.Message, "Error", MessageBoxButton.OK, MessageBoxImage.Warning);
+                AppDialog.Show(this, "Failed: " + ex.Message, "Error", MessageBoxImage.Warning);
             }
         }
 

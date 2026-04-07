@@ -11,7 +11,7 @@ namespace x_phy_wpf_ui.Controls
         public event EventHandler? UpdatePasswordRequested;
 
         private static readonly Regex PasswordRegex = new Regex(
-            @"^(?=.*[a-z])(?=.*[A-Z])(?=.*\d)(?=.*[@$!%*?&])[A-Za-z\d@$!%*?&]{8,}$");
+            @"^(?=.*[a-z])(?=.*[A-Z])(?=.*\d)(?=.*[^a-zA-Z0-9\s])[^\s]{8,}$");
 
         public ChangePasswordDialog()
         {
@@ -37,7 +37,7 @@ namespace x_phy_wpf_ui.Controls
             }
             if (!PasswordRegex.IsMatch(NewPassword))
             {
-                error = "Password must be at least 8 characters and contain uppercase, lowercase, number, and special character (@$!%*?&).";
+                error = "Password must be at least 8 characters with uppercase, lowercase, number, and at least one special character. Spaces are not allowed.";
                 return false;
             }
             if (NewPassword != ConfirmPassword)
@@ -51,6 +51,36 @@ namespace x_phy_wpf_ui.Controls
                 return false;
             }
             return true;
+        }
+
+        /// <summary>Clears all password fields and error. Call when opening the dialog so previous data does not persist.</summary>
+        public void Clear()
+        {
+            CurrentPasswordBox.Password = "";
+            CurrentReveal.Text = "";
+            CurrentReveal.Visibility = Visibility.Collapsed;
+            CurrentPasswordBox.Visibility = Visibility.Visible;
+
+            NewPasswordBox.Password = "";
+            NewReveal.Text = "";
+            NewReveal.Visibility = Visibility.Collapsed;
+            NewPasswordBox.Visibility = Visibility.Visible;
+
+            ConfirmPasswordBox.Password = "";
+            ConfirmReveal.Text = "";
+            ConfirmReveal.Visibility = Visibility.Collapsed;
+            ConfirmPasswordBox.Visibility = Visibility.Visible;
+
+            CurrentErrorText.Visibility = Visibility.Collapsed;
+            NewErrorText.Visibility = Visibility.Collapsed;
+            ConfirmErrorText.Visibility = Visibility.Collapsed;
+            SetBorderErrorState(CurrentBorder, false);
+            SetBorderErrorState(NewBorder, false);
+            SetBorderErrorState(ConfirmBorder, false);
+            NewPasswordRequirementsPopup.IsOpen = false;
+            ClearAndHideError();
+            UpdatePlaceholders();
+            UpdateButtonState();
         }
 
         public void ClearAndHideError()
@@ -89,10 +119,112 @@ namespace x_phy_wpf_ui.Controls
                 && @new.Length >= 8 && conf.Length >= 8 && @new == conf && PasswordRegex.IsMatch(@new);
         }
 
+        private void SetBorderErrorState(System.Windows.Controls.Border border, bool hasError)
+        {
+            if (border == null) return;
+            if (hasError)
+            {
+                border.BorderBrush = (System.Windows.Media.Brush)FindResource("Brush.Error");
+                border.BorderThickness = new Thickness(1);
+            }
+            else
+            {
+                border.BorderBrush = (System.Windows.Media.Brush)FindResource("Brush.Border");
+                border.BorderThickness = new Thickness(1);
+            }
+        }
+
+        private void NewPasswordInfoButton_Click(object sender, RoutedEventArgs e)
+        {
+            if (NewPasswordRequirementsPopup != null)
+                NewPasswordRequirementsPopup.IsOpen = !NewPasswordRequirementsPopup.IsOpen;
+        }
+
+        private void ValidateCurrentPassword()
+        {
+            var cur = CurrentReveal.Visibility == Visibility.Visible ? CurrentReveal.Text : CurrentPasswordBox.Password;
+            if (string.IsNullOrWhiteSpace(cur))
+            {
+                CurrentErrorText.Text = "Current password is required.";
+                CurrentErrorText.Visibility = Visibility.Visible;
+                SetBorderErrorState(CurrentBorder, true);
+            }
+            else
+            {
+                CurrentErrorText.Visibility = Visibility.Collapsed;
+                SetBorderErrorState(CurrentBorder, false);
+            }
+        }
+
+        private void ValidateNewPassword()
+        {
+            var @new = NewReveal.Visibility == Visibility.Visible ? NewReveal.Text : NewPasswordBox.Password;
+            if (string.IsNullOrWhiteSpace(@new))
+            {
+                NewErrorText.Text = "New password is required.";
+                NewErrorText.Visibility = Visibility.Visible;
+                SetBorderErrorState(NewBorder, true);
+            }
+            else if (!PasswordRegex.IsMatch(@new))
+            {
+                NewErrorText.Text = "Password must be at least 8 characters with uppercase, lowercase, number, and at least one special character. Spaces are not allowed.";
+                NewErrorText.Visibility = Visibility.Visible;
+                SetBorderErrorState(NewBorder, true);
+            }
+            else
+            {
+                NewErrorText.Visibility = Visibility.Collapsed;
+                SetBorderErrorState(NewBorder, false);
+            }
+        }
+
+        private void ValidateConfirmPassword()
+        {
+            var @new = NewReveal.Visibility == Visibility.Visible ? NewReveal.Text : NewPasswordBox.Password;
+            var conf = ConfirmReveal.Visibility == Visibility.Visible ? ConfirmReveal.Text : ConfirmPasswordBox.Password;
+            if (string.IsNullOrWhiteSpace(conf))
+            {
+                ConfirmErrorText.Text = "Please confirm your password.";
+                ConfirmErrorText.Visibility = Visibility.Visible;
+                SetBorderErrorState(ConfirmBorder, true);
+            }
+            else if (@new != conf)
+            {
+                ConfirmErrorText.Text = "Passwords do not match.";
+                ConfirmErrorText.Visibility = Visibility.Visible;
+                SetBorderErrorState(ConfirmBorder, true);
+            }
+            else
+            {
+                ConfirmErrorText.Visibility = Visibility.Collapsed;
+                SetBorderErrorState(ConfirmBorder, false);
+            }
+        }
+
+        private void CurrentPassword_LostFocus(object sender, RoutedEventArgs e)
+        {
+            ValidateCurrentPassword();
+            UpdateButtonState();
+        }
+
+        private void NewPassword_LostFocus(object sender, RoutedEventArgs e)
+        {
+            ValidateNewPassword();
+            ValidateConfirmPassword();
+            UpdateButtonState();
+        }
+
+        private void ConfirmPassword_LostFocus(object sender, RoutedEventArgs e)
+        {
+            ValidateConfirmPassword();
+            UpdateButtonState();
+        }
+
         private void CurrentPasswordBox_PasswordChanged(object sender, RoutedEventArgs e)
         {
             if (CurrentReveal.Visibility != Visibility.Visible)
                 UpdatePlaceholders();
+            ValidateCurrentPassword();
             UpdateButtonState();
         }
 
@@ -101,6 +233,7 @@ namespace x_phy_wpf_ui.Controls
             if (CurrentReveal.Visibility == Visibility.Visible && CurrentPasswordBox.Password != CurrentReveal.Text)
                 CurrentPasswordBox.Password = CurrentReveal.Text;
             UpdatePlaceholders();
+            ValidateCurrentPassword();
             UpdateButtonState();
         }
 
@@ -119,12 +252,15 @@ namespace x_phy_wpf_ui.Controls
                 CurrentPasswordBox.Visibility = Visibility.Collapsed;
             }
             UpdatePlaceholders();
+            UpdateEyeIcon(CurrentEyeButton, CurrentReveal.Visibility == Visibility.Visible);
         }
 
         private void NewPasswordBox_PasswordChanged(object sender, RoutedEventArgs e)
         {
             if (NewReveal.Visibility != Visibility.Visible)
                 UpdatePlaceholders();
+            ValidateNewPassword();
+            ValidateConfirmPassword();
             UpdateButtonState();
         }
 
@@ -133,6 +269,8 @@ namespace x_phy_wpf_ui.Controls
             if (NewReveal.Visibility == Visibility.Visible && NewPasswordBox.Password != NewReveal.Text)
                 NewPasswordBox.Password = NewReveal.Text;
             UpdatePlaceholders();
+            ValidateNewPassword();
+            ValidateConfirmPassword();
             UpdateButtonState();
         }
 
@@ -151,12 +289,14 @@ namespace x_phy_wpf_ui.Controls
                 NewPasswordBox.Visibility = Visibility.Collapsed;
             }
             UpdatePlaceholders();
+            UpdateEyeIcon(NewEyeButton, NewReveal.Visibility == Visibility.Visible);
         }
 
         private void ConfirmPasswordBox_PasswordChanged(object sender, RoutedEventArgs e)
         {
             if (ConfirmReveal.Visibility != Visibility.Visible)
                 UpdatePlaceholders();
+            ValidateConfirmPassword();
             UpdateButtonState();
         }
 
@@ -165,6 +305,7 @@ namespace x_phy_wpf_ui.Controls
             if (ConfirmReveal.Visibility == Visibility.Visible && ConfirmPasswordBox.Password != ConfirmReveal.Text)
                 ConfirmPasswordBox.Password = ConfirmReveal.Text;
             UpdatePlaceholders();
+            ValidateConfirmPassword();
             UpdateButtonState();
         }
 
@@ -183,9 +324,24 @@ namespace x_phy_wpf_ui.Controls
                 ConfirmPasswordBox.Visibility = Visibility.Collapsed;
             }
             UpdatePlaceholders();
+            UpdateEyeIcon(ConfirmEyeButton, ConfirmReveal.Visibility == Visibility.Visible);
+        }
+
+        private static void UpdateEyeIcon(System.Windows.Controls.Button eyeButton, bool isRevealed)
+        {
+            if (eyeButton?.Template == null) return;
+            var iconShow = eyeButton.Template.FindName("IconShow", eyeButton) as System.Windows.UIElement;
+            var iconHide = eyeButton.Template.FindName("IconHide", eyeButton) as System.Windows.UIElement;
+            if (iconShow != null && iconHide != null)
+            {
+                iconShow.Visibility = isRevealed ? Visibility.Collapsed : Visibility.Visible;
+                iconHide.Visibility = isRevealed ? Visibility.Visible : Visibility.Collapsed;
+            }
         }
 
         private void Back_Click(object sender, RoutedEventArgs e) => BackRequested?.Invoke(this, EventArgs.Empty);
+
+        private void Close_Click(object sender, RoutedEventArgs e) => BackRequested?.Invoke(this, EventArgs.Empty);
 
         private void UpdatePassword_Click(object sender, RoutedEventArgs e) => UpdatePasswordRequested?.Invoke(this, EventArgs.Empty);
     }

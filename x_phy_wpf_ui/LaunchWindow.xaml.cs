@@ -1,5 +1,6 @@
 using System;
 using System.Windows;
+using System.Windows.Media.Imaging;
 using x_phy_wpf_ui.Controls;
 using x_phy_wpf_ui.Models;
 using x_phy_wpf_ui.Services;
@@ -16,9 +17,44 @@ namespace x_phy_wpf_ui
         public LaunchWindow()
         {
             InitializeComponent();
-            
+            Loaded += LaunchWindow_Loaded;
+            IsVisibleChanged += LaunchWindow_IsVisibleChanged;
+
             // Start with WelcomeComponent
             ShowWelcomeComponent();
+        }
+
+        private void LaunchWindow_Loaded(object sender, RoutedEventArgs e)
+        {
+            if (LaunchVersionText != null)
+                LaunchVersionText.Text = "Version: " + ApplicationVersion.GetDisplayVersion();
+            UpdateBackgroundImage();
+        }
+
+        private void LaunchWindow_IsVisibleChanged(object sender, DependencyPropertyChangedEventArgs e)
+        {
+            if ((bool)e.NewValue)
+            {
+                // When window becomes visible, update background based on current theme
+                UpdateBackgroundImage();
+            }
+        }
+
+        private void UpdateBackgroundImage()
+        {
+            if (MainBgImage == null) return;
+            
+            var currentTheme = ThemeManager.CurrentTheme;
+            var isLight = currentTheme == ThemeManager.Theme.Light;
+            
+            System.Diagnostics.Debug.WriteLine($"LaunchWindow: CurrentTheme = {currentTheme}, isLight = {isLight}");
+            
+            var imageName = isLight ? "mainbg-white.png" : "mainbg.png";
+            var uri = new Uri($"pack://application:,,,/{imageName}", UriKind.Absolute);
+            
+            System.Diagnostics.Debug.WriteLine($"LaunchWindow: Loading background image: {imageName}");
+            
+            MainBgImage.Source = new BitmapImage(uri);
         }
 
         public LaunchWindow(bool showSignIn) : this()
@@ -135,8 +171,8 @@ namespace x_phy_wpf_ui
             }
             catch (Exception ex)
             {
-                MessageBox.Show($"Failed to open main window: {ex.Message}\n\nPlease try again or contact support.",
-                    "Error", MessageBoxButton.OK, MessageBoxImage.Error);
+                AppDialog.Show(this, $"Failed to open main window: {ex.Message}\n\nPlease try again or contact support.",
+                    "Error", MessageBoxImage.Error);
             }
         }
 

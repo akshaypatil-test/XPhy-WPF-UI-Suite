@@ -3,6 +3,8 @@ using System.IO;
 using System.Text.RegularExpressions;
 using System.Windows;
 using System.Windows.Controls;
+using System.Windows.Documents;
+using System.Windows.Media;
 
 namespace InstallerUI.Views
 {
@@ -101,6 +103,52 @@ This End User License Agreement (""EULA"") is a legal agreement between you and 
             var atBottom = contentFitsWithoutScroll || userScrolledToBottom;
 
             vm.EulaScrolledToBottom = atBottom;
+        }
+
+        /// <summary>Called from MainWindow footer Print link. Prints the EULA text.</summary>
+        public void PrintLicense()
+        {
+            PrintButton_Click(null, null);
+        }
+
+        private void PrintButton_Click(object sender, RoutedEventArgs e)
+        {
+            var text = LicenseText?.Text;
+            if (string.IsNullOrEmpty(text))
+                return;
+
+            try
+            {
+                var printDialog = new PrintDialog();
+                if (printDialog.ShowDialog() != true)
+                    return;
+
+                var paragraph = new Paragraph();
+                var lines = text.Split(new[] { "\r\n", "\r", "\n" }, StringSplitOptions.None);
+                for (int i = 0; i < lines.Length; i++)
+                {
+                    paragraph.Inlines.Add(new Run(lines[i]));
+                    if (i < lines.Length - 1)
+                        paragraph.Inlines.Add(new LineBreak());
+                }
+
+                var doc = new FlowDocument(paragraph)
+                {
+                    PageWidth = printDialog.PrintableAreaWidth,
+                    PageHeight = printDialog.PrintableAreaHeight,
+                    PagePadding = new Thickness(48),
+                    FontFamily = new FontFamily("Segoe UI"),
+                    FontSize = 12,
+                    Foreground = Brushes.Black
+                };
+
+                var paginator = ((IDocumentPaginatorSource)doc).DocumentPaginator;
+                printDialog.PrintDocument(paginator, "X-PHY License Agreement");
+            }
+            catch (Exception ex)
+            {
+                MessageBox.Show($"Could not print: {ex.Message}", "Print", MessageBoxButton.OK, MessageBoxImage.Warning);
+            }
         }
     }
 }

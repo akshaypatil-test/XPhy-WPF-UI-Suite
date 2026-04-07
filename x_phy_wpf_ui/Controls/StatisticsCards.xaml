@@ -11,14 +11,13 @@
         <SolidColorBrush x:Key="TextSecondary" Color="#999999"/>
         <SolidColorBrush x:Key="PrimaryPink" Color="#E2156B"/>
         <SolidColorBrush x:Key="ValueAccentBrush" Color="#1AB4CC"/>
-        <!-- Card border: pink/magenta top-left to cyan bottom-right (glass-like) -->
-        <LinearGradientBrush x:Key="NavBarBorderGradient" StartPoint="0,0" EndPoint="1,1">
+        <!-- Card border: 35% pink + 30% transparent + 35% cyan -->
+        <LinearGradientBrush x:Key="NavBarBorderGradient" StartPoint="0,0.5" EndPoint="1,0.5">
             <GradientStop Color="#E2156B" Offset="0"/>
-            <GradientStop Color="#B01050" Offset="0.35"/>
+            <GradientStop Color="Transparent" Offset="0.35"/>
+            <GradientStop Color="Transparent" Offset="0.65"/>
             <GradientStop Color="#1AB4CC" Offset="1"/>
         </LinearGradientBrush>
-        <!-- Subtle glow for glass card effect -->
-        <DropShadowEffect x:Key="CardGlassGlow" BlurRadius="10" ShadowDepth="0" Opacity="0.35" Color="#1AB4CC"/>
         <!-- Glass ellipse: dark reddish-purple radial gradient -->
         <RadialGradientBrush x:Key="KpiEllipseGlassBg" GradientOrigin="0.3,0.3" Center="0.5,0.5" RadiusX="0.6" RadiusY="0.6">
             <GradientStop Color="#5A2D4A" Offset="0"/>
@@ -47,18 +46,21 @@
         <!-- Total Detections Card -->
         <Border Grid.Column="0" 
                 Background="{StaticResource CardBackground}" 
-                CornerRadius="20"
+                CornerRadius="28"
                 BorderBrush="{StaticResource NavBarBorderGradient}"
                 BorderThickness="1"
-                Effect="{StaticResource CardGlassGlow}"
-                Padding="12,10,12,10">
+                Padding="12,14,12,14">
             <Grid>
+                <Grid.RowDefinitions>
+                    <RowDefinition Height="Auto"/>
+                    <RowDefinition Height="Auto"/>
+                </Grid.RowDefinitions>
                 <Grid.ColumnDefinitions>
                     <ColumnDefinition Width="Auto"/>
                     <ColumnDefinition Width="*"/>
                 </Grid.ColumnDefinitions>
 
-                <Grid Grid.Column="0" Width="16" Height="16" Margin="0,0,8,0" VerticalAlignment="Center">
+                <Grid Grid.Row="0" Grid.Column="0" Width="16" Height="16" Margin="0,0,8,0" VerticalAlignment="Center">
                     <Ellipse Fill="{StaticResource KpiEllipseGlassBg}"/>
                     <Ellipse Fill="{StaticResource PrimaryPink}" Opacity="0.12"/>
                     <Ellipse>
@@ -68,36 +70,37 @@
                     </Ellipse>
                     <Ellipse Fill="Transparent" Stroke="{StaticResource KpiEllipseGlassBorder}" StrokeThickness="1"/>
                 </Grid>
-
-                <StackPanel Grid.Column="1" VerticalAlignment="Center">
-                    <TextBlock Text="Total Detections" 
-                               FontSize="11" 
-                               Foreground="{StaticResource TextSecondary}"
-                               Margin="0,0,0,3"/>
-                    <TextBlock x:Name="TotalDetectionsText" 
-                               Text="0" 
-                               FontSize="16" 
-                               FontWeight="Bold" 
-                               Foreground="{StaticResource ValueAccentBrush}"/>
-                </StackPanel>
+                <TextBlock Grid.Row="0" Grid.Column="1" Text="Total Detections" 
+                           FontSize="11" FontWeight="Bold"
+                           Foreground="{StaticResource TextSecondary}"
+                           VerticalAlignment="Center"/>
+                <TextBlock Grid.Row="1" Grid.Column="1" x:Name="TotalDetectionsText" 
+                           Text="0" 
+                           FontSize="16" 
+                           FontWeight="Bold" 
+                           Foreground="{StaticResource ValueAccentBrush}"
+                           Margin="0,3,0,0"/>
             </Grid>
         </Border>
 
         <!-- Total Deepfakes Card -->
         <Border Grid.Column="2" 
                 Background="{StaticResource CardBackground}" 
-                CornerRadius="20"
+                CornerRadius="28"
                 BorderBrush="{StaticResource NavBarBorderGradient}"
                 BorderThickness="1"
-                Effect="{StaticResource CardGlassGlow}"
-                Padding="12,10,12,10">
+                Padding="12,14,12,14">
             <Grid>
+                <Grid.RowDefinitions>
+                    <RowDefinition Height="Auto"/>
+                    <RowDefinition Height="Auto"/>
+                </Grid.RowDefinitions>
                 <Grid.ColumnDefinitions>
                     <ColumnDefinition Width="Auto"/>
                     <ColumnDefinition Width="*"/>
                 </Grid.ColumnDefinitions>
 
-                <Grid Grid.Column="0" Width="16" Height="16" Margin="0,0,8,0" VerticalAlignment="Center">
+                <Grid Grid.Row="0" Grid.Column="0" Width="16" Height="16" Margin="0,0,8,0" VerticalAlignment="Center">
                     <Ellipse Fill="{StaticResource KpiEllipseGlassBg}"/>
                     <Ellipse Fill="{StaticResource PrimaryPink}" Opacity="0.12"/>
                     <Ellipse>
@@ -107,36 +110,37 @@
                     </Ellipse>
                     <Ellipse Fill="Transparent" Stroke="{StaticResource KpiEllipseGlassBorder}" StrokeThickness="1"/>
                 </Grid>
-
-                <StackPanel Grid.Column="1" VerticalAlignment="Center">
-                    <TextBlock Text="Total Deepfakes" 
-                               FontSize="11" 
-                               Foreground="{StaticResource TextSecondary}"
-                               Margin="0,0,0,3"/>
-                    <TextBlock x:Name="TotalDeepfakesText" 
-                               Text="0" 
-                               FontSize="16" 
-                               FontWeight="Bold" 
-                               Foreground="{StaticResource ValueAccentBrush}"/>
-                </StackPanel>
+                <TextBlock Grid.Row="0" Grid.Column="1" Text="Total Deepfakes" 
+                           FontSize="11" FontWeight="Bold"
+                           Foreground="{StaticResource TextSecondary}"
+                           VerticalAlignment="Center"/>
+                <TextBlock Grid.Row="1" Grid.Column="1" x:Name="TotalDeepfakesText" 
+                           Text="0" 
+                           FontSize="16" 
+                           FontWeight="Bold" 
+                           Foreground="{StaticResource ValueAccentBrush}"
+                           Margin="0,3,0,0"/>
             </Grid>
         </Border>
 
         <!-- Total Analysis Time Card -->
         <Border Grid.Column="4" 
                 Background="{StaticResource CardBackground}" 
-                CornerRadius="20"
+                CornerRadius="28"
                 BorderBrush="{StaticResource NavBarBorderGradient}"
                 BorderThickness="1"
-                Effect="{StaticResource CardGlassGlow}"
-                Padding="12,10,12,10">
+                Padding="12,14,12,14">
             <Grid>
+                <Grid.RowDefinitions>
+                    <RowDefinition Height="Auto"/>
+                    <RowDefinition Height="Auto"/>
+                </Grid.RowDefinitions>
                 <Grid.ColumnDefinitions>
                     <ColumnDefinition Width="Auto"/>
                     <ColumnDefinition Width="*"/>
                 </Grid.ColumnDefinitions>
 
-                <Grid Grid.Column="0" Width="16" Height="16" Margin="0,0,8,0" VerticalAlignment="Center">
+                <Grid Grid.Row="0" Grid.Column="0" Width="16" Height="16" Margin="0,0,8,0" VerticalAlignment="Center">
                     <Ellipse Fill="{StaticResource KpiEllipseGlassBg}"/>
                     <Ellipse Fill="{StaticResource PrimaryPink}" Opacity="0.12"/>
                     <Ellipse>
@@ -146,35 +150,37 @@
                     </Ellipse>
                     <Ellipse Fill="Transparent" Stroke="{StaticResource KpiEllipseGlassBorder}" StrokeThickness="1"/>
                 </Grid>
-
-                <StackPanel Grid.Column="1" VerticalAlignment="Center">
-                    <TextBlock Text="Total Analysis Time" 
-                               Foreground="{StaticResource TextSecondary}"
-                               Margin="0,0,0,3" VerticalAlignment="Center" HorizontalAlignment="Left" FontSize="11"/>
-                    <TextBlock x:Name="TotalAnalysisTimeText" 
-                               Text="0h" 
-                               FontSize="16" 
-                               FontWeight="Bold" 
-                               Foreground="{StaticResource ValueAccentBrush}"/>
-                </StackPanel>
+                <TextBlock Grid.Row="0" Grid.Column="1" Text="Total Analysis Time" 
+                           FontSize="11" FontWeight="Bold"
+                           Foreground="{StaticResource TextSecondary}"
+                           VerticalAlignment="Center"/>
+                <TextBlock Grid.Row="1" Grid.Column="1" x:Name="TotalAnalysisTimeText" 
+                           Text="0h" 
+                           FontSize="16" 
+                           FontWeight="Bold" 
+                           Foreground="{StaticResource ValueAccentBrush}"
+                           Margin="0,3,0,0"/>
             </Grid>
         </Border>
 
         <!-- Last Detection Card -->
         <Border Grid.Column="6" 
                 Background="{StaticResource CardBackground}" 
-                CornerRadius="20"
+                CornerRadius="28"
                 BorderBrush="{StaticResource NavBarBorderGradient}"
                 BorderThickness="1"
-                Effect="{StaticResource CardGlassGlow}"
-                Padding="12,10,12,10">
+                Padding="12,14,12,14">
             <Grid>
+                <Grid.RowDefinitions>
+                    <RowDefinition Height="Auto"/>
+                    <RowDefinition Height="Auto"/>
+                </Grid.RowDefinitions>
                 <Grid.ColumnDefinitions>
                     <ColumnDefinition Width="Auto"/>
                     <ColumnDefinition Width="*"/>
                 </Grid.ColumnDefinitions>
 
-                <Grid Grid.Column="0" Width="16" Height="16" Margin="0,0,8,0" VerticalAlignment="Center">
+                <Grid Grid.Row="0" Grid.Column="0" Width="16" Height="16" Margin="0,0,8,0" VerticalAlignment="Center">
                     <Ellipse Fill="{StaticResource KpiEllipseGlassBg}"/>
                     <Ellipse Fill="{StaticResource PrimaryPink}" Opacity="0.12"/>
                     <Ellipse>
@@ -184,18 +190,16 @@
                     </Ellipse>
                     <Ellipse Fill="Transparent" Stroke="{StaticResource KpiEllipseGlassBorder}" StrokeThickness="1"/>
                 </Grid>
-
-                <StackPanel Grid.Column="1" VerticalAlignment="Center">
-                    <TextBlock Text="Last Detection" 
-                               FontSize="11" 
-                               Foreground="{StaticResource TextSecondary}"
-                               Margin="0,0,0,3" TextWrapping="Wrap"/>
-                    <TextBlock x:Name="LastDetectionText" 
-                               Text="Never" 
-                               FontSize="16" 
-                               FontWeight="Bold" 
-                               Foreground="{StaticResource ValueAccentBrush}"/>
-                </StackPanel>
+                <TextBlock Grid.Row="0" Grid.Column="1" Text="Last Detection" 
+                           FontSize="11" FontWeight="Bold"
+                           Foreground="{StaticResource TextSecondary}"
+                           VerticalAlignment="Center" TextWrapping="Wrap"/>
+                <TextBlock Grid.Row="1" Grid.Column="1" x:Name="LastDetectionText" 
+                           Text="Never" 
+                           FontSize="16" 
+                           FontWeight="Bold" 
+                           Foreground="{StaticResource ValueAccentBrush}"
+                           Margin="0,3,0,0"/>
             </Grid>
         </Border>
     </Grid>

@@ -6,13 +6,9 @@
              mc:Ignorable="d"
              d:DesignHeight="700" d:DesignWidth="1000">
     <UserControl.Resources>
-        <SolidColorBrush x:Key="PrimaryPink" Color="#E2156B"/>
-        <SolidColorBrush x:Key="PrimaryPinkHover" Color="#F0458A"/>
-        <SolidColorBrush x:Key="TextPrimary" Color="#FFFFFF"/>
-        <SolidColorBrush x:Key="TextSecondary" Color="#B0B0B0"/>
         <Style x:Key="SignInButtonStyle" TargetType="Button">
-            <Setter Property="Background" Value="{StaticResource PrimaryPink}"/>
-            <Setter Property="Foreground" Value="White"/>
+            <Setter Property="Background" Value="{DynamicResource Brush.Primary}"/>
+            <Setter Property="Foreground" Value="{DynamicResource Brush.White}"/>
             <Setter Property="FontSize" Value="16"/>
             <Setter Property="FontWeight" Value="SemiBold"/>
             <Setter Property="Padding" Value="32,14"/>
@@ -29,19 +25,17 @@
             </Setter>
             <Style.Triggers>
                 <Trigger Property="IsMouseOver" Value="True">
-                    <Setter Property="Background" Value="{StaticResource PrimaryPinkHover}"/>
+                    <Setter Property="Background" Value="{DynamicResource Brush.PrimaryHover}"/>
                 </Trigger>
             </Style.Triggers>
         </Style>
     </UserControl.Resources>
     <Grid Background="Transparent">
         <StackPanel VerticalAlignment="Center" HorizontalAlignment="Left" Width="420" Margin="70,0,0,0">
-            <TextBlock Text="Reset Success" FontSize="24" FontWeight="Bold" Foreground="{StaticResource TextPrimary}"
+            <TextBlock Text="Confirmation sent" FontSize="24" FontWeight="Bold" Foreground="{DynamicResource Brush.TextPrimary}"
                        TextAlignment="Center" Margin="0,0,0,24"/>
-            <TextBlock Text="Confirmation Sent" FontSize="16" FontWeight="SemiBold" Foreground="{StaticResource TextPrimary}"
-                       TextAlignment="Center" Margin="0,0,0,12"/>
             <TextBlock Text="If An Account Exists For The Email Address Provided,&#x0a;You Will Receive A Confirmation Email Shortly.&#x0a;Please Check Your Inbox."
-                       TextWrapping="Wrap" TextAlignment="Center" Margin="0,0,0,8" Foreground="{StaticResource TextPrimary}" FontSize="14"/>
+                       TextWrapping="Wrap" TextAlignment="Center" Margin="0,0,0,8" Foreground="{DynamicResource Brush.TextPrimary}" FontSize="14"/>
             <Button Content="Back to Sign In" Style="{StaticResource SignInButtonStyle}" Click="BackToSignIn_Click"
                     HorizontalAlignment="Center" Margin="0,32,0,0"/>
         </StackPanel>

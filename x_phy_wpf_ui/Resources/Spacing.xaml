@@ -1,0 +1,43 @@
+<ResourceDictionary xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
+                    xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+                    xmlns:sys="clr-namespace:System;assembly=mscorlib">
+    
+    <!-- Spacing Tokens -->
+    <Thickness x:Key="Spacing.None">0</Thickness>
+    <Thickness x:Key="Spacing.XS">4</Thickness>
+    <Thickness x:Key="Spacing.S">8</Thickness>
+    <Thickness x:Key="Spacing.M">12</Thickness>
+    <Thickness x:Key="Spacing.L">16</Thickness>
+    <Thickness x:Key="Spacing.XL">24</Thickness>
+    <Thickness x:Key="Spacing.XXL">32</Thickness>
+    <Thickness x:Key="Spacing.XXXL">40</Thickness>
+    
+    <!-- Common Padding Patterns -->
+    <Thickness x:Key="Padding.Button">24,10</Thickness>
+    <Thickness x:Key="Padding.ButtonLarge">40,14</Thickness>
+    <Thickness x:Key="Padding.Input">16,8</Thickness>
+    <Thickness x:Key="Padding.InputWithIcon">16,8,40,8</Thickness>
+    <Thickness x:Key="Padding.Card">20</Thickness>
+    <Thickness x:Key="Padding.Page">50,40,50,50</Thickness>
+    
+    <!-- Common Margin Patterns -->
+    <Thickness x:Key="Margin.FieldBottom">0,0,0,4</Thickness>
+    <Thickness x:Key="Margin.FieldGroup">0,0,0,8</Thickness>
+    <Thickness x:Key="Margin.SectionBottom">0,0,0,16</Thickness>
+    <Thickness x:Key="Margin.ContentBottom">0,0,0,32</Thickness>
+    
+    <!-- Numeric Spacing Values (for Width, Height, etc.) -->
+    <sys:Double x:Key="Space.XS">4</sys:Double>
+    <sys:Double x:Key="Space.S">8</sys:Double>
+    <sys:Double x:Key="Space.M">12</sys:Double>
+    <sys:Double x:Key="Space.L">16</sys:Double>
+    <sys:Double x:Key="Space.XL">24</sys:Double>
+    <sys:Double x:Key="Space.XXL">32</sys:Double>
+    <sys:Double x:Key="Space.XXXL">40</sys:Double>
+    
+    <!-- MinHeight/MinWidth Values -->
+    <sys:Double x:Key="MinHeight.Input">44</sys:Double>
+    <sys:Double x:Key="MinHeight.Button">40</sys:Double>
+    <sys:Double x:Key="MinWidth.Button">100</sys:Double>
+    
+</ResourceDictionary>

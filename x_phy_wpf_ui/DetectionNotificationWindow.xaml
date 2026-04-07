@@ -25,8 +25,8 @@
                         <ColumnDefinition Width="*"/>
                         <ColumnDefinition Width="Auto"/>
                     </Grid.ColumnDefinitions>
-                    <Image Grid.Column="0" Source="/x-phy-inverted-logo.png" Height="24" Stretch="Uniform" VerticalAlignment="Center" Grid.ColumnSpan="2" Margin="0,0,238,0"/>
-                    <TextBlock x:Name="VersionText" Grid.Column="1" Text="Version: 1.0.10"
+                    <Image Grid.Column="0" Source="/x-phy-inverted-logo.png" Height="24" Stretch="Uniform" VerticalAlignment="Center" Grid.ColumnSpan="2" Margin="0,0,238,0" RenderOptions.BitmapScalingMode="HighQuality"/>
+                    <TextBlock x:Name="VersionText" Grid.Column="1" Text="Version: 2.01"
                                Foreground="#666666" FontSize="11" VerticalAlignment="Center" Margin="73,0,0,0" HorizontalAlignment="Left"/>
                     <Button Grid.Column="2" Content="✕" Width="24" Height="24"
                             Background="Transparent" Foreground="#333333" FontSize="14"
@@ -60,11 +60,12 @@
                 <TextBlock x:Name="MessageText" Text="Monitoring for deepfakes." FontSize="13" Foreground="#333333" TextWrapping="Wrap"/>
             </StackPanel>
 
-            <!-- Detection Completed: title, message, Close + View Result buttons -->
+            <!-- Detection Completed: title, message, no-manipulation confidence, Close + View Result buttons -->
             <StackPanel x:Name="CompletedContentPanel" Grid.Row="1" Visibility="Collapsed">
                 <StackPanel Margin="20,20,20,16">
-                    <TextBlock x:Name="CompletedTitleText" Text="Detection Completed" FontWeight="Bold" FontSize="16" Foreground="#1A1A1A" Margin="0,0,0,8"/>
-                    <TextBlock x:Name="CompletedMessageText" Text="No AI Manipulation Found" FontSize="14" Foreground="#333333" TextWrapping="Wrap" Margin="0,0,0,20"/>
+                    <TextBlock x:Name="CompletedTitleText" Text="Detection Complete" FontWeight="Bold" FontSize="16" Foreground="#1A1A1A" Margin="0,0,0,8"/>
+                    <TextBlock x:Name="CompletedMessageText" Text="No AI Manipulation Found" FontSize="14" Foreground="#333333" TextWrapping="Wrap" Margin="0,0,0,4"/>
+                    <TextBlock x:Name="CompletedNoThreatConfidenceText" Text="" FontSize="13" FontWeight="SemiBold" Foreground="#15803d" Margin="0,0,0,20" Visibility="Collapsed"/>
                     <Grid>
                         <Grid.ColumnDefinitions>
                             <ColumnDefinition Width="*"/>
@@ -124,7 +125,7 @@
             <!-- Detection Completed (AI Manipulated): title, AI Detected + confidence + timestamp, evidence, Close + View Result -->
             <StackPanel x:Name="CompletedWithThreatContentPanel" Grid.Row="1" Visibility="Collapsed">
                 <StackPanel Margin="20,16,20,16">
-                    <TextBlock Text="Detection Completed" FontWeight="Bold" FontSize="16" Foreground="#1A1A1A" Margin="0,0,0,12"/>
+                    <TextBlock Text="Detection Complete" FontWeight="Bold" FontSize="16" Foreground="#1A1A1A" Margin="0,0,0,12"/>
                     <TextBlock x:Name="CompletedThreatAlertText" Text="AI Manipulated Content Detected" FontWeight="Bold" FontSize="14" Foreground="#C41E3A" Margin="0,0,0,4"/>
                     <TextBlock x:Name="CompletedThreatConfidenceText" Text="Confidence 97%" FontWeight="Bold" FontSize="13" Foreground="#C41E3A" Margin="0,0,0,4"/>
                     <TextBlock x:Name="CompletedThreatTimestampText" Text="14:20 Jan 5, 2026" FontSize="12" Foreground="#333333" Margin="0,0,0,12"/>
@@ -210,8 +211,8 @@
                            FontSize="12" Foreground="#333333"/>
                 </StackPanel>
 
-                <!-- Visual evidence: two images side by side (capped height to save space) -->
-                <Border Margin="14,0,14,8" Background="#1A1A1A" CornerRadius="6" Padding="3" BorderBrush="#333" BorderThickness="1" MaxHeight="100">
+                <!-- Visual evidence: two images side by side (capped height to save space). Hidden when no image yet (e.g. first notification before face frame available). -->
+                <Border x:Name="DeepfakeEvidenceBorder" Margin="14,0,14,8" Background="#1A1A1A" CornerRadius="6" Padding="3" BorderBrush="#333" BorderThickness="1" MaxHeight="100">
                     <Grid>
                         <Grid.ColumnDefinitions>
                             <ColumnDefinition Width="*"/>

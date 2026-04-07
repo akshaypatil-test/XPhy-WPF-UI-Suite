@@ -15,7 +15,6 @@
         <SolidColorBrush x:Key="BorderColor" Color="#2A2A2A"/>
         <SolidColorBrush x:Key="StripeButtonBg" Color="#FFFFFF"/>
         <SolidColorBrush x:Key="StripeButtonText" Color="#635BFF"/>
-        <SolidColorBrush x:Key="PayPalButtonBg" Color="#0070BA"/>
         
         <!-- Gradient Brushes for Cards -->
         <LinearGradientBrush x:Key="Card1Gradient" StartPoint="0,0" EndPoint="1,1">
@@ -41,7 +40,7 @@
             <Setter Property="CornerRadius" Value="12"/>
             <Setter Property="Padding" Value="20"/>
             <Setter Property="Margin" Value="10"/>
-            <Setter Property="MinHeight" Value="380"/>
+            <Setter Property="MinHeight" Value="340"/>
             <Setter Property="MinWidth" Value="260"/>
         </Style>
         
@@ -61,7 +60,8 @@
                     <ControlTemplate TargetType="Button">
                         <Border Background="{TemplateBinding Background}" 
                                 CornerRadius="8"
-                                Padding="{TemplateBinding Padding}">
+                                Padding="{TemplateBinding Padding}"
+                                Opacity="{TemplateBinding Opacity}">
                             <ContentPresenter HorizontalAlignment="Center" VerticalAlignment="Center"/>
                         </Border>
                     </ControlTemplate>
@@ -71,34 +71,13 @@
                 <Trigger Property="IsMouseOver" Value="True">
                     <Setter Property="Background" Value="#F0F0F0"/>
                 </Trigger>
+                <Trigger Property="IsEnabled" Value="False">
+                    <Setter Property="Background" Value="#555555"/>
+                    <Setter Property="Foreground" Value="#999999"/>
+                    <Setter Property="Opacity" Value="0.6"/>
+                    <Setter Property="Cursor" Value="Arrow"/>
+                </Trigger>
             </Style.Triggers>
-        </Style>
-        
-        <!-- PayPal Button Style -->
-        <Style x:Key="PayPalButtonStyle" TargetType="Button">
-            <Setter Property="Background" Value="#555555"/>
-            <Setter Property="Foreground" Value="#999999"/>
-            <Setter Property="BorderThickness" Value="0"/>
-            <Setter Property="Padding" Value="16,12"/>
-            <Setter Property="FontSize" Value="14"/>
-            <Setter Property="FontWeight" Value="SemiBold"/>
-            <Setter Property="HorizontalAlignment" Value="Stretch"/>
-            <Setter Property="Margin" Value="0,0,0,0"/>
-            <Setter Property="IsEnabled" Value="False"/>
-            <Setter Property="Opacity" Value="0.6"/>
-            <Setter Property="Cursor" Value="Arrow"/>
-            <Setter Property="Template">
-                <Setter.Value>
-                    <ControlTemplate TargetType="Button">
-                        <Border Background="{TemplateBinding Background}" 
-                                CornerRadius="8"
-                                Padding="{TemplateBinding Padding}"
-                                Opacity="{TemplateBinding Opacity}">
-                            <ContentPresenter HorizontalAlignment="Center" VerticalAlignment="Center"/>
-                        </Border>
-                    </ControlTemplate>
-                </Setter.Value>
-            </Setter>
         </Style>
         
         <!-- Back Button Style -->
@@ -151,7 +130,7 @@
             <TextBlock Text="Choose Your Plan"
                       FontSize="28"
                       FontWeight="Bold"
-                      Foreground="{StaticResource TextColor}"
+                      Foreground="{DynamicResource Brush.TextPrimary}"
                       HorizontalAlignment="Left"/>
         </Grid>
         
@@ -186,15 +165,31 @@
                                 Loaded="PlanCard_Loaded">
                             <Grid>
                                 <Grid.RowDefinitions>
+                                    <!-- Fixed height so Stripe button aligns across all cards when one has Current Plan badge -->
+                                    <RowDefinition Height="32"/>
                                     <RowDefinition Height="Auto"/>
                                     <RowDefinition Height="Auto"/>
-                                    <RowDefinition Height="Auto"/>
-                                    <RowDefinition Height="Auto"/>
+                                    <RowDefinition Height="*"/>
                                     <RowDefinition Height="Auto"/>
                                 </Grid.RowDefinitions>
                                 
+                                <!-- Current Plan badge (visible only when this plan is the user's active paid plan) -->
+                                <Border x:Name="CurrentPlanBadge" Grid.Row="0" Background="{StaticResource PrimaryColor}" CornerRadius="4" Padding="8,4" HorizontalAlignment="Center" VerticalAlignment="Top" Margin="0,0,0,0">
+                                    <Border.Style>
+                                        <Style TargetType="Border">
+                                            <Setter Property="Visibility" Value="Collapsed"/>
+                                            <Style.Triggers>
+                                                <DataTrigger Binding="{Binding IsCurrentPlan}" Value="True">
+                                                    <Setter Property="Visibility" Value="Visible"/>
+                                                </DataTrigger>
+                                            </Style.Triggers>
+                                        </Style>
+                                    </Border.Style>
+                                    <TextBlock Text="Current Plan" Foreground="White" FontSize="11" FontWeight="SemiBold"/>
+                                </Border>
+                                
                                 <!-- Plan Name -->
-                                <TextBlock Grid.Row="0"
+                                <TextBlock Grid.Row="1"
                                           Text="{Binding DisplayName}"
                                           FontSize="18"
                                           FontWeight="SemiBold"
@@ -205,7 +200,7 @@
                                           Margin="0,0,0,0"/>
                                 
                                 <!-- Price -->
-                                <StackPanel Grid.Row="1"
+                                <StackPanel Grid.Row="2"
                                           Orientation="Horizontal"
                                           HorizontalAlignment="Center"
                                           VerticalAlignment="Top"
@@ -222,43 +217,32 @@
                                               Margin="4,0,0,8"/>
                                 </StackPanel>
                                 
-                                <!-- Features List -->
-                                <StackPanel Grid.Row="2" Margin="0,12,0,12">
+                                <!-- Features List (dotted separators like reference) -->
+                                <StackPanel Grid.Row="3" Margin="0,12,0,12">
                                     <ItemsControl ItemsSource="{Binding Features}">
                                         <ItemsControl.ItemTemplate>
                                             <DataTemplate>
-                                                <StackPanel Orientation="Horizontal" Margin="0,6,0,0">
-                                                    <TextBlock Text="•"
-                                                              Foreground="{StaticResource PrimaryColor}"
-                                                              FontSize="16"
-                                                              Margin="0,0,8,0"
-                                                              VerticalAlignment="Center"/>
+                                                <StackPanel Margin="0,0,0,8" HorizontalAlignment="Center">
+                                                    <Border Height="1" BorderBrush="{StaticResource SecondaryTextColor}" BorderThickness="0,0,0,1" Margin="0,0,0,6" Opacity="0.7"/>
                                                     <TextBlock Text="{Binding}"
                                                               Foreground="{StaticResource TextColor}"
                                                               FontSize="13"
-                                                              TextWrapping="Wrap"/>
+                                                              TextWrapping="Wrap"
+                                                              TextAlignment="Center"
+                                                              HorizontalAlignment="Center"/>
                                                 </StackPanel>
                                             </DataTemplate>
                                         </ItemsControl.ItemTemplate>
                                     </ItemsControl>
                                 </StackPanel>
                                 
-                                <!-- Payment Method Label -->
-                                <TextBlock Grid.Row="3"
-                                          Text="Payment Method"
-                                          FontSize="12"
-                                          FontWeight="SemiBold"
-                                          Foreground="{StaticResource SecondaryTextColor}"
-                                          Margin="0,0,0,12"/>
-                                
-                                <!-- Payment Buttons - Stacked Vertically -->
+                                <!-- Payment Button - Stripe only -->
                                 <StackPanel Grid.Row="4">
                                     <Button Content="stripe"
                                             Style="{StaticResource StripeButtonStyle}"
+                                            IsEnabled="{Binding IsStripeButtonEnabled}"
                                             Click="StripeButton_Click"
                                             Tag="{Binding}"/>
-                                    <Button Content="PayPal"
-                                            Style="{StaticResource PayPalButtonStyle}"/>
                                 </StackPanel>
                             </Grid>
                         </Border>

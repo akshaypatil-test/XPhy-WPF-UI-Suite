@@ -12,7 +12,8 @@
                        Margin="0,0,0,20" HorizontalAlignment="Center" TextAlignment="Center" Width="348"/>
             <CheckBox x:Name="LaunchNowCheckBox" Content="Launch X-PHY Deepfake Detector now"
                       IsChecked="{Binding LaunchNow, Mode=TwoWay, UpdateSourceTrigger=PropertyChanged, Converter={StaticResource NullableBoolToBool}}"
-                      FontSize="13" Foreground="{StaticResource TextPrimary}"
+                      Style="{StaticResource PrimaryCheckBoxStyle}"
+                      FontWeight="Bold"
                       Visibility="{Binding InstallSucceeded, Converter={StaticResource BoolToVis}}"
                       Checked="LaunchNowCheckBox_Checked" HorizontalAlignment="Center"/>
         </StackPanel>

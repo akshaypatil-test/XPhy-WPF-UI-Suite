@@ -114,7 +114,11 @@ namespace x_phy_wpf_ui.Controls
 
                 // Generate and load payment form
                 StatusText.Text = "Loading payment form...";
-                var html = GenerateStripeHtml(_clientSecret, _plan.Price);
+                var tokens = new TokenStorage().GetTokens();
+                var receiptEmail = tokens?.UserInfo?.Username;
+                if (string.IsNullOrWhiteSpace(receiptEmail))
+                    receiptEmail = tokens?.Username;
+                var html = GenerateStripeHtml(_clientSecret, _plan.Price, receiptEmail);
 
                 // Use writable app data folder for HTML (avoids E_ACCESSDENIED when temp is restricted after MSI install).
                 string paymentFolder = Path.Combine(
@@ -284,10 +288,14 @@ namespace x_phy_wpf_ui.Controls
             catch { /* ignore script errors */ }
         }
 
-        private string GenerateStripeHtml(string clientSecret, decimal amount)
+        private string GenerateStripeHtml(string clientSecret, decimal amount, string? receiptEmail = null)
         {
             bool isLight = CurrentTheme == Theme.Light;
             string bodyClass = isLight ? "light" : "dark";
+            // JSON literal for JS: null or "email@domain" — used as receipt_email on confirm (Stripe sends receipt after success).
+            var receiptEmailJs = string.IsNullOrWhiteSpace(receiptEmail)
+                ? "null"
+                : JsonConvert.SerializeObject(receiptEmail.Trim());
             return $@"
 <!DOCTYPE html>
 <html>
@@ -546,14 +554,19 @@ namespace x_phy_wpf_ui.Controls
                         }}
                         
                         console.log('Confirming card payment...');
+                        const receiptEmail = {receiptEmailJs};
+                        const confirmPayload = {{
+                            payment_method: {{
+                                card: cardNumberElement,
+                                billing_details: {{ name: cardholderName }}
+                            }}
+                        }};
+                        if (receiptEmail) {{
+                            confirmPayload.receipt_email = receiptEmail;
+                        }}
                         const {{error, paymentIntent}} = await stripe.confirmCardPayment(
                             '{clientSecret}',
-                            {{
-                                payment_method: {{ 
-                                    card: cardNumberElement,
-                                    billing_details: {{ name: cardholderName }}
-                                }}
-                            }}
+                            confirmPayload
                         );
                         
                         if (error) {{

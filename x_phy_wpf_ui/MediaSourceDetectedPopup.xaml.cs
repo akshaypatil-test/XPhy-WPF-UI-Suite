@@ -19,6 +19,9 @@ namespace x_phy_wpf_ui
         /// <summary>True if at least one single-process (media source) popup is currently open. Used to avoid showing duplicates.</summary>
         public static bool IsAnyOpen => _openCount > 0;
 
+        /// <summary>Set when the user chose Do Not Disturb (mute source alerts for this session) before the window closed.</summary>
+        public bool ClosedWithDoNotDisturb { get; private set; }
+
         private DetectionSource _option1Source;
         private DetectionSource _option2Source;
 
@@ -113,6 +116,12 @@ namespace x_phy_wpf_ui
 
         private void CloseButton_Click(object sender, RoutedEventArgs e)
         {
+            Close();
+        }
+
+        private void DoNotDisturbButton_Click(object sender, RoutedEventArgs e)
+        {
+            ClosedWithDoNotDisturb = true;
             Close();
         }
 

@@ -96,20 +96,23 @@ namespace x_phy_wpf_ui
         /// <summary>True when user chose Exit from tray menu; allows actual close instead of minimize-to-tray.</summary>
         private bool _isExitingFromTray = false;
 
-        /// <summary>When minimized to tray, run process detection periodically; show single/multiple source notification after 1 minute (from minimize or from when user closed last notification).</summary>
+        /// <summary>When minimized to tray, run process detection periodically; show single/multiple source notification after 2 minutes (from minimize or from when user closed last notification).</summary>
         private DispatcherTimer _backgroundProcessCheckTimer;
-        /// <summary>When we entered minimized/tray state; first notification is shown only after 1 minute from this time.</summary>
+        /// <summary>When we entered minimized/tray state; first notification is shown only after 2 minutes from this time.</summary>
         private DateTime _minimizedOrTraySince = DateTime.MinValue;
-        /// <summary>Cooldown between showing single/multiple source notifications (1 minute).</summary>
-        private const int MediaSourcePopupCooldownSeconds = 60;
-        /// <summary>Last time the user closed the single-source (media) popup; next single notification only after 1 minute from this.</summary>
+        /// <summary>Cooldown between showing single/multiple source notifications (2 minutes).</summary>
+        private const int MediaSourcePopupCooldownSeconds = 120;
+        /// <summary>Last time the user closed the single-source (media) popup; next single notification only after 2 minutes from this.</summary>
         private DateTime _lastMediaSourcePopupClosedAt = DateTime.MinValue;
-        /// <summary>Last time the user closed the multiple-sources popup; next multiple notification only after 1 minute from this.</summary>
+        /// <summary>Last time the user closed the multiple-sources popup; next multiple notification only after 2 minutes from this.</summary>
         private DateTime _lastMultipleSourcesPopupClosedAt = DateTime.MinValue;
-        /// <summary>One-shot timer: fire exactly 1 minute after user closed a notification, then show again if still minimized and sources detected (avoids waiting for next periodic tick which can add an extra minute).</summary>
+        /// <summary>One-shot timer: fire exactly 2 minutes after user closed a notification, then show again if still minimized and sources detected (avoids waiting for next periodic tick which can add extra delay).</summary>
         private DispatcherTimer _oneShotAfterNotificationClosedTimer;
         /// <summary>Whether the pending one-shot retry is for multiple-sources (true) or single-source (false) popup chain.</summary>
         private bool _oneShotForMultipleSources;
+
+        /// <summary>Session-only: user chose Do Not Disturb on a source-detection popup; no further single/multiple source notifications until app restart.</summary>
+        private bool _sourceDetectionNotificationsDoNotDisturb;
 
         /// <summary>Ref count for background blur when in-app popups/overlays are visible. Blur is applied when > 0.</summary>
         private int _blurRefCount = 0;
@@ -2212,12 +2215,12 @@ videoLiveFakeProportionThreshold = 0.7
 
         private void StartBackgroundProcessCheck()
         {
-            // Always refresh "since" when entering minimized/tray so first notification is never before 1 minute
+            // Always refresh "since" when entering minimized/tray so first notification is never before 2 minutes
             _minimizedOrTraySince = DateTime.UtcNow;
             if (_backgroundProcessCheckTimer != null) return;
             _backgroundProcessCheckTimer = new DispatcherTimer(DispatcherPriority.Background)
             {
-                Interval = TimeSpan.FromMinutes(1)
+                Interval = TimeSpan.FromMinutes(2)
             };
             _backgroundProcessCheckTimer.Tick += BackgroundProcessCheckTimer_Tick;
             _backgroundProcessCheckTimer.Start();
@@ -2229,7 +2232,7 @@ videoLiveFakeProportionThreshold = 0.7
             _backgroundProcessCheckTimer = null;
             _oneShotAfterNotificationClosedTimer?.Stop();
             _oneShotAfterNotificationClosedTimer = null;
-            // Reset "closed at" so next time user minimizes, the 1-minute timer restarts from that minimize (rule 5: app opened then minimized again = timer restarts)
+            // Reset "closed at" so next time user minimizes, the 2-minute timer restarts from that minimize (rule 5: app opened then minimized again = timer restarts)
             _lastMediaSourcePopupClosedAt = DateTime.MinValue;
             _lastMultipleSourcesPopupClosedAt = DateTime.MinValue;
         }
@@ -2248,14 +2251,14 @@ videoLiveFakeProportionThreshold = 0.7
             }
         }
 
-        /// <summary>Start a one-shot 1-minute timer so we show the notification again exactly 1 minute after the user closed it (instead of waiting for the next periodic tick which can add an extra minute).</summary>
+        /// <summary>Start a one-shot 2-minute timer so we show the notification again exactly 2 minutes after the user closed it (instead of waiting for the next periodic tick which can add extra delay).</summary>
         private void StartOneShotNotificationTimer(bool forMultiple)
         {
             _oneShotForMultipleSources = forMultiple;
             _oneShotAfterNotificationClosedTimer?.Stop();
             _oneShotAfterNotificationClosedTimer = new DispatcherTimer(DispatcherPriority.Background)
             {
-                Interval = TimeSpan.FromMinutes(1)
+                Interval = TimeSpan.FromMinutes(2)
             };
             _oneShotAfterNotificationClosedTimer.Tick += OneShotNotificationTimer_Tick;
             _oneShotAfterNotificationClosedTimer.Start();
@@ -2301,19 +2304,26 @@ videoLiveFakeProportionThreshold = 0.7
                 catch { return; }
                 if (ShouldSuppressProcessSourceNotifications())
                 {
-                    // Detection (or native) still active — try again in 1 min so the post-close chain resumes after session ends.
+                    // Detection (or native) still active — try again in 2 min so the post-close chain resumes after session ends.
                     StartOneShotNotificationTimer(_oneShotForMultipleSources);
                     return;
                 }
                 if (openResultsFolderAfterStop) return;
+                if (_sourceDetectionNotificationsDoNotDisturb) return;
                 if (list.Count > 1)
                 {
                     if (MultipleSourcesDetectedPopup.IsAnyOpen) return;
                     var multiPopup = new MultipleSourcesDetectedPopup();
                     multiPopup.Closed += (s, _) =>
                     {
+                        var w = s as MultipleSourcesDetectedPopup;
                         Dispatcher.BeginInvoke(new Action(() =>
                         {
+                            if (w != null && w.ClosedWithDoNotDisturb)
+                            {
+                                _sourceDetectionNotificationsDoNotDisturb = true;
+                                return;
+                            }
                             _lastMultipleSourcesPopupClosedAt = DateTime.UtcNow;
                             StartOneShotNotificationTimer(forMultiple: true);
                         }), DispatcherPriority.Normal);
@@ -2335,8 +2345,14 @@ videoLiveFakeProportionThreshold = 0.7
                 var popup = new MediaSourceDetectedPopup();
                 popup.Closed += (s, _) =>
                 {
+                    var w = s as MediaSourceDetectedPopup;
                     Dispatcher.BeginInvoke(new Action(() =>
                     {
+                        if (w != null && w.ClosedWithDoNotDisturb)
+                        {
+                            _sourceDetectionNotificationsDoNotDisturb = true;
+                            return;
+                        }
                         _lastMediaSourcePopupClosedAt = DateTime.UtcNow;
                         StartOneShotNotificationTimer(forMultiple: false);
                     }), DispatcherPriority.Normal);
@@ -2361,10 +2377,11 @@ videoLiveFakeProportionThreshold = 0.7
         }
 
         /// <summary>
-        /// Notification rules: (1) Only when app is minimized/tray. (2) First show 1 min after minimize if sources detected.
-        /// (3) No duplicate: if a notification is visible, do not show another. (4) After closing, 1-min timer starts; show again after 1 min if still minimized and sources detected.
-        /// (5) If user opens app then minimizes again, timer restarts (StopBackgroundProcessCheck resets closed-at). (6) Repeat every minute while minimized and sources detected.
+        /// Notification rules: (1) Only when app is minimized/tray. (2) First show 2 min after minimize if sources detected.
+        /// (3) No duplicate: if a notification is visible, do not show another. (4) After closing, 2-min timer starts; show again after 2 min if still minimized and sources detected.
+        /// (5) If user opens app then minimizes again, timer restarts (StopBackgroundProcessCheck resets closed-at). (6) Repeat every 2 minutes while minimized and sources detected.
         /// (7) No single/multiple notifications while detection is in progress (UI session or native running); one-shot chain reschedules if suppressed.
+        /// (8) Session Do Not Disturb: user may mute source-detection popups until app restart.
         /// </summary>
         private async void BackgroundProcessCheckTimer_Tick(object? sender, EventArgs e)
         {
@@ -2406,8 +2423,9 @@ videoLiveFakeProportionThreshold = 0.7
                 if (ShouldSuppressProcessSourceNotifications()) return;
                 // Do not show when user just chose "Stop & View Results" from floating widget (we're about to restore and open results)
                 if (openResultsFolderAfterStop) return;
+                if (_sourceDetectionNotificationsDoNotDisturb) return;
 
-                // Multiple sources: show after 1 min from minimize or from when user closed the last notification; never duplicate if one is open
+                // Multiple sources: show after 2 min from minimize or from when user closed the last notification; never duplicate if one is open
                 if (list.Count > 1)
                 {
                     if (MultipleSourcesDetectedPopup.IsAnyOpen) return;
@@ -2420,8 +2438,14 @@ videoLiveFakeProportionThreshold = 0.7
                     var multiPopup = new MultipleSourcesDetectedPopup();
                     multiPopup.Closed += (s, _) =>
                     {
+                        var w = s as MultipleSourcesDetectedPopup;
                         Dispatcher.BeginInvoke(new Action(() =>
                         {
+                            if (w != null && w.ClosedWithDoNotDisturb)
+                            {
+                                _sourceDetectionNotificationsDoNotDisturb = true;
+                                return;
+                            }
                             _lastMultipleSourcesPopupClosedAt = DateTime.UtcNow;
                             StartOneShotNotificationTimer(forMultiple: true);
                         }), DispatcherPriority.Normal);
@@ -2440,7 +2464,7 @@ videoLiveFakeProportionThreshold = 0.7
                 if (list.Count != 1 || single == null) return;
                 if (MultipleSourcesDetectedPopup.IsAnyOpen) return;
                 if (MediaSourceDetectedPopup.IsAnyOpen) return;
-                // Single source: show after 1 min from minimize or from when user closed the last notification
+                // Single source: show after 2 min from minimize or from when user closed the last notification
                 var nowUtcSingle = DateTime.UtcNow;
                 var elapsedSinceMinimizeSingle = (nowUtcSingle - _minimizedOrTraySince).TotalSeconds;
                 var elapsedSinceCloseSingle = _lastMediaSourcePopupClosedAt == DateTime.MinValue
@@ -2450,8 +2474,14 @@ videoLiveFakeProportionThreshold = 0.7
                 var popup = new MediaSourceDetectedPopup();
                 popup.Closed += (s, _) =>
                 {
+                    var w = s as MediaSourceDetectedPopup;
                     Dispatcher.BeginInvoke(new Action(() =>
                     {
+                        if (w != null && w.ClosedWithDoNotDisturb)
+                        {
+                            _sourceDetectionNotificationsDoNotDisturb = true;
+                            return;
+                        }
                         _lastMediaSourcePopupClosedAt = DateTime.UtcNow;
                         StartOneShotNotificationTimer(forMultiple: false);
                     }), DispatcherPriority.Normal);

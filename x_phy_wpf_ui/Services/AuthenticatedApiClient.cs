@@ -24,8 +24,8 @@ namespace x_phy_wpf_ui.Services
 
         public AuthenticatedApiClient()
         {
-            _baseUrl = "http://localhost:5163";
-            //_baseUrl = "https://deepfakedetector.x-phy.com";
+            //_baseUrl = "http://localhost:5163";
+            _baseUrl = "https://deepfakedetector.x-phy.com";
             _tokenStorage = new TokenStorage();
             _authService = new AuthService();
             _httpClient = new HttpClient

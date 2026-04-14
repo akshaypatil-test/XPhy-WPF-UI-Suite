@@ -148,6 +148,12 @@
                                    IsHitTestVisible="False"/>
                     </Grid>
                 </Border>
+                <TextBlock Text="Important: Your email is the only login credential for this application. Keep it safe and accessible."
+                           FontSize="12"
+                           Foreground="{StaticResource TextSecondary}"
+                           TextWrapping="Wrap"
+                           TextAlignment="Left"
+                           Margin="0,0,0,8"/>
                 <TextBlock x:Name="EmailErrorText"
                            Text="" 
                            FontSize="11" 

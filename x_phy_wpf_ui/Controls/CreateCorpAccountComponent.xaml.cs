@@ -353,9 +353,100 @@ namespace x_phy_wpf_ui.Controls
                 PasswordRequirementsPopup.IsOpen = !PasswordRequirementsPopup.IsOpen;
         }
 
-        private void ValidateFirstName() { var t = FirstNameTextBox?.Text?.Trim() ?? ""; _isFirstNameValid = t.Length >= 1; FirstNameErrorText.Visibility = _isFirstNameValid ? Visibility.Collapsed : Visibility.Visible; FirstNameErrorText.Text = _isFirstNameValid ? "" : "Required."; }
-        private void ValidateLastName() { var t = LastNameTextBox?.Text?.Trim() ?? ""; _isLastNameValid = t.Length >= 1; LastNameErrorText.Visibility = _isLastNameValid ? Visibility.Collapsed : Visibility.Visible; LastNameErrorText.Text = _isLastNameValid ? "" : "Required."; }
-        private void ValidateEmail() { var t = EmailTextBox?.Text?.Trim() ?? ""; _isEmailValid = IsValidEmail(t); EmailErrorText.Visibility = _isEmailValid ? Visibility.Collapsed : Visibility.Visible; EmailErrorText.Text = _isEmailValid ? "" : "Valid email required."; }
+        private void ValidateFirstName()
+        {
+            var t = FirstNameTextBox?.Text?.Trim() ?? "";
+            if (string.IsNullOrWhiteSpace(t))
+            {
+                _isFirstNameValid = false;
+                FirstNameErrorText.Text = "Required.";
+                FirstNameErrorText.Visibility = Visibility.Visible;
+                return;
+            }
+            if (t.Length < 5)
+            {
+                _isFirstNameValid = false;
+                FirstNameErrorText.Text = "Must be at least 5 characters.";
+                FirstNameErrorText.Visibility = Visibility.Visible;
+                return;
+            }
+            if (t.Length > 100)
+            {
+                _isFirstNameValid = false;
+                FirstNameErrorText.Text = "Must be 100 characters or less.";
+                FirstNameErrorText.Visibility = Visibility.Visible;
+                return;
+            }
+            _isFirstNameValid = true;
+            FirstNameErrorText.Visibility = Visibility.Collapsed;
+            FirstNameErrorText.Text = "";
+        }
+
+        private void ValidateLastName()
+        {
+            var t = LastNameTextBox?.Text?.Trim() ?? "";
+            if (string.IsNullOrWhiteSpace(t))
+            {
+                _isLastNameValid = false;
+                LastNameErrorText.Text = "Required.";
+                LastNameErrorText.Visibility = Visibility.Visible;
+                return;
+            }
+            if (t.Length < 5)
+            {
+                _isLastNameValid = false;
+                LastNameErrorText.Text = "Must be at least 5 characters.";
+                LastNameErrorText.Visibility = Visibility.Visible;
+                return;
+            }
+            if (t.Length > 100)
+            {
+                _isLastNameValid = false;
+                LastNameErrorText.Text = "Must be 100 characters or less.";
+                LastNameErrorText.Visibility = Visibility.Visible;
+                return;
+            }
+            _isLastNameValid = true;
+            LastNameErrorText.Visibility = Visibility.Collapsed;
+            LastNameErrorText.Text = "";
+        }
+
+        private void ValidateEmail()
+        {
+            var t = EmailTextBox?.Text?.Trim() ?? "";
+            if (string.IsNullOrWhiteSpace(t))
+            {
+                _isEmailValid = false;
+                EmailErrorText.Text = "Valid email required.";
+                EmailErrorText.Visibility = Visibility.Visible;
+                return;
+            }
+            if (!EmailValidation.TryGetLocalPart(t, out _))
+            {
+                _isEmailValid = false;
+                EmailErrorText.Text = "Valid email required.";
+                EmailErrorText.Visibility = Visibility.Visible;
+                return;
+            }
+            if (!EmailValidation.IsLocalPartAtLeast(t))
+            {
+                _isEmailValid = false;
+                EmailErrorText.Text = "The part before @ must be at least 5 characters.";
+                EmailErrorText.Visibility = Visibility.Visible;
+                return;
+            }
+            if (!IsValidEmail(t))
+            {
+                _isEmailValid = false;
+                EmailErrorText.Text = "Valid email required.";
+                EmailErrorText.Visibility = Visibility.Visible;
+                return;
+            }
+            _isEmailValid = true;
+            EmailErrorText.Visibility = Visibility.Collapsed;
+            EmailErrorText.Text = "";
+        }
+
         private void ValidatePassword() { var p = PasswordRevealTextBox?.Visibility == Visibility.Visible ? PasswordRevealTextBox?.Text : PasswordBox?.Password; _isPasswordValid = !string.IsNullOrEmpty(p) && p.Length >= 8 && !p.Contains(" ") && IsValidPassword(p); PasswordErrorText.Visibility = _isPasswordValid ? Visibility.Collapsed : Visibility.Visible; PasswordErrorText.Text = _isPasswordValid ? "" : "Min 8 chars, upper, lower, number, one special (no spaces)."; }
         private void ValidateConfirmPassword() { var p = PasswordRevealTextBox?.Visibility == Visibility.Visible ? PasswordRevealTextBox?.Text : PasswordBox?.Password; var c = ConfirmPasswordRevealTextBox?.Visibility == Visibility.Visible ? ConfirmPasswordRevealTextBox?.Text : ConfirmPasswordBox?.Password; _isConfirmPasswordValid = !string.IsNullOrEmpty(c) && c == p; ConfirmPasswordErrorText.Visibility = _isConfirmPasswordValid ? Visibility.Collapsed : Visibility.Visible; ConfirmPasswordErrorText.Text = _isConfirmPasswordValid ? "" : "Passwords do not match."; }
         private void ValidateMaxDevices() { var t = MaxDevicesTextBox?.Text?.Trim() ?? ""; _isMaxDevicesValid = int.TryParse(t, out var n) && n > 0; MaxDevicesErrorText.Visibility = _isMaxDevicesValid ? Visibility.Collapsed : Visibility.Visible; MaxDevicesErrorText.Text = _isMaxDevicesValid ? "" : "Enter a positive number."; }
@@ -506,7 +597,11 @@ namespace x_phy_wpf_ui.Controls
 
             if (string.IsNullOrWhiteSpace(firstName)) { ShowError("Please enter first name."); return; }
             if (string.IsNullOrWhiteSpace(lastName)) { ShowError("Please enter last name."); return; }
+            if (firstName.Length < 5) { ShowError("First name must be at least 5 characters."); return; }
+            if (lastName.Length < 5) { ShowError("Last name must be at least 5 characters."); return; }
             if (string.IsNullOrWhiteSpace(email)) { ShowError("Please enter email."); return; }
+            if (!EmailValidation.TryGetLocalPart(email, out _)) { ShowError("Please enter a valid email address."); return; }
+            if (!EmailValidation.IsLocalPartAtLeast(email)) { ShowError("The part before @ must be at least 5 characters."); return; }
             if (!IsValidEmail(email)) { ShowError("Please enter a valid email address."); return; }
             if (string.IsNullOrWhiteSpace(password)) { ShowError("Please enter a password."); return; }
             if (password.Length < 8) { ShowError("Password must be at least 8 characters long."); return; }

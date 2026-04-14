@@ -19,8 +19,8 @@ namespace x_phy_wpf_ui.Services
 
         public LicensePlanService()
         {
-            //_baseUrl = "http://localhost:5163";
-            _baseUrl = "https://deepfakedetector.x-phy.com";
+            _baseUrl = "http://localhost:5163";
+            //_baseUrl = "https://deepfakedetector.x-phy.com";
             _httpClient = new HttpClient
             {
                 BaseAddress = new Uri(_baseUrl),

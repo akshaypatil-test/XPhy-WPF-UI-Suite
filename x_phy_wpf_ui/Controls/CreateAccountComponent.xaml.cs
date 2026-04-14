@@ -271,6 +271,16 @@ namespace x_phy_wpf_ui.Controls
                 }
                 SetTextBoxErrorState(FirstNameTextBox, true, FirstNameFieldBorder);
             }
+            else if (first.Length < 5)
+            {
+                _isFirstNameValid = false;
+                if (FirstNameErrorText != null)
+                {
+                    FirstNameErrorText.Text = "First name must be at least 5 characters";
+                    FirstNameErrorText.Visibility = Visibility.Visible;
+                }
+                SetTextBoxErrorState(FirstNameTextBox, true, FirstNameFieldBorder);
+            }
             else if (first.Length > 100)
             {
                 _isFirstNameValid = false;
@@ -303,6 +313,16 @@ namespace x_phy_wpf_ui.Controls
                 }
                 SetTextBoxErrorState(LastNameTextBox, true, LastNameFieldBorder);
             }
+            else if (last.Length < 5)
+            {
+                _isLastNameValid = false;
+                if (LastNameErrorText != null)
+                {
+                    LastNameErrorText.Text = "Last name must be at least 5 characters";
+                    LastNameErrorText.Visibility = Visibility.Visible;
+                }
+                SetTextBoxErrorState(LastNameTextBox, true, LastNameFieldBorder);
+            }
             else if (last.Length > 100)
             {
                 _isLastNameValid = false;
@@ -330,6 +350,20 @@ namespace x_phy_wpf_ui.Controls
             {
                 _isEmailValid = false;
                 EmailErrorText.Text = "Email is required";
+                EmailErrorText.Visibility = Visibility.Visible;
+                SetTextBoxErrorState(EmailTextBox, true);
+            }
+            else if (!EmailValidation.TryGetLocalPart(email, out _))
+            {
+                _isEmailValid = false;
+                EmailErrorText.Text = "Please enter a valid email address";
+                EmailErrorText.Visibility = Visibility.Visible;
+                SetTextBoxErrorState(EmailTextBox, true);
+            }
+            else if (!EmailValidation.IsLocalPartAtLeast(email))
+            {
+                _isEmailValid = false;
+                EmailErrorText.Text = "The part before @ must be at least 5 characters";
                 EmailErrorText.Visibility = Visibility.Visible;
                 SetTextBoxErrorState(EmailTextBox, true);
             }
@@ -534,9 +568,33 @@ namespace x_phy_wpf_ui.Controls
                 return;
             }
 
+            if (firstName.Length < 5)
+            {
+                ShowError("First name must be at least 5 characters.");
+                return;
+            }
+
+            if (lastName.Length < 5)
+            {
+                ShowError("Last name must be at least 5 characters.");
+                return;
+            }
+
             if (string.IsNullOrWhiteSpace(email))
             {
                 ShowError("Please enter your email address.");
+                return;
+            }
+
+            if (!EmailValidation.TryGetLocalPart(email, out _))
+            {
+                ShowError("Please enter a valid email address.");
+                return;
+            }
+
+            if (!EmailValidation.IsLocalPartAtLeast(email))
+            {
+                ShowError("The part before @ must be at least 5 characters.");
                 return;
             }
 

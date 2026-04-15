@@ -2,11 +2,9 @@ using System.Reflection;
 
 namespace x_phy_wpf_ui.Services
 {
-    /// <summary>User-facing app version (e.g. 2.01). Kept in sync with &lt;InformationalVersion&gt; in the project file.</summary>
+    /// <summary>User-facing app version from assembly metadata (set in Directory.Build.props).</summary>
     public static class ApplicationVersion
     {
-        public const string DisplayVersion = "2.01";
-
         public static string GetDisplayVersion()
         {
             try
@@ -24,7 +22,15 @@ namespace x_phy_wpf_ui.Services
             }
             catch { /* use fallback */ }
 
-            return DisplayVersion;
+            try
+            {
+                var v = Assembly.GetExecutingAssembly().GetName().Version;
+                if (v != null)
+                    return v.ToString();
+            }
+            catch { /* ignore */ }
+
+            return "0.0.0";
         }
     }
 }

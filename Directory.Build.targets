@@ -1,0 +1,23 @@
+<Project>
+  <!--
+    Sync vdproj from $(Version) in Directory.Build.props: ProductVersion and new ProductCode
+    (UpgradeCode and PackageCode unchanged). Required for reliable upgrades with RemovePreviousVersions.
+
+    Run after bumping Version:
+      dotnet msbuild "InstallerUI\InstallerUI.csproj" -t:SyncVdprojProductVersion
+
+    Optional: set SyncVdprojOnBuild=true to run sync automatically before every build (e.g. in Directory.Build.props
+    or dotnet build -p:SyncVdprojOnBuild=true).
+  -->
+  <PropertyGroup>
+    <XphyVdprojPath Condition="'$(XphyVdprojPath)' == ''">$(MSBuildThisFileDirectory)X-PHY-Setup-WPF-UI-CPU\X-PHY-Setup-WPF-UI-CPU.vdproj</XphyVdprojPath>
+    <SyncVdprojOnBuild Condition="'$(SyncVdprojOnBuild)' == ''">false</SyncVdprojOnBuild>
+  </PropertyGroup>
+
+  <Target Name="SyncVdprojProductVersion">
+    <Error Condition="'$(Version)' == ''" Text="Version is empty. Set it in Directory.Build.props." />
+    <Exec Command="powershell.exe -NoProfile -ExecutionPolicy Bypass -File &quot;$(MSBuildThisFileDirectory)build\Sync-VdprojVersion.ps1&quot; -Version &quot;$(Version)&quot; -VdprojPath &quot;$(XphyVdprojPath)&quot;" />
+  </Target>
+
+  <Target Name="_SyncVdprojBeforeBuild" BeforeTargets="Build" DependsOnTargets="SyncVdprojProductVersion" Condition="'$(SyncVdprojOnBuild)' == 'true'" />
+</Project>

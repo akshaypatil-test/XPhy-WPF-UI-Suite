@@ -218,7 +218,7 @@
                                        FontSize="13" 
                                        Foreground="{DynamicResource Brush.TextSecondary}"/>
                             <TextBlock x:Name="AppVersionText" 
-                                       Text="2.01" 
+                                       Text="—" 
                                        FontSize="13" 
                                        FontWeight="SemiBold" 
                                        Foreground="{DynamicResource Brush.Secondary}" 

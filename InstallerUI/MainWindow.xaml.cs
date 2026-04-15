@@ -83,22 +83,33 @@ namespace InstallerUI
                 _vm.OnRequestClose?.Invoke();
             };
 
-            // If already installed, go directly to Finish with an error (do not allow re-install)
-            ShowAlreadyInstalledOrWelcome();
+            ShowInitialStep();
 
             Loaded += (s, e) =>
             {
-                // Re-check on load in case install was detected after constructor (e.g. registry not read yet)
-                if (_vm.CurrentStep != InstallerStep.Finish && InstallerViewModel.IsAlreadyInstalled())
-                    ShowAlreadyInstalledOrWelcome();
+                if (_vm.CurrentStep == InstallerStep.Finish)
+                    return;
+                var scenario = InstallerVersionCheck.EvaluateScenario();
+                if (scenario == InstallVersionScenario.SameVersionInstalled ||
+                    scenario == InstallVersionScenario.NewerVersionInstalled)
+                    ShowInitialStep();
             };
         }
 
-        private void ShowAlreadyInstalledOrWelcome()
+        /// <summary>Welcome for fresh/upgrade/unknown; Finish with message for same version or downgrade blocked.</summary>
+        private void ShowInitialStep()
         {
-            if (InstallerViewModel.IsAlreadyInstalled())
+            var scenario = InstallerVersionCheck.EvaluateScenario();
+            if (scenario == InstallVersionScenario.SameVersionInstalled)
             {
-                _vm.FailureMessage = "X-PHY Deepfake Detector is already installed. Please uninstall the existing version from Settings > Apps before running setup again.";
+                _vm.FailureMessage = InstallerVersionCheck.GetSameVersionMessage();
+                _vm.InstallSucceeded = false;
+                _vm.CurrentStep = InstallerStep.Finish;
+                _vm.OnNavigate(InstallerStep.Finish);
+            }
+            else if (scenario == InstallVersionScenario.NewerVersionInstalled)
+            {
+                _vm.FailureMessage = InstallerVersionCheck.GetDowngradeBlockedMessage();
                 _vm.InstallSucceeded = false;
                 _vm.CurrentStep = InstallerStep.Finish;
                 _vm.OnNavigate(InstallerStep.Finish);

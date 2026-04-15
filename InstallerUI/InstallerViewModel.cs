@@ -210,7 +210,7 @@ namespace InstallerUI
         }
 
         /// <summary>Default install path: prefer 64-bit Program Files when OS is 64-bit (app is x64); otherwise use current process Program Files.</summary>
-        private static string GetDefaultInstallPath()
+        public static string GetDefaultInstallPath()
         {
             var root = GetProgramFilesRoot64();
             if (!string.IsNullOrEmpty(root))
@@ -282,7 +282,7 @@ namespace InstallerUI
             return (null, null);
         }
 
-        private const string AppExeName = "x_phy_wpf_ui.exe";
+        public const string AppExeName = "x_phy_wpf_ui.exe";
 
         /// <summary>True if the application is already installed (known paths, registry, or exe found on system).</summary>
         public static bool IsAlreadyInstalled()
@@ -455,14 +455,26 @@ namespace InstallerUI
 
         private void OnNext(object _)
         {
-            // On every Next click, re-check: if app is already installed anywhere, block and show error (don't mislead user)
-            if (CurrentStep != InstallerStep.Finish && CurrentStep != InstallerStep.Progress && IsAlreadyInstalled())
+            if (CurrentStep != InstallerStep.Finish && CurrentStep != InstallerStep.Progress)
             {
-                FailureMessage = "X-PHY Deepfake Detector is already installed. Please uninstall the existing version from Settings > Apps before running setup again.";
-                InstallSucceeded = false;
-                CurrentStep = InstallerStep.Finish;
-                OnNavigate?.Invoke(InstallerStep.Finish);
-                return;
+                var scenario = InstallerVersionCheck.EvaluateScenario();
+                if (scenario == InstallVersionScenario.SameVersionInstalled)
+                {
+                    FailureMessage = InstallerVersionCheck.GetSameVersionMessage();
+                    InstallSucceeded = false;
+                    CurrentStep = InstallerStep.Finish;
+                    OnNavigate?.Invoke(InstallerStep.Finish);
+                    return;
+                }
+
+                if (scenario == InstallVersionScenario.NewerVersionInstalled)
+                {
+                    FailureMessage = InstallerVersionCheck.GetDowngradeBlockedMessage();
+                    InstallSucceeded = false;
+                    CurrentStep = InstallerStep.Finish;
+                    OnNavigate?.Invoke(InstallerStep.Finish);
+                    return;
+                }
             }
 
             if (CurrentStep == InstallerStep.InstallPath)
@@ -480,15 +492,33 @@ namespace InstallerUI
                     return;
                 }
                 InstallPathError = null;
-                // Do not allow install if app is already installed at the selected path (or default)
                 var pathToCheck = IsQuickInstall ? InstallPath : EnsureXphyFolder(InstallPath);
                 if (IsAlreadyInstalledAt(pathToCheck))
                 {
-                    FailureMessage = "X-PHY Deepfake Detector is already installed at the selected location. Please uninstall the existing version from Settings > Apps before running setup again, or choose a different folder.";
-                    InstallSucceeded = false;
-                    CurrentStep = InstallerStep.Finish;
-                    OnNavigate?.Invoke(InstallerStep.Finish);
-                    return;
+                    if (InstallerVersionCheck.TryGetVersionForExeAtPath(pathToCheck, out var vAtPath))
+                    {
+                        var cmp = InstallerVersionCheck.CompareToBundled(vAtPath);
+                        if (cmp == 0)
+                        {
+                            var b = InstallerVersionCheck.TryGetBundledVersion();
+                            FailureMessage = $"This version ({b}) is already installed at the selected location.";
+                            InstallSucceeded = false;
+                            CurrentStep = InstallerStep.Finish;
+                            OnNavigate?.Invoke(InstallerStep.Finish);
+                            return;
+                        }
+
+                        if (cmp > 0)
+                        {
+                            var b = InstallerVersionCheck.TryGetBundledVersion();
+                            FailureMessage =
+                                $"A newer version ({vAtPath}) is installed at the selected location. This installer is {b}. Choose a different folder or remove the newer product from Settings > Apps.";
+                            InstallSucceeded = false;
+                            CurrentStep = InstallerStep.Finish;
+                            OnNavigate?.Invoke(InstallerStep.Finish);
+                            return;
+                        }
+                    }
                 }
                 CurrentStep = InstallerStep.Progress;
                 OnNavigate?.Invoke(CurrentStep);
@@ -605,7 +635,7 @@ namespace InstallerUI
                             OnNavigate?.Invoke(InstallerStep.Finish);
                         }
                         else
-                            FinishWithFailure($"Installation failed (exit code: {_msiExitCode}). Please try again or contact support.");
+                            FinishWithFailure(MsiFailureMessage(_msiExitCode));
                     }
                 }
             };
@@ -647,7 +677,7 @@ namespace InstallerUI
                                 OnNavigate?.Invoke(InstallerStep.Finish);
                             }
                             else
-                                FinishWithFailure($"Installation failed (exit code: {exitCode}). Please try again or contact support.");
+                                FinishWithFailure(MsiFailureMessage(exitCode));
                         }
                     }), DispatcherPriority.Normal);
                 });
@@ -666,6 +696,13 @@ namespace InstallerUI
             InstallSucceeded = false;
             CurrentStep = InstallerStep.Finish;
             OnNavigate?.Invoke(InstallerStep.Finish);
+        }
+
+        private static string MsiFailureMessage(int exitCode)
+        {
+            if (exitCode == InstallerVersionCheck.MsiExitNewerOrSameProductExists)
+                return InstallerVersionCheck.GetDowngradeBlockedMessage();
+            return $"Installation failed (exit code: {exitCode}). Please try again or contact support.";
         }
 
         private void LaunchInstalledApp()

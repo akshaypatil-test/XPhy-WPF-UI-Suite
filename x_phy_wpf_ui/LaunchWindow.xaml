@@ -58,7 +58,7 @@
         
         <!-- Version -->
         <TextBlock x:Name="LaunchVersionText" Grid.Row="2"
-                   Text="Version: 2.01" 
+                   Text="Version: " 
                    FontSize="12" 
                    Foreground="{StaticResource TextSecondary}" 
                    HorizontalAlignment="Center"

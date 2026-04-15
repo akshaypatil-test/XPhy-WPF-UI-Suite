@@ -1,0 +1,17 @@
+<Project>
+  <!--
+    Single place to bump the shipping product version for this suite.
+    Applies to: InstallerUI, x_phy_wpf_ui (and any future SDK-style projects under this folder).
+
+    After changing <Version>, sync the vdproj (ProductVersion + new ProductCode). Current directory must contain InstallerUI\:
+      (from XPhy-WPF-UI-Suite)  dotnet msbuild "InstallerUI\InstallerUI.csproj" -t:SyncVdprojProductVersion
+      (from X-PHY_WPF_Plus_Backend)  dotnet msbuild "XPhy-WPF-UI-Suite\InstallerUI\InstallerUI.csproj" -t:SyncVdprojProductVersion
+    Or set SyncVdprojOnBuild=true (here or -p:SyncVdprojOnBuild=true) to update the vdproj automatically before each build.
+
+    Developer guide (bump, sync, build order): docs\VERSION-BUMP.md
+  -->
+  <PropertyGroup Label="X-PHY product version">
+    <Version>2.0.1</Version>
+    <InformationalVersion>$(Version)</InformationalVersion>
+  </PropertyGroup>
+</Project>

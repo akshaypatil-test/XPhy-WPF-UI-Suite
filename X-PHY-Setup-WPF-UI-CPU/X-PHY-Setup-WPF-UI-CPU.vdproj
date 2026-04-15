@@ -1822,7 +1822,7 @@
         {
         "Name" = "8:X-PHY Deepfake Detector"
         "ProductName" = "8:X-PHY Deepfake Detector"
-        "ProductCode" = "8:{B19E8E54-8C9C-466E-A065-3E53D04C6858}"
+        "ProductCode" = "8:{DAF08DC3-459C-40BF-8687-39CBA79E36B9}"
         "PackageCode" = "8:{769E7146-E50A-4291-97B3-036AFAE583C0}"
         "UpgradeCode" = "8:{4CB7122A-6498-4470-A970-2BDDEC90BE00}"
         "AspNetVersion" = "8:"

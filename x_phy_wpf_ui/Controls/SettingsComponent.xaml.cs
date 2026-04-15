@@ -1,4 +1,5 @@
 using System;
+using System.Diagnostics;
 using System.Windows;
 using System.Windows.Controls;
 using System.Windows.Input;
@@ -113,10 +114,65 @@ namespace x_phy_wpf_ui.Controls
             UpdateThemeSelection();
         }
 
-        private void CheckUpdates_Click(object sender, RoutedEventArgs e)
+        private async void CheckUpdates_Click(object sender, RoutedEventArgs e)
         {
+            var owner = Window.GetWindow(this);
             LastCheckedText.Text = "Just Now";
-            AppDialog.Show(Window.GetWindow(this), "You are running the latest version!", "Update Check", MessageBoxImage.Information);
+
+            var service = new UpdateCheckService();
+            var currentVersion = ApplicationVersion.GetDisplayVersion();
+
+            UpdateCheckResult result;
+            try
+            {
+                result = await service.CheckAsync(currentVersion).ConfigureAwait(true);
+            }
+            catch (Exception ex)
+            {
+                AppDialog.Show(owner, "Update check failed: " + ex.Message, "Update Check", MessageBoxImage.Warning);
+                return;
+            }
+
+            if (!result.Ok)
+            {
+                AppDialog.Show(owner, result.ErrorMessage ?? "Update check failed.", "Update Check", MessageBoxImage.Warning);
+                return;
+            }
+
+            var r = result.Response;
+            if (r == null || !r.IsUpdateAvailable)
+            {
+                AppDialog.Show(owner, "You are running the latest version!", "Update Check", MessageBoxImage.Information);
+                return;
+            }
+
+            var notes = string.IsNullOrWhiteSpace(r.ReleaseNotes) ? "" : "\n\n" + r.ReleaseNotes.Trim();
+            var msg =
+                "A newer version is available: "
+                + r.LatestVersion
+                + "."
+                + notes
+                + "\n\nOpen the download page in your browser?";
+
+            if (AppDialog.ShowYesNo(owner, msg, "Update available") != true)
+                return;
+
+            if (string.IsNullOrWhiteSpace(r.DownloadUrl))
+            {
+                AppDialog.Show(owner, "No download URL was provided by the server.", "Update Check", MessageBoxImage.Warning);
+                return;
+            }
+
+            try
+            {
+                Process.Start(
+                    new ProcessStartInfo { FileName = r.DownloadUrl.Trim(), UseShellExecute = true }
+                );
+            }
+            catch (Exception ex)
+            {
+                AppDialog.Show(owner, "Could not open the download link: " + ex.Message, "Update Check", MessageBoxImage.Warning);
+            }
         }
     }
 }

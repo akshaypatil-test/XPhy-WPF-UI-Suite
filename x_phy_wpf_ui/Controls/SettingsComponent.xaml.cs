@@ -146,13 +146,10 @@ namespace x_phy_wpf_ui.Controls
                 return;
             }
 
-            var notes = string.IsNullOrWhiteSpace(r.ReleaseNotes) ? "" : "\n\n" + r.ReleaseNotes.Trim();
             var msg =
-                "A newer version is available: "
+                "A newer version is available : "
                 + r.LatestVersion
-                + "."
-                + notes
-                + "\n\nOpen the download page in your browser?";
+                + "\nDo you want to download?";
 
             if (AppDialog.ShowYesNo(owner, msg, "Update available") != true)
                 return;

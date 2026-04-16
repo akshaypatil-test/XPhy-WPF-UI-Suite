@@ -52,6 +52,29 @@ namespace x_phy_wpf_ui.Controls
             }
         }
 
+        /// <summary>
+        /// Opens a local file with the shell default handler (for PDFs this is often the default browser such as Edge/Chrome when set as the PDF app).
+        /// </summary>
+        private void OpenLocalFileInDefaultHandler(string fullPath)
+        {
+            try
+            {
+                var psi = new ProcessStartInfo(fullPath)
+                {
+                    UseShellExecute = true
+                };
+                Process.Start(psi);
+            }
+            catch (Exception ex)
+            {
+                AppDialog.Show(
+                    Window.GetWindow(this),
+                    $"The file was saved to your Downloads folder but could not be opened automatically.\n\n{fullPath}\n\n{ex.Message}",
+                    "Could not open file",
+                    MessageBoxImage.Warning);
+            }
+        }
+
         private void UserGuidePdf_Click(object sender, RoutedEventArgs e)
         {
             DownloadResourceFile(
@@ -94,12 +117,7 @@ namespace x_phy_wpf_ui.Controls
 
                 var destinationPath = Path.Combine(downloadsFolder, downloadFileName);
                 File.Copy(sourcePath, destinationPath, overwrite: true);
-
-                AppDialog.Show(
-                    Window.GetWindow(this),
-                    $"{displayName} downloaded successfully to:\n{destinationPath}",
-                    "Download complete",
-                    MessageBoxImage.Information);
+                OpenLocalFileInDefaultHandler(destinationPath);
             }
             catch (Exception ex)
             {

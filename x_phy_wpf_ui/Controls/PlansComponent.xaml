@@ -128,7 +128,7 @@
         
         <!-- Header -->
         <Grid Grid.Row="1" Margin="0,0,0,12">
-            <TextBlock Text="Choose Your Plan"
+            <TextBlock Text="CHOOSE YOUR PLAN"
                       FontSize="28"
                       FontWeight="Bold"
                       Foreground="{DynamicResource Brush.TextPrimary}"

@@ -60,7 +60,7 @@
         <StackPanel Margin="24,16">
             <!-- Only opened from Profile → View full details -->
             <Button x:Name="BackButton" Content="← Back to Profile" Style="{StaticResource BackButtonStyle}" Click="BackButton_Click" Margin="0,0,0,12"/>
-            <TextBlock Text="License &amp; Subscription" FontSize="20" FontWeight="SemiBold" Foreground="{DynamicResource Brush.TextPrimary}" Margin="0,0,0,16"/>
+            <TextBlock Text="LICENSE &amp; SUBSCRIPTION" FontSize="20" FontWeight="SemiBold" Foreground="{DynamicResource Brush.TextPrimary}" Margin="0,0,0,16"/>
             <TextBlock x:Name="LoadingText" Text="Loading..." Foreground="{DynamicResource Brush.TextSecondary}" Visibility="Visible" Margin="0,8,0,8"/>
             <ItemsControl x:Name="PlansList" Visibility="Collapsed">
                 <ItemsControl.ItemTemplate>

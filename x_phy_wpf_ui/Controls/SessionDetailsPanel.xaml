@@ -32,8 +32,8 @@
         </Style>
     </UserControl.Resources>
     <StackPanel Margin="0,0,0,12">
-        <Button x:Name="BackButton" Content="← Back" Style="{StaticResource BackButtonStyle}" Click="BackToResults_Click" Margin="0,0,0,12"/>
-        <TextBlock Text="Session Details" FontSize="22" FontWeight="Bold" Foreground="{StaticResource TextPrimaryBrush}" Margin="0,0,0,18"/>
+        <Button x:Name="BackButton" Content="← Back to Results" Style="{StaticResource BackButtonStyle}" Click="BackToResults_Click" Margin="0,0,0,12"/>
+        <TextBlock Text="SESSION DETAILS" FontSize="22" FontWeight="Bold" Foreground="{StaticResource TextPrimaryBrush}" Margin="0,0,0,18"/>
         <Grid>
             <Grid.ColumnDefinitions>
                 <ColumnDefinition Width="*" MinWidth="280"/>

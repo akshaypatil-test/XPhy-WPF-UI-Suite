@@ -3398,6 +3398,20 @@ videoLiveFakeProportionThreshold = 0.7
             }
         }
 
+        /// <summary>
+        /// Whole days from <paramref name="utcNow"/> until <paramref name="expiryUtc"/> (ceiling).
+        /// When the span is just over 30 days (e.g. 30.01 from LMS end-of-day), <see cref="Math.Ceiling"/> would show 31;
+        /// treat that as 30 for display so a 30-day trial does not read as 31 days.
+        /// </summary>
+        private static int GetRemainingWholeDaysUtc(DateTime expiryUtc, DateTime utcNow)
+        {
+            var totalDays = (expiryUtc - utcNow).TotalDays;
+            var days = Math.Max(0, (int)Math.Ceiling(totalDays));
+            if (days == 31 && totalDays > 30 && totalDays < 31)
+                days = 30;
+            return days;
+        }
+
         private async void UpdateLicenseDisplay()
         {
             try
@@ -3438,7 +3452,7 @@ videoLiveFakeProportionThreshold = 0.7
                     // Only show remaining days when we have ExpiryDate from backend; do not derive from plan name.
                     var expiryForDays = licenseInfo?.ExpiryDate ?? (status.Equals("Trial", StringComparison.OrdinalIgnoreCase) ? userInfo.TrialEndsAt : null) ?? licenseInfo?.TrialEndsAt;
                     if (expiryForDays.HasValue)
-                        daysRemaining = Math.Max(0, (int)Math.Ceiling((expiryForDays.Value - DateTime.UtcNow).TotalDays));
+                        daysRemaining = GetRemainingWholeDaysUtc(expiryForDays.Value, DateTime.UtcNow);
 
                     bool isCorpUser = string.Equals(userInfo.UserType, "Corp", StringComparison.OrdinalIgnoreCase);
 

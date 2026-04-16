@@ -226,21 +226,6 @@
                         </Grid>
                     </Border>
                     
-                    <!-- Build Number -->
-                    <Border Style="{StaticResource FieldRowStyle}">
-                        <Grid>
-                            <TextBlock Text="Build Number" 
-                                       FontSize="13" 
-                                       Foreground="{DynamicResource Brush.TextSecondary}"/>
-                            <TextBlock x:Name="BuildNumberText" 
-                                       Text="2026.03.02" 
-                                       FontSize="13" 
-                                       FontWeight="SemiBold" 
-                                       Foreground="{DynamicResource Brush.Secondary}" 
-                                       HorizontalAlignment="Right"/>
-                        </Grid>
-                    </Border>
-                    
                     <!-- Release Date -->
                     <Border Style="{StaticResource FieldRowStyle}" Margin="0,0,0,10">
                         <Grid>

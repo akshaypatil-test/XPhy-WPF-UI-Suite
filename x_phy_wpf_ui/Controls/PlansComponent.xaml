@@ -117,8 +117,9 @@
             <RowDefinition Height="*"/>
         </Grid.RowDefinitions>
         
-        <!-- Back Button -->
-        <Button Grid.Row="0"
+        <!-- Back Button (label set from code: Profile vs Detection home) -->
+        <Button x:Name="PlansBackButton"
+                Grid.Row="0"
                 Content="← Back to Detection"
                 Style="{StaticResource BackButtonStyle}"
                 Click="BackButton_Click"

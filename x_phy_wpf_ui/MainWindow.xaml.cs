@@ -2017,7 +2017,7 @@ videoLiveFakeProportionThreshold = 0.7
         private void ProfileComponent_ViewPlansRequested(object sender, EventArgs e)
         {
             ProfileComponent.Visibility = Visibility.Collapsed;
-            ShowPlansComponent();
+            ShowPlansComponent(PlansComponent.PlansBackNavigation.Profile);
         }
 
         private void LicenseSubscriptionComponent_BackRequested(object sender, EventArgs e)
@@ -2029,7 +2029,7 @@ videoLiveFakeProportionThreshold = 0.7
         private void LicenseSubscriptionComponent_UpgradePlanRequested(object sender, EventArgs e)
         {
             LicenseSubscriptionComponent.Visibility = Visibility.Collapsed;
-            ShowPlansComponent();
+            ShowPlansComponent(PlansComponent.PlansBackNavigation.Profile);
         }
 
         private void ProfileComponent_ChangePasswordRequested(object sender, EventArgs e)
@@ -2508,10 +2508,21 @@ videoLiveFakeProportionThreshold = 0.7
 
         private void BottomBar_SubscribeClicked(object sender, EventArgs e)
         {
-            ShowPlansComponent();
+            // Footer Subscribe: return to the screen the user was on (Profile, Settings, or detection home).
+            PlansComponent.PlansBackNavigation backNav;
+            if (ProfileComponent?.Visibility == Visibility.Visible
+                || LicenseSubscriptionComponent?.Visibility == Visibility.Visible)
+                backNav = PlansComponent.PlansBackNavigation.Profile;
+            else if (SettingsComponent?.Visibility == Visibility.Visible)
+                backNav = PlansComponent.PlansBackNavigation.Settings;
+            else if (DetectionResultsScreen != null && DetectionResultsScreen.Visibility == Visibility.Visible)
+                backNav = PlansComponent.PlansBackNavigation.Results;
+            else
+                backNav = PlansComponent.PlansBackNavigation.DetectionHome;
+            ShowPlansComponent(backNav);
         }
 
-        private void ShowPlansComponent()
+        private void ShowPlansComponent(PlansComponent.PlansBackNavigation backNavigation = PlansComponent.PlansBackNavigation.DetectionHome)
         {
             DetectionContentGrid.Visibility = Visibility.Collapsed;
             StatisticsCardsGrid.Visibility = Visibility.Collapsed;
@@ -2524,6 +2535,7 @@ videoLiveFakeProportionThreshold = 0.7
                 ProfileComponent.Visibility = Visibility.Collapsed;
             if (LicenseSubscriptionComponent != null)
                 LicenseSubscriptionComponent.Visibility = Visibility.Collapsed;
+            PlansComponent.SetBackNavigation(backNavigation);
             PlansComponent.Visibility = Visibility.Visible;
             StripePaymentComponentContainer.Visibility = Visibility.Collapsed;
             // Clear nav highlight when showing plans (opened from footer Subscribe)
@@ -2595,7 +2607,14 @@ videoLiveFakeProportionThreshold = 0.7
 
         private void PlansComponent_BackRequested(object sender, EventArgs e)
         {
-            ShowDetectionContent();
+            if (PlansComponent.CurrentBackTarget == PlansComponent.PlansBackNavigation.Profile)
+                ShowProfileComponent();
+            else if (PlansComponent.CurrentBackTarget == PlansComponent.PlansBackNavigation.Settings)
+                ShowSettingsComponent();
+            else if (PlansComponent.CurrentBackTarget == PlansComponent.PlansBackNavigation.Results)
+                ShowDetectionResultsScreen();
+            else
+                ShowDetectionContent();
         }
 
         private void StripePaymentComponent_BackRequested(object sender, EventArgs e)

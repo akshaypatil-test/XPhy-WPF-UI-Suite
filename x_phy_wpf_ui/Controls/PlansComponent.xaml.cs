@@ -12,8 +12,20 @@ namespace x_phy_wpf_ui.Controls
 {
     public partial class PlansComponent : UserControl
     {
+        /// <summary>Where the Plans screen should return when Back is pressed.</summary>
+        public enum PlansBackNavigation
+        {
+            DetectionHome,
+            Profile,
+            Settings,
+            Results
+        }
+
         public event EventHandler<PlanSelectedEventArgs> PlanSelected;
         public event EventHandler BackRequested;
+
+        /// <summary>Last navigation target set via <see cref="SetBackNavigation"/> (e.g. after returning from Stripe).</summary>
+        public PlansBackNavigation CurrentBackTarget { get; private set; } = PlansBackNavigation.DetectionHome;
 
         private readonly LicensePlanService _planService;
         private List<LicensePlanDto> _plans = new();
@@ -24,6 +36,18 @@ namespace x_phy_wpf_ui.Controls
             _planService = new LicensePlanService();
             Loaded += PlansComponent_Loaded;
             IsVisibleChanged += PlansComponent_IsVisibleChanged;
+        }
+
+        public void SetBackNavigation(PlansBackNavigation target)
+        {
+            CurrentBackTarget = target;
+            PlansBackButton.Content = target switch
+            {
+                PlansBackNavigation.Profile => "← Back to Profile",
+                PlansBackNavigation.Settings => "← Back to Settings",
+                PlansBackNavigation.Results => "← Back to Results",
+                _ => "← Back to Detection"
+            };
         }
 
         private async void PlansComponent_Loaded(object sender, RoutedEventArgs e)

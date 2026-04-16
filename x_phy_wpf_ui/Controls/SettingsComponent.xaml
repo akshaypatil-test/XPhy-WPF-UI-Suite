@@ -76,7 +76,7 @@
 
         <!-- Header -->
         <StackPanel Grid.Row="0" Margin="0,0,0,16">
-            <TextBlock Text="Settings" 
+            <TextBlock Text="SETTINGS" 
                        FontSize="28" 
                        FontWeight="Bold" 
                        Foreground="{DynamicResource Brush.TextPrimary}"/>

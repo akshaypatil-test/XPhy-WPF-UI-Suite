@@ -7,7 +7,7 @@
              d:DesignHeight="700" d:DesignWidth="500">
     <StackPanel Background="Transparent" VerticalAlignment="Center">
         <!-- Title above the image -->
-        <TextBlock Text="Deepfake Detector"
+        <TextBlock Text="DEEPFAKE DETECTOR"
                    FontSize="20"
                    FontFamily="{StaticResource AppFontFamily}"
                    FontWeight="SemiBold"

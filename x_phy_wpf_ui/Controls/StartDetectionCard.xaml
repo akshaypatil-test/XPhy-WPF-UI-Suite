@@ -87,7 +87,7 @@
         <StackPanel VerticalAlignment="Center">
             <!-- Figma .start_deep: 20px, Inter, weight 500, white -->
             <StackPanel HorizontalAlignment="Center" Margin="0,0,0,0">
-                <TextBlock Text="Deepfake Detector" 
+                <TextBlock Text="DEEPFAKE DETECTOR" 
                            FontSize="20" 
                            FontFamily="{StaticResource AppFontFamily}"
                            FontWeight="Medium"

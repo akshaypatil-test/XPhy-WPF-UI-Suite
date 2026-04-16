@@ -99,7 +99,7 @@
         <Button Grid.Row="0" Content="← Back to Detection" Style="{StaticResource BackButtonStyle}" Click="BackButton_Click" Margin="0,0,0,12" HorizontalAlignment="Left"/>
 
         <StackPanel Grid.Row="1" Margin="0,0,0,20">
-            <TextBlock Text="Profile" FontSize="24" FontWeight="Bold" Foreground="{DynamicResource Brush.TextPrimary}"/>
+            <TextBlock Text="PROFILE" FontSize="24" FontWeight="Bold" Foreground="{DynamicResource Brush.TextPrimary}"/>
             <TextBlock Text="View And Manage Your Account Information" FontSize="14" Foreground="{DynamicResource Brush.TextSecondary}" Margin="0,4,0,0"/>
         </StackPanel>
 

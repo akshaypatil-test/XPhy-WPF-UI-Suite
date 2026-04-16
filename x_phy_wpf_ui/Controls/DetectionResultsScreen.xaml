@@ -243,19 +243,24 @@
                             </Style>
                         </DataGrid.CellStyle>
                         <DataGrid.Columns>
-                            <DataGridTextColumn Binding="{Binding TimestampDisplay}" Width="1.2*" MinWidth="120" CanUserSort="True">
-                                <DataGridTextColumn.Header>
+                            <!-- Template column (not DataGridTextColumn): text column applies HighlightTextBrush when selected;
+                                 which is white on our light Surface row background — timestamp vanished in light mode. -->
+                            <DataGridTemplateColumn Width="1.2*" MinWidth="120" SortMemberPath="TimestampLocal" CanUserSort="True">
+                                <DataGridTemplateColumn.Header>
                                     <StackPanel Orientation="Horizontal" HorizontalAlignment="Center">
                                         <TextBlock Text="Timestamp" VerticalAlignment="Center"/>
                                         <TextBlock Text="▼" FontSize="9" VerticalAlignment="Center" Margin="4,0,0,0" Opacity="0.9"/>
                                     </StackPanel>
-                                </DataGridTextColumn.Header>
-                                <DataGridTextColumn.ElementStyle>
-                                    <Style TargetType="TextBlock">
-                                        <Setter Property="HorizontalAlignment" Value="Center"/>
-                                    </Style>
-                                </DataGridTextColumn.ElementStyle>
-                            </DataGridTextColumn>
+                                </DataGridTemplateColumn.Header>
+                                <DataGridTemplateColumn.CellTemplate>
+                                    <DataTemplate>
+                                        <TextBlock Text="{Binding TimestampDisplay}"
+                                                   Foreground="{StaticResource TextPrimaryBrush}"
+                                                   HorizontalAlignment="Center"
+                                                   TextTrimming="None"/>
+                                    </DataTemplate>
+                                </DataGridTemplateColumn.CellTemplate>
+                            </DataGridTemplateColumn>
                             <DataGridTemplateColumn Header="Type" Width="0.6*" MinWidth="100">
                                 <DataGridTemplateColumn.CellTemplate>
                                     <DataTemplate>

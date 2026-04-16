@@ -140,6 +140,16 @@ namespace x_phy_wpf_ui.Controls
             UpdateSubmitButtonState();
         }
 
+        private void NewPasswordInfoButton_Click(object sender, RoutedEventArgs e)
+        {
+            NewPasswordRequirementsPopup.IsOpen = true;
+        }
+
+        private void ConfirmPasswordInfoButton_Click(object sender, RoutedEventArgs e)
+        {
+            ConfirmPasswordRequirementsPopup.IsOpen = true;
+        }
+
         private void ConfirmPasswordEyeButton_Click(object sender, RoutedEventArgs e)
         {
             if (ConfirmPasswordRevealTextBox.Visibility == Visibility.Visible)

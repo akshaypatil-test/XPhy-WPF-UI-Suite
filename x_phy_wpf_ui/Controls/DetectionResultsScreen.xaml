@@ -15,6 +15,12 @@
         <SolidColorBrush x:Key="ResultGreenBrush" Color="{DynamicResource Color.Success}"/>
         <SolidColorBrush x:Key="TealBrush" Color="{DynamicResource Color.Secondary}"/>
         <SolidColorBrush x:Key="TypePillBg" Color="{DynamicResource Color.Surface}"/>
+        <!-- Results grid: headers larger than body rows -->
+        <Style x:Key="ResultsGridHeaderTextStyle" TargetType="TextBlock">
+            <Setter Property="FontSize" Value="13"/>
+            <Setter Property="FontWeight" Value="Bold"/>
+            <Setter Property="Foreground" Value="{StaticResource TextPrimaryBrush}"/>
+        </Style>
         <Style x:Key="TealButtonStyle" TargetType="Button">
             <Setter Property="Background" Value="{DynamicResource Brush.Surface}"/>
             <Setter Property="Foreground" Value="{DynamicResource Brush.TextPrimary}"/>
@@ -76,13 +82,13 @@
         </Grid.RowDefinitions>
 
         <!-- Title row fixed; table row * fills space. DataGrid scrolls inside itself — column headers stay sticky (standard WPF behavior). -->
-        <Grid x:Name="ResultsListView" Grid.Row="0" Margin="0,0,0,0" HorizontalAlignment="Stretch" VerticalAlignment="Stretch" Focusable="True" FocusVisualStyle="{x:Null}">
+        <Grid x:Name="ResultsListView" Grid.Row="0" Margin="0,0,0,0" HorizontalAlignment="Stretch" VerticalAlignment="Stretch" Focusable="True" FocusVisualStyle="{x:Null}" UseLayoutRounding="True">
                 <Grid.RowDefinitions>
                     <RowDefinition Height="Auto"/>
                     <RowDefinition Height="*"/>
                 </Grid.RowDefinitions>
                 <!-- Title and Legend -->
-                <Grid x:Name="ResultsTitleRow" Grid.Row="0" Margin="0,0,0,20">
+                <Grid x:Name="ResultsTitleRow" Grid.Row="0" Margin="0,0,0,16">
                     <Grid.ColumnDefinitions>
                         <ColumnDefinition Width="*"/>
                         <ColumnDefinition Width="Auto"/>
@@ -93,11 +99,11 @@
                                FontWeight="Bold"
                                Foreground="{StaticResource TextPrimaryBrush}"
                                VerticalAlignment="Center"/>
-                    <StackPanel Grid.Column="1" Orientation="Horizontal" VerticalAlignment="Center">
-                        <Ellipse Width="10" Height="10" Fill="{StaticResource ResultRedBrush}" Margin="0,0,6,0" VerticalAlignment="Center"/>
-                        <TextBlock Text="AI Manipulation Detected" FontSize="12" Foreground="{StaticResource TextSecondaryBrush}" Margin="0,0,20,0" VerticalAlignment="Center"/>
-                        <Ellipse Width="10" Height="10" Fill="{StaticResource ResultGreenBrush}" Margin="0,0,6,0" VerticalAlignment="Center"/>
-                        <TextBlock Text="No AI Manipulation Detected" FontSize="12" Foreground="{StaticResource TextSecondaryBrush}" VerticalAlignment="Center"/>
+                    <StackPanel Grid.Column="1" Orientation="Horizontal" VerticalAlignment="Center" Margin="8,0,0,0">
+                        <Ellipse Width="9" Height="9" Fill="{StaticResource ResultRedBrush}" Margin="0,0,5,0" VerticalAlignment="Center"/>
+                        <TextBlock Text="AI Manipulation Detected" FontSize="11" Foreground="{StaticResource TextSecondaryBrush}" Margin="0,0,16,0" VerticalAlignment="Center"/>
+                        <Ellipse Width="9" Height="9" Fill="{StaticResource ResultGreenBrush}" Margin="0,0,5,0" VerticalAlignment="Center"/>
+                        <TextBlock Text="No AI Manipulation Detected" FontSize="11" Foreground="{StaticResource TextSecondaryBrush}" VerticalAlignment="Center"/>
                     </StackPanel>
                 </Grid>
 
@@ -136,7 +142,7 @@
                               Background="{DynamicResource Brush.Card}"
                               Foreground="{StaticResource TextPrimaryBrush}"
                               RowHeight="44"
-                              FontSize="13"
+                              FontSize="12"
                               SelectionMode="Single"
                               SelectionUnit="FullRow"
                               UseLayoutRounding="True"
@@ -157,7 +163,9 @@
                                 <Setter Property="Background" Value="{DynamicResource Brush.Surface}"/>
                                 <Setter Property="Foreground" Value="{StaticResource TextPrimaryBrush}"/>
                                 <Setter Property="FontWeight" Value="Bold"/>
-                                <Setter Property="Padding" Value="12,14,24,14"/>
+                                <Setter Property="MinHeight" Value="48"/>
+                                <Setter Property="Padding" Value="6,14,6,14"/>
+                                <Setter Property="FontSize" Value="13"/>
                                 <Setter Property="HorizontalContentAlignment" Value="Center"/>
                                 <Setter Property="VerticalContentAlignment" Value="Center"/>
                                 <Setter Property="BorderThickness" Value="0"/>
@@ -214,7 +222,7 @@
                         <DataGrid.CellStyle>
                             <Style TargetType="DataGridCell">
                                 <Setter Property="BorderThickness" Value="0"/>
-                                <Setter Property="Padding" Value="12,10,24,10"/>
+                                <Setter Property="Padding" Value="3,8,3,8"/>
                                 <Setter Property="VerticalAlignment" Value="Center"/>
                                 <Setter Property="HorizontalContentAlignment" Value="Center"/>
                                 <Setter Property="FocusVisualStyle" Value="{x:Null}"/>
@@ -245,37 +253,70 @@
                         <DataGrid.Columns>
                             <!-- Template column (not DataGridTextColumn): text column applies HighlightTextBrush when selected;
                                  which is white on our light Surface row background — timestamp vanished in light mode. -->
-                            <DataGridTemplateColumn Width="1.2*" MinWidth="120" SortMemberPath="TimestampLocal" CanUserSort="True">
+                            <DataGridTemplateColumn Width="1.35*" MinWidth="150" SortMemberPath="TimestampLocal" CanUserSort="True">
                                 <DataGridTemplateColumn.Header>
-                                    <StackPanel Orientation="Horizontal" HorizontalAlignment="Center">
-                                        <TextBlock Text="Timestamp" VerticalAlignment="Center"/>
-                                        <TextBlock Text="▼" FontSize="9" VerticalAlignment="Center" Margin="4,0,0,0" Opacity="0.9"/>
-                                    </StackPanel>
+                                    <Grid HorizontalAlignment="Stretch">
+                                        <StackPanel Orientation="Horizontal" HorizontalAlignment="Center">
+                                            <TextBlock Text="Timestamp" Style="{StaticResource ResultsGridHeaderTextStyle}" VerticalAlignment="Center"/>
+                                            <TextBlock Text="▼" FontSize="10" FontWeight="Bold" Foreground="{StaticResource TextPrimaryBrush}" VerticalAlignment="Center" Margin="4,0,0,0" Opacity="0.9"/>
+                                        </StackPanel>
+                                    </Grid>
                                 </DataGridTemplateColumn.Header>
                                 <DataGridTemplateColumn.CellTemplate>
                                     <DataTemplate>
                                         <TextBlock Text="{Binding TimestampDisplay}"
+                                                   FontSize="12"
                                                    Foreground="{StaticResource TextPrimaryBrush}"
                                                    HorizontalAlignment="Center"
+                                                   TextAlignment="Center"
                                                    TextTrimming="None"/>
                                     </DataTemplate>
                                 </DataGridTemplateColumn.CellTemplate>
                             </DataGridTemplateColumn>
-                            <DataGridTemplateColumn Header="Type" Width="0.6*" MinWidth="100">
+                            <DataGridTemplateColumn Width="78" MinWidth="72">
+                                <DataGridTemplateColumn.Header>
+                                    <Grid HorizontalAlignment="Stretch">
+                                        <TextBlock Text="Type" Style="{StaticResource ResultsGridHeaderTextStyle}" HorizontalAlignment="Center" VerticalAlignment="Center"/>
+                                    </Grid>
+                                </DataGridTemplateColumn.Header>
                                 <DataGridTemplateColumn.CellTemplate>
                                     <DataTemplate>
-                                        <Border Background="{StaticResource TypePillBg}" CornerRadius="14" Padding="10,4" HorizontalAlignment="Center">
-                                            <TextBlock Text="{Binding Type}" Foreground="{StaticResource TextPrimaryBrush}" FontSize="12" TextTrimming="None"/>
+                                        <Border Background="{StaticResource TypePillBg}" CornerRadius="14" Padding="8,4" HorizontalAlignment="Center">
+                                            <TextBlock Text="{Binding Type}" Foreground="{StaticResource TextPrimaryBrush}" FontSize="11" TextTrimming="None"/>
                                         </Border>
                                     </DataTemplate>
                                 </DataGridTemplateColumn.CellTemplate>
                             </DataGridTemplateColumn>
-                            <DataGridTemplateColumn Header="Result" Width="2*" MinWidth="160">
+                            <DataGridTemplateColumn Width="1.15*" MinWidth="132" SortMemberPath="MediaSourceForDisplay">
+                                <DataGridTemplateColumn.Header>
+                                    <Grid HorizontalAlignment="Stretch">
+                                        <TextBlock Text="Media Source" Style="{StaticResource ResultsGridHeaderTextStyle}" HorizontalAlignment="Center" VerticalAlignment="Center"/>
+                                    </Grid>
+                                </DataGridTemplateColumn.Header>
+                                <DataGridTemplateColumn.CellTemplate>
+                                    <DataTemplate>
+                                        <TextBlock Text="{Binding MediaSourceForDisplay}"
+                                                   FontSize="12"
+                                                   Foreground="{StaticResource TextPrimaryBrush}"
+                                                   HorizontalAlignment="Center"
+                                                   TextAlignment="Center"
+                                                   TextTrimming="CharacterEllipsis"
+                                                   ToolTip="{Binding MediaSourceForDisplay}"/>
+                                    </DataTemplate>
+                                </DataGridTemplateColumn.CellTemplate>
+                            </DataGridTemplateColumn>
+                            <DataGridTemplateColumn Width="2.1*" MinWidth="158">
+                                <DataGridTemplateColumn.Header>
+                                    <Grid HorizontalAlignment="Stretch">
+                                        <TextBlock Text="Result" Style="{StaticResource ResultsGridHeaderTextStyle}" HorizontalAlignment="Center" VerticalAlignment="Center"/>
+                                    </Grid>
+                                </DataGridTemplateColumn.Header>
                                 <DataGridTemplateColumn.CellTemplate>
                                     <DataTemplate>
                                         <TextBlock Text="{Binding ResultText}" HorizontalAlignment="Center">
                                             <TextBlock.Style>
                                                 <Style TargetType="TextBlock">
+                                                    <Setter Property="FontSize" Value="12"/>
                                                     <Setter Property="HorizontalAlignment" Value="Center"/>
                                                     <Style.Triggers>
                                                         <DataTrigger Binding="{Binding IsAiManipulationDetected}" Value="True">
@@ -291,12 +332,20 @@
                                     </DataTemplate>
                                 </DataGridTemplateColumn.CellTemplate>
                             </DataGridTemplateColumn>
-                            <DataGridTemplateColumn Header="Detection Confidence" Width="1.5*" MinWidth="180">
+                            <DataGridTemplateColumn Width="0.75*"
+                                                    MinWidth="76"
+                                                    SortMemberPath="ConfidencePercent">
+                                <DataGridTemplateColumn.Header>
+                                    <Grid HorizontalAlignment="Stretch">
+                                        <TextBlock Text="Confidence" Style="{StaticResource ResultsGridHeaderTextStyle}" HorizontalAlignment="Center" VerticalAlignment="Center"/>
+                                    </Grid>
+                                </DataGridTemplateColumn.Header>
                                 <DataGridTemplateColumn.CellTemplate>
                                     <DataTemplate>
                                         <TextBlock Text="{Binding ConfidenceText}" HorizontalAlignment="Center">
                                             <TextBlock.Style>
                                                 <Style TargetType="TextBlock">
+                                                    <Setter Property="FontSize" Value="12"/>
                                                     <Setter Property="HorizontalAlignment" Value="Center"/>
                                                     <Style.Triggers>
                                                         <DataTrigger Binding="{Binding IsAiManipulationDetected}" Value="True">
@@ -312,14 +361,19 @@
                                     </DataTemplate>
                                 </DataGridTemplateColumn.CellTemplate>
                             </DataGridTemplateColumn>
-                            <DataGridTemplateColumn Header="Evidence" Width="*" MinWidth="110">
+                            <DataGridTemplateColumn Width="102" MinWidth="96">
+                                <DataGridTemplateColumn.Header>
+                                    <Grid HorizontalAlignment="Stretch">
+                                        <TextBlock Text="Evidence" Style="{StaticResource ResultsGridHeaderTextStyle}" HorizontalAlignment="Center" VerticalAlignment="Center"/>
+                                    </Grid>
+                                </DataGridTemplateColumn.Header>
                                 <DataGridTemplateColumn.CellTemplate>
                                     <DataTemplate>
                                         <Button Background="Transparent"
                                                 BorderThickness="0"
                                                 Cursor="Hand"
                                                 FontSize="12"
-                                                Padding="4,0"
+                                                Padding="2,0"
                                                 HorizontalAlignment="Center"
                                                 FocusVisualStyle="{x:Null}"
                                                 Click="ViewResult_Click">
@@ -331,6 +385,7 @@
                                                 </ControlTemplate>
                                             </Button.Template>
                                             <TextBlock Text="View Result"
+                                                       FontSize="12"
                                                        Foreground="{StaticResource TextPrimaryBrush}"
                                                        TextDecorations="Underline"
                                                        TextTrimming="None"/>

@@ -156,9 +156,9 @@
                 <Border x:Name="UpdateControlsCard" Grid.Row="1" Style="{StaticResource UpdateCardStyle}" VerticalAlignment="Stretch">
                     <StackPanel>
                         <Grid Margin="0,0,0,16">
-                            <TextBlock Text="Update Controls" 
-                                       FontSize="18" 
-                                       FontWeight="SemiBold" 
+                            <TextBlock Text="Update Controls"
+                                       FontSize="18"
+                                       FontWeight="SemiBold"
                                        Foreground="{DynamicResource Brush.TextPrimary}"/>
                             <Button Content="Check for Updates"
                                     HorizontalAlignment="Right"
@@ -175,10 +175,10 @@
                                         <Setter Property="Template">
                                             <Setter.Value>
                                                 <ControlTemplate TargetType="Button">
-                                                    <Border Background="{TemplateBinding Background}" 
-                                                            CornerRadius="8" 
+                                                    <Border Background="{TemplateBinding Background}"
+                                                            CornerRadius="8"
                                                             Padding="{TemplateBinding Padding}">
-                                                        <ContentPresenter HorizontalAlignment="Center" 
+                                                        <ContentPresenter HorizontalAlignment="Center"
                                                                           VerticalAlignment="Center"/>
                                                     </Border>
                                                 </ControlTemplate>
@@ -188,9 +188,9 @@
                                 </Button.Style>
                             </Button>
                         </Grid>
-                        <TextBlock Text="Check For Available Updates Or Install The Latest Version Manually. Updates May Include New Features, Bug Fixes, And Security Improvements." 
-                                   FontSize="13" 
-                                   Foreground="{DynamicResource Brush.TextSecondary}" 
+                        <TextBlock Text="Check for updates and install the latest version to ensure optimal performance and detection. Updates include new features, bug fixes, and security improvements."
+                                   FontSize="13"
+                                   Foreground="{DynamicResource Brush.TextSecondary}"
                                    TextWrapping="Wrap"/>
                     </StackPanel>
                 </Border>

@@ -198,13 +198,18 @@ namespace x_phy_wpf_ui.Controls
                 {
                     using (var w = new StreamWriter(chosenPath))
                     {
-                        w.WriteLine("Timestamp,Type,Result,Detection Confidence,Result Path");
+                        static string CsvEsc(string? s) => (s ?? "").Replace("\"", "\"\"");
+                        w.WriteLine("Timestamp,Type,Media Source,Result,Detection Confidence,Result Path");
                         foreach (var row in itemsToExport)
                         {
                             w.WriteLine(
-                                "\"{0}\",\"{1}\",\"{2}\",\"{3}%\",\"{4}\"",
-                                row.TimestampDisplay, row.Type, row.ResultText, row.ConfidencePercent,
-                                (row.ResultPathOrId ?? "").Replace("\"", "\"\""));
+                                "\"{0}\",\"{1}\",\"{2}\",\"{3}\",\"{4}%\",\"{5}\"",
+                                CsvEsc(row.TimestampDisplay),
+                                CsvEsc(row.Type),
+                                CsvEsc(row.MediaSourceForDisplay),
+                                CsvEsc(row.ResultText),
+                                row.ConfidencePercent,
+                                CsvEsc(row.ResultPathOrId));
                         }
                     }
                     ShowExportToast("Export Completed", "Results Have Been Exported Successfully.", 5);

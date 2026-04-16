@@ -20,6 +20,10 @@ namespace x_phy_wpf_ui.Models
         public string ResultPathOrId { get; set; }  // Artifact path for loading evidence images (not shown in Media Source)
         /// <summary>Display text for "Media Source" (e.g. "Zoom", "Google Chrome"). When empty, UI may show "Local" or path.</summary>
         public string MediaSourceDisplay { get; set; }
+
+        /// <summary>Media source for grid and export; normalizes empty to "Local".</summary>
+        public string MediaSourceForDisplay =>
+            string.IsNullOrWhiteSpace(MediaSourceDisplay) ? "Local" : MediaSourceDisplay.Trim();
         public int SerialNumber { get; set; }
         /// <summary>Duration in seconds, if available (e.g. from API). Display is capped at max detection length (60s).</summary>
         public decimal? DurationSeconds { get; set; }

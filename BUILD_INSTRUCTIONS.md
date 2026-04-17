@@ -142,4 +142,4 @@ dotnet build x_phy_wpf_ui\x_phy_wpf_ui.csproj -c Release
 - [ ] Build **x_phy_wpf_wrapper** (Prod_Release_CPU | x64), then **x_phy_wpf_ui** (Release | x64)
 - [ ] Set **x_phy_wpf_ui** as startup project and run (F5) to test
 
-For more context on the projects and this folder, see **README.md** in the same directory.
+For solution layout, installer vs MSI, and integrations, see **ARCHITECTURE.md** in the same directory. For release versioning, see **VERSION-BUMP.md**.

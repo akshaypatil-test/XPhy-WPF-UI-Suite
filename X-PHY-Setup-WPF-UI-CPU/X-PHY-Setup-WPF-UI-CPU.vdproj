@@ -39,6 +39,18 @@
         }
         "Entry"
         {
+        "MsmKey" = "8:_E8F0A2B4C6D84E9A0B1C2D3E4F5A6B7"
+        "OwnerKey" = "8:_UNDEFINED"
+        "MsmSig" = "8:_UNDEFINED"
+        }
+        "Entry"
+        {
+        "MsmKey" = "8:_C1D2E3F4A5B64738C9D0E1F2A3B4C5D6"
+        "OwnerKey" = "8:_UNDEFINED"
+        "MsmSig" = "8:_UNDEFINED"
+        }
+        "Entry"
+        {
         "MsmKey" = "8:_F4D20949124C40318A348DA836A7A76A"
         "OwnerKey" = "8:_UNDEFINED"
         "MsmSig" = "8:_UNDEFINED"
@@ -1739,6 +1751,17 @@
                 {
                 }
             }
+            "{1525181F-901A-416C-8A58-119130FE478E}:_E8F0A2B4C6D84E9A0B1C2D3E4F5A6B7"
+            {
+            "Name" = "8:#1919"
+            "AlwaysCreate" = "11:FALSE"
+            "Condition" = "8:"
+            "Transitive" = "11:FALSE"
+            "Property" = "8:ProgramMenuFolder"
+                "Folders"
+                {
+                }
+            }
             "{3C67513D-01DD-4637-8A68-80971EB9504F}:_F4D20949124C40318A348DA836A7A76A"
             {
             "DefaultLocation" = "8:[ProgramFilesFolder]X-PHY\\"
@@ -1953,6 +1976,20 @@
             "Transitive" = "11:FALSE"
             "Target" = "8:_7DAA6244390041E989EE550182BF37A6"
             "Folder" = "8:_C34343488BD240B78E1468C6D57ADDED"
+            "WorkingFolder" = "8:_F4D20949124C40318A348DA836A7A76A"
+            "Icon" = "8:_DA9EAEDF01EB4E93B3161BC6E90D6CD7"
+            "Feature" = "8:"
+            }
+            "{970C0BB2-C7D0-45D7-ABFA-7EC378858BC0}:_C1D2E3F4A5B64738C9D0E1F2A3B4C5D6"
+            {
+            "Name" = "8:X-PHY Deepfake Detector"
+            "Arguments" = "8:"
+            "Description" = "8:"
+            "ShowCmd" = "3:1"
+            "IconIndex" = "3:0"
+            "Transitive" = "11:FALSE"
+            "Target" = "8:_7DAA6244390041E989EE550182BF37A6"
+            "Folder" = "8:_E8F0A2B4C6D84E9A0B1C2D3E4F5A6B7"
             "WorkingFolder" = "8:_F4D20949124C40318A348DA836A7A76A"
             "Icon" = "8:_DA9EAEDF01EB4E93B3161BC6E90D6CD7"
             "Feature" = "8:"

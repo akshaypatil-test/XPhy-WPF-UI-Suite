@@ -19,6 +19,9 @@ namespace x_phy_wpf_ui
         private bool _closeCounted;
         private readonly MouseButtonEventHandler _dndLightDismissPreviewHandler;
         private DispatcherTimer? _autoDismissTimer;
+        private const int AutoDismissSeconds = 7;
+        /// <summary>Avoid restarting the auto-dismiss timer when the DND list closes because the whole notification is closing.</summary>
+        private bool _notificationClosing;
 
         /// <summary>True if at least one single-process (media source) popup is currently open. Used to avoid showing duplicates.</summary>
         public static bool IsAnyOpen => _openCount > 0;
@@ -37,11 +40,10 @@ namespace x_phy_wpf_ui
             InitializeComponent();
             _dndLightDismissPreviewHandler = OnPreviewMouseCloseDndIfOutside;
             VersionText.Text = "Version: " + ApplicationVersion.GetDisplayVersion();
-            DndListPopup.Opened += (_, __) =>
-                AddHandler(PreviewMouseLeftButtonDownEvent, _dndLightDismissPreviewHandler, handledEventsToo: true);
-            DndListPopup.Closed += (_, __) =>
-                RemoveHandler(PreviewMouseLeftButtonDownEvent, _dndLightDismissPreviewHandler);
+            DndListPopup.Opened += OnDndListPopupOpened;
+            DndListPopup.Closed += OnDndListPopupClosed;
             Loaded += (_, __) => StartAutoDismissTimer();
+            Closing += (_, __) => { _notificationClosing = true; };
             Closed += (s, _) =>
             {
                 StopAutoDismissTimer();
@@ -58,7 +60,7 @@ namespace x_phy_wpf_ui
             StopAutoDismissTimer();
             _autoDismissTimer = new DispatcherTimer(DispatcherPriority.Background)
             {
-                Interval = TimeSpan.FromSeconds(5)
+                Interval = TimeSpan.FromSeconds(AutoDismissSeconds)
             };
             _autoDismissTimer.Tick += AutoDismissTimer_Tick;
             _autoDismissTimer.Start();
@@ -77,6 +79,22 @@ namespace x_phy_wpf_ui
             StopAutoDismissTimer();
             if (!IsVisible) return;
             Close();
+        }
+
+        private void OnDndListPopupOpened(object sender, EventArgs e)
+        {
+            try { RemoveHandler(PreviewMouseLeftButtonDownEvent, _dndLightDismissPreviewHandler); } catch { /* not registered */ }
+            AddHandler(PreviewMouseLeftButtonDownEvent, _dndLightDismissPreviewHandler, handledEventsToo: true);
+            // Do not auto-dismiss while the user may be choosing Yes/No on Do Not Disturb.
+            StopAutoDismissTimer();
+        }
+
+        private void OnDndListPopupClosed(object sender, EventArgs e)
+        {
+            try { RemoveHandler(PreviewMouseLeftButtonDownEvent, _dndLightDismissPreviewHandler); } catch { /* duplicate */ }
+            if (_notificationClosing || !IsVisible) return;
+            // Fresh auto-dismiss interval after the list closes (No, light-dismiss, or toggle closed) so the rest of the UI stays usable.
+            StartAutoDismissTimer();
         }
 
         private static bool IsDescendantOf(DependencyObject? node, DependencyObject? potentialAncestor)

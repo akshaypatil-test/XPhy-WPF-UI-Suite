@@ -2415,12 +2415,12 @@ videoLiveFakeProportionThreshold = 0.7
 
         /// <summary>
         /// Notification rules: (1) Only when app is minimized/tray. (2) First show 2 min after minimize if sources detected.
-        /// (3) No duplicate: if a notification is visible, do not show another. (4) After closing (including 5s auto-dismiss), 2-min timer starts; show again after 2 min if still minimized and sources detected.
+        /// (3) No duplicate: if a notification is visible, do not show another. (4) After closing (including single-source 7s / multiple-source 5s auto-dismiss), 2-min timer starts; show again after 2 min if still minimized and sources detected.
         /// (5) If user opens app then minimizes again, timer restarts (StopBackgroundProcessCheck resets closed-at). (6) Repeat every 2 minutes while minimized and sources detected.
         /// (7) No single/multiple notifications while detection is in progress (UI session or native running); one-shot chain reschedules if suppressed.
         /// (8) Session Do Not Disturb (multi-source / legacy): user may mute source-detection popups until app restart.
         /// (9) Single-source DO NOT DISTURB Yes: snooze single-source popups until user restores/opens the app or restarts the process.
-        /// (10) Single-source popup auto-dismisses after 5s if user does not use X, DND Yes, or Start (same as multiple-sources).
+        /// (10) Single-source popup auto-dismisses after 7s if user does not use X, DND Yes, or Start (multiple-sources remains 5s).
         /// </summary>
         private async void BackgroundProcessCheckTimer_Tick(object? sender, EventArgs e)
         {

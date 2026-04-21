@@ -71,6 +71,8 @@ namespace x_phy_wpf_ui
             }
             catch { /* non-fatal: icons may be missing */ }
 
+            StartupCommandLine.Initialize(e.Args);
+
             base.OnStartup(e);
 
             // When user clicks desktop icon while app is in tray, the new process signals us via this event. Listen so we can show the window.
@@ -134,6 +136,7 @@ namespace x_phy_wpf_ui
                 var main = Current?.MainWindow as MainWindow;
                 if (main != null)
                 {
+                    main.ShowInTaskbar = true;
                     main.Show();
                     main.WindowState = WindowState.Normal;
                     main.Activate();

@@ -120,6 +120,9 @@ namespace x_phy_wpf_ui
         /// <summary>Clears single-source media notification snooze (DO NOT DISTURB Yes). Called when user re-engages via desktop icon, second-instance activate, tray Open, or restoring the main window.</summary>
         public void ClearSingleSourceMediaNotificationSnooze() => _singleSourceMediaNotificationsSnoozed = false;
 
+        /// <summary>True after we hide the window for <see cref="StartupCommandLine.StartedAsTrayAgent"/> (Windows startup shortcut).</summary>
+        private bool _trayAgentStartupVisibilityApplied;
+
         /// <summary>Ref count for background blur when in-app popups/overlays are visible. Blur is applied when > 0.</summary>
         private int _blurRefCount = 0;
 
@@ -176,6 +179,12 @@ namespace x_phy_wpf_ui
                 }
 
                 InitializeComponent();
+
+                if (StartupCommandLine.StartedAsTrayAgent)
+                {
+                    ShowInTaskbar = false;
+                    WindowState = WindowState.Minimized;
+                }
 
                 if (VersionText != null)
                     VersionText.Text = "Version: " + ApplicationVersion.GetDisplayVersion();
@@ -611,6 +620,7 @@ namespace x_phy_wpf_ui
 
             // Show system tray when user is logged in (right-click menu: detection agents, Open Results Folder, Version, Exit)
             ShowTray();
+            ApplyTrayAgentStartupVisibilityIfNeeded();
         }
 
         private void ShowAuthView()
@@ -633,6 +643,7 @@ namespace x_phy_wpf_ui
             AppPanel.Visibility = Visibility.Collapsed;
             // When showing Welcome again (e.g. restore from tray), restart 7s timer so it auto-advances to Get Started
             _welcomeComponent.RestartTimer();
+            ApplyTrayAgentStartupVisibilityIfNeeded();
         }
 
         /// <summary>Called from App when SessionExpiredException is caught so we show Welcome instead of crashing.</summary>
@@ -828,6 +839,18 @@ namespace x_phy_wpf_ui
                     }
                 }
             }
+
+            ApplyTrayAgentStartupVisibilityIfNeeded();
+        }
+
+        /// <summary>After login / welcome is ready: if we were started from the Startup shortcut (<c>--tray-agent</c>), hide the main window and keep only the tray icon until the user opens the app.</summary>
+        private void ApplyTrayAgentStartupVisibilityIfNeeded()
+        {
+            if (!StartupCommandLine.StartedAsTrayAgent || _trayAgentStartupVisibilityApplied)
+                return;
+            _trayAgentStartupVisibilityApplied = true;
+            ShowInTaskbar = false;
+            Hide();
         }
 
         private void MainWindow_Activated(object sender, EventArgs e)
@@ -2342,6 +2365,7 @@ videoLiveFakeProportionThreshold = 0.7
                     {
                         ShowDetectionContent();
                         TryNavigateToSelectDetectionSource();
+                        ShowInTaskbar = true;
                         Show();
                         WindowState = WindowState.Normal;
                         Activate();
@@ -2469,6 +2493,7 @@ videoLiveFakeProportionThreshold = 0.7
                     {
                         ShowDetectionContent();
                         TryNavigateToSelectDetectionSource();
+                        ShowInTaskbar = true;
                         Show();
                         WindowState = WindowState.Normal;
                         Activate();
@@ -3663,6 +3688,7 @@ videoLiveFakeProportionThreshold = 0.7
                 ClearSingleSourceMediaNotificationSnooze();
                 // If window was hidden (user closed with X), opening from tray should show Get Started. If window was only minimized (taskbar), preserve current screen (e.g. verification).
                 bool wasClosedWithX = !IsVisible;
+                ShowInTaskbar = true;
                 Show();
                 WindowState = WindowState.Normal;
                 Activate();

@@ -722,6 +722,8 @@ namespace InstallerUI
 
         private const string RunKeyName = "X-PHY Deepfake Detector";
         private const string StartupShortcutFileName = "X-PHY Deepfake Detector.lnk";
+        /// <summary>Must match <c>x_phy_wpf_ui.Services.StartupCommandLine.TrayAgentArgument</c> — login starts app in tray-only agent mode.</summary>
+        private const string TrayAgentStartupArgument = "--tray-agent";
 
         /// <summary>
         /// Apply launch-on-startup using a Startup folder shortcut named like the product (Windows Settings shows that name and enables the toggle reliably).
@@ -832,7 +834,7 @@ namespace InstallerUI
         private static void FallbackRunRegistryStartup(string exePathUnquoted)
         {
             if (string.IsNullOrEmpty(exePathUnquoted)) return;
-            var value = "\"" + exePathUnquoted + "\"";
+            var value = "\"" + exePathUnquoted + "\" " + TrayAgentStartupArgument;
             var wrote = false;
             using (var key = InteractiveUserRunKey.OpenOrCreateInteractiveUserRunKey())
             {
@@ -871,6 +873,7 @@ namespace InstallerUI
                 var shortcutType = shortcut.GetType();
                 shortcutType.InvokeMember("TargetPath", System.Reflection.BindingFlags.SetProperty, null, shortcut, new object[] { exePath });
                 shortcutType.InvokeMember("WorkingDirectory", System.Reflection.BindingFlags.SetProperty, null, shortcut, new object[] { workingDir });
+                shortcutType.InvokeMember("Arguments", System.Reflection.BindingFlags.SetProperty, null, shortcut, new object[] { TrayAgentStartupArgument });
                 shortcutType.InvokeMember("Description", System.Reflection.BindingFlags.SetProperty, null, shortcut, new object[] { "X-PHY Deepfake Detector" });
                 shortcutType.InvokeMember("Save", System.Reflection.BindingFlags.InvokeMethod, null, shortcut, null);
                 return true;

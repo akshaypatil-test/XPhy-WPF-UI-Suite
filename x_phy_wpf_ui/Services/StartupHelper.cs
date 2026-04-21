@@ -117,6 +117,7 @@ namespace x_phy_wpf_ui.Services
                 var t = shortcut.GetType();
                 t.InvokeMember("TargetPath", BindingFlags.SetProperty, null, shortcut, new object[] { exePath });
                 t.InvokeMember("WorkingDirectory", BindingFlags.SetProperty, null, shortcut, new object[] { workingDir ?? "" });
+                t.InvokeMember("Arguments", BindingFlags.SetProperty, null, shortcut, new object[] { StartupCommandLine.TrayAgentArgument });
                 t.InvokeMember("Description", BindingFlags.SetProperty, null, shortcut, new object[] { ShortcutDescription });
                 t.InvokeMember("Save", BindingFlags.InvokeMethod, null, shortcut, null);
                 return File.Exists(shortcutPath);

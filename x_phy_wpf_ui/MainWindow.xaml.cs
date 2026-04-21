@@ -114,6 +114,12 @@ namespace x_phy_wpf_ui
         /// <summary>Session-only: user chose Do Not Disturb on a source-detection popup; no further single/multiple source notifications until app restart.</summary>
         private bool _sourceDetectionNotificationsDoNotDisturb;
 
+        /// <summary>Single-source popup: user chose DO NOT DISTURB Yes (snooze). No single-source notifications until OS restart, desktop shortcut activate, or user restores/opens the app (tray or taskbar).</summary>
+        private bool _singleSourceMediaNotificationsSnoozed;
+
+        /// <summary>Clears single-source media notification snooze (DO NOT DISTURB Yes). Called when user re-engages via desktop icon, second-instance activate, tray Open, or restoring the main window.</summary>
+        public void ClearSingleSourceMediaNotificationSnooze() => _singleSourceMediaNotificationsSnoozed = false;
+
         /// <summary>Ref count for background blur when in-app popups/overlays are visible. Blur is applied when > 0.</summary>
         private int _blurRefCount = 0;
 
@@ -1333,6 +1339,10 @@ videoLiveFakeProportionThreshold = 0.7
             else if (WindowState != WindowState.Minimized)
                 StopBackgroundProcessCheck();
 
+            // End single-source "DO NOT DISTURB Yes" snooze when user restores the main window (taskbar, etc.)
+            if (WindowState != WindowState.Minimized && AppPanel.Visibility == Visibility.Visible)
+                ClearSingleSourceMediaNotificationSnooze();
+
             // When user restores window from minimized, refresh license so trial attempts show current value
             if (WindowState == WindowState.Normal && AppPanel.Visibility == Visibility.Visible)
                 RefreshLicenseDisplayAfterDetectionAsync();
@@ -2331,6 +2341,7 @@ videoLiveFakeProportionThreshold = 0.7
                     multiPopup.OpenApplicationRequested += (s, _) =>
                     {
                         ShowDetectionContent();
+                        TryNavigateToSelectDetectionSource();
                         Show();
                         WindowState = WindowState.Normal;
                         Activate();
@@ -2340,6 +2351,7 @@ videoLiveFakeProportionThreshold = 0.7
                     return;
                 }
                 if (list.Count != 1 || single == null) return;
+                if (_singleSourceMediaNotificationsSnoozed) return;
                 if (MultipleSourcesDetectedPopup.IsAnyOpen) return;
                 if (MediaSourceDetectedPopup.IsAnyOpen) return;
                 var popup = new MediaSourceDetectedPopup();
@@ -2348,9 +2360,10 @@ videoLiveFakeProportionThreshold = 0.7
                     var w = s as MediaSourceDetectedPopup;
                     Dispatcher.BeginInvoke(new Action(() =>
                     {
-                        if (w != null && w.ClosedWithDoNotDisturb)
+                        if (w != null && w.ClosedWithSnooze)
                         {
-                            _sourceDetectionNotificationsDoNotDisturb = true;
+                            _singleSourceMediaNotificationsSnoozed = true;
+                            _lastMediaSourcePopupClosedAt = DateTime.UtcNow;
                             return;
                         }
                         _lastMediaSourcePopupClosedAt = DateTime.UtcNow;
@@ -2378,10 +2391,12 @@ videoLiveFakeProportionThreshold = 0.7
 
         /// <summary>
         /// Notification rules: (1) Only when app is minimized/tray. (2) First show 2 min after minimize if sources detected.
-        /// (3) No duplicate: if a notification is visible, do not show another. (4) After closing, 2-min timer starts; show again after 2 min if still minimized and sources detected.
+        /// (3) No duplicate: if a notification is visible, do not show another. (4) After closing (including 5s auto-dismiss), 2-min timer starts; show again after 2 min if still minimized and sources detected.
         /// (5) If user opens app then minimizes again, timer restarts (StopBackgroundProcessCheck resets closed-at). (6) Repeat every 2 minutes while minimized and sources detected.
         /// (7) No single/multiple notifications while detection is in progress (UI session or native running); one-shot chain reschedules if suppressed.
-        /// (8) Session Do Not Disturb: user may mute source-detection popups until app restart.
+        /// (8) Session Do Not Disturb (multi-source / legacy): user may mute source-detection popups until app restart.
+        /// (9) Single-source DO NOT DISTURB Yes: snooze single-source popups until user restores/opens the app or restarts the process.
+        /// (10) Single-source popup auto-dismisses after 5s if user does not use X, DND Yes, or Start (same as multiple-sources).
         /// </summary>
         private async void BackgroundProcessCheckTimer_Tick(object? sender, EventArgs e)
         {
@@ -2453,6 +2468,7 @@ videoLiveFakeProportionThreshold = 0.7
                     multiPopup.OpenApplicationRequested += (s, _) =>
                     {
                         ShowDetectionContent();
+                        TryNavigateToSelectDetectionSource();
                         Show();
                         WindowState = WindowState.Normal;
                         Activate();
@@ -2462,6 +2478,7 @@ videoLiveFakeProportionThreshold = 0.7
                     return;
                 }
                 if (list.Count != 1 || single == null) return;
+                if (_singleSourceMediaNotificationsSnoozed) return;
                 if (MultipleSourcesDetectedPopup.IsAnyOpen) return;
                 if (MediaSourceDetectedPopup.IsAnyOpen) return;
                 // Single source: show after 2 min from minimize or from when user closed the last notification
@@ -2477,9 +2494,10 @@ videoLiveFakeProportionThreshold = 0.7
                     var w = s as MediaSourceDetectedPopup;
                     Dispatcher.BeginInvoke(new Action(() =>
                     {
-                        if (w != null && w.ClosedWithDoNotDisturb)
+                        if (w != null && w.ClosedWithSnooze)
                         {
-                            _sourceDetectionNotificationsDoNotDisturb = true;
+                            _singleSourceMediaNotificationsSnoozed = true;
+                            _lastMediaSourcePopupClosedAt = DateTime.UtcNow;
                             return;
                         }
                         _lastMediaSourcePopupClosedAt = DateTime.UtcNow;
@@ -2718,14 +2736,19 @@ videoLiveFakeProportionThreshold = 0.7
 
         private void StartDetection_Click(object sender, RoutedEventArgs e)
         {
+            TryNavigateToSelectDetectionSource();
+        }
+
+        /// <summary>Shows the Select Detection Source panel (same as Start Detection on Home). Returns false if blocked by dialogs or running detection.</summary>
+        private bool TryNavigateToSelectDetectionSource()
+        {
             try
             {
                 // If controller is null, try to initialize it first
                 if (controller == null)
                 {
                     System.Diagnostics.Debug.WriteLine("Controller is null, attempting to initialize before starting detection...");
-                    
-                    // Check if we have a license key
+
                     var tokenStorage = new TokenStorage();
                     var storedTokens = tokenStorage.GetTokens();
                     if (storedTokens?.LicenseInfo == null || string.IsNullOrEmpty(storedTokens.LicenseInfo.Key))
@@ -2734,16 +2757,14 @@ videoLiveFakeProportionThreshold = 0.7
                             "Controller not initialized and no license key found.\n\n" +
                             "Please ensure you are logged in and have a valid license.\n\n" +
                             "If you have a license, try logging out and logging back in.",
-                            "Controller Initialization Error", 
+                            "Controller Initialization Error",
                             MessageBoxImage.Error);
-                        return;
+                        return false;
                     }
-                    
-                    // Try to initialize the controller (force retry)
+
                     System.Diagnostics.Debug.WriteLine("Attempting to initialize controller with force retry...");
                     InitializeController(forceRetry: true);
-                    
-                    // Check again after initialization attempt
+
                     if (controller == null)
                     {
                         AppDialog.Show(this,
@@ -2753,11 +2774,11 @@ videoLiveFakeProportionThreshold = 0.7
                             "2. Required DLLs are present in the application directory\n" +
                             "3. config.toml file exists and is accessible\n\n" +
                             "Check Debug output for more details.",
-                            "Controller Initialization Failed", 
+                            "Controller Initialization Failed",
                             MessageBoxImage.Error);
-                        return;
+                        return false;
                     }
-                    
+
                     System.Diagnostics.Debug.WriteLine("Controller initialized successfully, proceeding with detection...");
                 }
 
@@ -2765,19 +2786,20 @@ videoLiveFakeProportionThreshold = 0.7
                 {
                     ShowAnalyzingScreenWhenDetectionRunning();
                     AppDialog.Show(this, "Detection is already running.", "Information", MessageBoxImage.Information);
-                    return;
+                    return false;
                 }
 
-                // Hide StartDetectionCard and detection results; show only Source Selection (no detection page behind it)
                 DetectionResultsPanel.Visibility = Visibility.Collapsed;
                 StartDetectionCard.Visibility = Visibility.Collapsed;
                 DetectionSelectionContainer.Visibility = Visibility.Visible;
 
-                StartDetectionCard.StatusText = $"Identifying Active Media Sources";
+                StartDetectionCard.StatusText = "Identifying Active Media Sources";
+                return true;
             }
             catch (Exception ex)
             {
                 AppDialog.Show(this, $"Failed to start detection selection: {ex.Message}", "Error", MessageBoxImage.Error);
+                return false;
             }
         }
 
@@ -3638,6 +3660,7 @@ videoLiveFakeProportionThreshold = 0.7
         {
             Dispatcher.Invoke(() =>
             {
+                ClearSingleSourceMediaNotificationSnooze();
                 // If window was hidden (user closed with X), opening from tray should show Get Started. If window was only minimized (taskbar), preserve current screen (e.g. verification).
                 bool wasClosedWithX = !IsVisible;
                 Show();

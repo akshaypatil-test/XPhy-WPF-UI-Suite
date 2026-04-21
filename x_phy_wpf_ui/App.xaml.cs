@@ -137,6 +137,7 @@ namespace x_phy_wpf_ui
                     main.Show();
                     main.WindowState = WindowState.Normal;
                     main.Activate();
+                    main.ClearSingleSourceMediaNotificationSnooze();
                     // If user closed with (X) and Remember Me was false, tokens were cleared; show Welcome instead of Home
                     main.EnsureViewMatchesAuthStateAfterRestore();
                 }

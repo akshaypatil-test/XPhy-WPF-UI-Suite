@@ -206,13 +206,11 @@
 
             <!-- Support Component -->
             <controls:SupportComponent x:Name="SupportComponent"
-                                       Visibility="Collapsed"
-                                       BackRequested="SupportComponent_BackRequested"/>
+                                       Visibility="Collapsed"/>
 
             <!-- Profile Component -->
             <controls:ProfileComponent x:Name="ProfileComponent"
                                        Visibility="Collapsed"
-                                       BackRequested="ProfileComponent_BackRequested"
                                        ChangePasswordRequested="ProfileComponent_ChangePasswordRequested"
                                        ViewFullDetailsRequested="ProfileComponent_ViewFullDetailsRequested"
                                        ViewPlansRequested="ProfileComponent_ViewPlansRequested"/>

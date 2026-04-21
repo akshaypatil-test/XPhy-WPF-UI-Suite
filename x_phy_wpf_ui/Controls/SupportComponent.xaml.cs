@@ -7,8 +7,6 @@ namespace x_phy_wpf_ui.Controls
 {
     public partial class SupportComponent : UserControl
     {
-        public event EventHandler? BackRequested;
-
         private const string SupportUrl = "https://x-phy.com/products/endpoint-security/deepfake-detector/support/";
         private const string TicketUrl = "https://support.x-phy.com/support/tickets/new";
         private const string UserGuideVideoUrl = "https://www.youtube.com/watch?v=Kc_y__h5r0U";
@@ -19,11 +17,6 @@ namespace x_phy_wpf_ui.Controls
         public SupportComponent()
         {
             InitializeComponent();
-        }
-
-        private void BackButton_Click(object sender, RoutedEventArgs e)
-        {
-            BackRequested?.Invoke(this, EventArgs.Empty);
         }
 
         private void OpenTicket_Click(object sender, RoutedEventArgs e)

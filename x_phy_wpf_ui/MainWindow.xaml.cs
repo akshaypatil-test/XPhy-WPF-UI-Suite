@@ -1991,12 +1991,6 @@ videoLiveFakeProportionThreshold = 0.7
                 TopNavBar.SelectedPage = "";
         }
 
-        private void SupportComponent_BackRequested(object sender, EventArgs e)
-        {
-            ShowDetectionContent();
-            SupportComponent.Visibility = Visibility.Collapsed;
-        }
-
         private void ShowProfileComponent()
         {
             DetectionContentGrid.Visibility = Visibility.Collapsed;
@@ -2030,14 +2024,6 @@ videoLiveFakeProportionThreshold = 0.7
             if (TopNavBar != null)
                 TopNavBar.SelectedPage = "Settings";
             SettingsComponent.Visibility = Visibility.Visible;
-        }
-
-        private void ProfileComponent_BackRequested(object sender, EventArgs e)
-        {
-            ShowDetectionContent();
-            ProfileComponent.Visibility = Visibility.Collapsed;
-            if (TopNavBar != null)
-                TopNavBar.SelectedPage = "Home";
         }
 
         private void ProfileComponent_ViewFullDetailsRequested(object sender, EventArgs e)
@@ -2626,7 +2612,7 @@ videoLiveFakeProportionThreshold = 0.7
                 LicenseSubscriptionComponent.Visibility = Visibility.Collapsed;
             if (DetectionResultsScreen != null)
                 DetectionResultsScreen.Visibility = Visibility.Collapsed;
-            // Restore Home as selected when returning from Plans/Support (Back to Detection)
+            // Restore Home as selected when returning from Plans (Back to Detection)
             if (TopNavBar != null)
                 TopNavBar.SelectedPage = "Home";
         }

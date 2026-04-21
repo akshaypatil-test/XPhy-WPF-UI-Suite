@@ -8,7 +8,6 @@ namespace x_phy_wpf_ui.Controls
 {
     public partial class ProfileComponent : UserControl
     {
-        public event EventHandler? BackRequested;
         public event EventHandler? ChangePasswordRequested;
         public event EventHandler? ViewFullDetailsRequested;
         public event EventHandler? ViewPlansRequested;
@@ -89,11 +88,6 @@ namespace x_phy_wpf_ui.Controls
                 return;
             var value = EmailPreferencesToggle.IsChecked == true;
             await _profileService.UpdateEmailPreferencesAsync(value).ConfigureAwait(true);
-        }
-
-        private void BackButton_Click(object sender, RoutedEventArgs e)
-        {
-            BackRequested?.Invoke(this, EventArgs.Empty);
         }
 
         private void ChangePassword_Click(object sender, RoutedEventArgs e)

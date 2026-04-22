@@ -27,6 +27,11 @@ namespace x_phy_wpf_ui.Controls
         {
             if (AppVersionText != null)
                 AppVersionText.Text = ApplicationVersion.GetDisplayVersion();
+            if (ReleaseDateText != null)
+                ReleaseDateText.Text = ApplicationVersion.GetReleaseDateDisplay();
+            if (LastCheckedText != null)
+                LastCheckedText.Text = UpdateCheckStateStore.FormatLastCheckedDisplay(UpdateCheckStateStore.LoadLastCheckUtc());
+            UpdateCurrentStatusDisplay();
             UpdateThemeSelection();
             _updatingAutoStart = true;
             try
@@ -117,7 +122,6 @@ namespace x_phy_wpf_ui.Controls
         private async void CheckUpdates_Click(object sender, RoutedEventArgs e)
         {
             var owner = Window.GetWindow(this);
-            LastCheckedText.Text = "Just Now";
 
             var service = new UpdateCheckService();
             var currentVersion = ApplicationVersion.GetDisplayVersion();
@@ -129,17 +133,22 @@ namespace x_phy_wpf_ui.Controls
             }
             catch (Exception ex)
             {
+                RecordUpdateCheckFailed();
                 AppDialog.Show(owner, "Update check failed: " + ex.Message, "Update Check", MessageBoxImage.Warning);
                 return;
             }
 
             if (!result.Ok)
             {
+                RecordUpdateCheckFailed();
                 AppDialog.Show(owner, result.ErrorMessage ?? "Update check failed.", "Update Check", MessageBoxImage.Warning);
                 return;
             }
 
             var r = result.Response;
+            var updateAvailable = r?.IsUpdateAvailable == true;
+            RecordUpdateCheckSucceeded(updateAvailable, r?.LatestVersion);
+
             if (r == null || !r.IsUpdateAvailable)
             {
                 AppDialog.Show(owner, "You are running the latest version!", "Update Check", MessageBoxImage.Information);
@@ -170,6 +179,37 @@ namespace x_phy_wpf_ui.Controls
             {
                 AppDialog.Show(owner, "Could not open the download link: " + ex.Message, "Update Check", MessageBoxImage.Warning);
             }
+        }
+
+        private void RecordUpdateCheckFailed()
+        {
+            UpdateCheckStateStore.PersistFailedCheck(DateTime.UtcNow);
+            RefreshUpdateCheckLabels();
+        }
+
+        private void RecordUpdateCheckSucceeded(bool updateAvailable, string latestVersion)
+        {
+            UpdateCheckStateStore.PersistSuccessfulCheck(DateTime.UtcNow, updateAvailable, latestVersion);
+            RefreshUpdateCheckLabels();
+        }
+
+        private void RefreshUpdateCheckLabels()
+        {
+            if (LastCheckedText != null)
+                LastCheckedText.Text = UpdateCheckStateStore.FormatLastCheckedDisplay(UpdateCheckStateStore.LoadLastCheckUtc());
+            UpdateCurrentStatusDisplay();
+        }
+
+        private void UpdateCurrentStatusDisplay()
+        {
+            if (CurrentStatusText == null || CurrentStatusBadge == null)
+                return;
+            var current = ApplicationVersion.GetDisplayVersion();
+            var upgradePending = UpdateCheckStateStore.IsUpgradePendingVersusCurrent(current);
+            CurrentStatusText.Text = upgradePending ? "Upgrade available" : "Up to date";
+            CurrentStatusBadge.SetResourceReference(
+                Border.BackgroundProperty,
+                upgradePending ? "Brush.Warning" : "Brush.Success");
         }
     }
 }

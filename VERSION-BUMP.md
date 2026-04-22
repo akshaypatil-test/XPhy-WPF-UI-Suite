@@ -8,12 +8,13 @@ The suite uses **one** shipping version for SDK-style projects and the **MSI** s
 
 Edit **`Directory.Build.props`** at the suite root (`XPhy-WPF-UI-Suite\Directory.Build.props`).
 
-Set **`Version`** to the new semantic version (examples: `2.0.5`, `2.1.0`):
+Set **`Version`** to the new semantic version (examples: `2.0.5`, `2.1.0`), and set **`ReleaseDate`** to the ship date in **ISO `yyyy-MM-dd`** (this value is embedded in the app assembly and shown on **Settings → Release Date**):
 
 ```xml
 <PropertyGroup Label="X-PHY product version">
   <Version>2.0.5</Version>
   <InformationalVersion>$(Version)</InformationalVersion>
+  <ReleaseDate>2026-04-22</ReleaseDate>
 </PropertyGroup>
 ```
 
@@ -110,7 +111,7 @@ Commit at least:
 
 | Step | Action |
 |------|--------|
-| 1 | Set `<Version>` in `Directory.Build.props` |
+| 1 | Set `<Version>` and `<ReleaseDate>` (`yyyy-MM-dd`) in `Directory.Build.props` |
 | 2 | Run `SyncVdprojProductVersion` (correct path for your cwd) |
 | 3 | Build app projects (Release as appropriate) |
 | 4 | Build **`X-PHY-Setup-WPF-UI-CPU`** in Visual Studio |

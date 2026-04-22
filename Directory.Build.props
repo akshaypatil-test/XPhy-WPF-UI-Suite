@@ -11,7 +11,12 @@
     Developer guide (bump, sync, build order): VERSION-BUMP.md
   -->
   <PropertyGroup Label="X-PHY product version">
-    <Version>2.0.3</Version>
+    <Version>2.0.4</Version>
     <InformationalVersion>$(Version)</InformationalVersion>
+    <!-- ISO yyyy-MM-dd; bump with each shipped release (shown in app Settings). -->
+    <ReleaseDate>2026-04-22</ReleaseDate>
   </PropertyGroup>
+  <ItemGroup>
+    <AssemblyMetadata Include="ReleaseDate" Value="$(ReleaseDate)" Condition="'$(ReleaseDate)' != ''" />
+  </ItemGroup>
 </Project>

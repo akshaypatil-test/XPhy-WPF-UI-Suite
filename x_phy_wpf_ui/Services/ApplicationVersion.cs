@@ -1,3 +1,6 @@
+using System;
+using System.Globalization;
+using System.Linq;
 using System.Reflection;
 
 namespace x_phy_wpf_ui.Services
@@ -31,6 +34,32 @@ namespace x_phy_wpf_ui.Services
             catch { /* ignore */ }
 
             return "0.0.0";
+        }
+
+        /// <summary>Ship date from AssemblyMetadata (ReleaseDate in Directory.Build.props, yyyy-MM-dd).</summary>
+        public static string GetReleaseDateDisplay()
+        {
+            try
+            {
+                var asm = Assembly.GetExecutingAssembly();
+                var meta = asm.GetCustomAttributes<AssemblyMetadataAttribute>()
+                    .FirstOrDefault(a => string.Equals(a.Key, "ReleaseDate", StringComparison.OrdinalIgnoreCase));
+                var raw = meta?.Value?.Trim();
+                if (string.IsNullOrEmpty(raw))
+                    return "—";
+
+                if (DateTime.TryParseExact(raw, "yyyy-MM-dd", CultureInfo.InvariantCulture, DateTimeStyles.None, out var d))
+                    return d.ToString("d", CultureInfo.CurrentCulture);
+
+                if (DateTime.TryParse(raw, CultureInfo.InvariantCulture, DateTimeStyles.AssumeUniversal | DateTimeStyles.AdjustToUniversal, out var d2))
+                    return d2.ToLocalTime().ToString("d", CultureInfo.CurrentCulture);
+
+                return raw;
+            }
+            catch
+            {
+                return "—";
+            }
         }
     }
 }

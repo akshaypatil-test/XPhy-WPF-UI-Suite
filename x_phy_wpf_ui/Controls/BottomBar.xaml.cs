@@ -50,6 +50,14 @@ namespace x_phy_wpf_ui.Controls
                 typeof(BottomBar),
                 new PropertyMetadata(null, OnAttemptsChanged));
 
+        /// <summary>When true, remaining days shows "-" (no " Days" suffix). Used for Admin when stored license expiry is absent.</summary>
+        public static readonly DependencyProperty ShowRemainingDaysAsDashProperty =
+            DependencyProperty.Register(
+                nameof(ShowRemainingDaysAsDash),
+                typeof(bool),
+                typeof(BottomBar),
+                new PropertyMetadata(false, OnShowRemainingDaysAsDashChanged));
+
         public string Status
         {
             get => (string)GetValue(StatusProperty);
@@ -79,6 +87,12 @@ namespace x_phy_wpf_ui.Controls
         {
             get => (int?)GetValue(AttemptsProperty);
             set => SetValue(AttemptsProperty, value);
+        }
+
+        public bool ShowRemainingDaysAsDash
+        {
+            get => (bool)GetValue(ShowRemainingDaysAsDashProperty);
+            set => SetValue(ShowRemainingDaysAsDashProperty, value);
         }
 
         public BottomBar()
@@ -146,6 +160,14 @@ namespace x_phy_wpf_ui.Controls
             }
         }
 
+        private static void OnShowRemainingDaysAsDashChanged(DependencyObject d, DependencyPropertyChangedEventArgs e)
+        {
+            if (d is BottomBar bottomBar)
+            {
+                bottomBar.UpdateRemainingDaysDisplay();
+            }
+        }
+
         private void UpdateDisplay()
         {
             UpdateStatusDisplay();
@@ -188,6 +210,18 @@ namespace x_phy_wpf_ui.Controls
         private void UpdateRemainingDaysDisplay()
         {
             if (RemainDaysText == null) return;
+
+            if (ShowRemainingDaysAsDash)
+            {
+                RemainDaysText.Text = "-";
+                if (RemainDaysSuffixText != null)
+                    RemainDaysSuffixText.Visibility = Visibility.Collapsed;
+                RemainDaysText.SetResourceReference(TextBlock.ForegroundProperty, "Brush.TextSecondary");
+                return;
+            }
+
+            if (RemainDaysSuffixText != null)
+                RemainDaysSuffixText.Visibility = Visibility.Visible;
 
             RemainDaysText.Text = RemainingDays.ToString();
 

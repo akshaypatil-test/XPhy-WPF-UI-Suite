@@ -1,5 +1,7 @@
 using System;
 using System.Diagnostics;
+using System.Threading;
+using System.Threading.Tasks;
 using System.Windows;
 using System.Windows.Controls;
 using System.Windows.Input;
@@ -22,16 +24,11 @@ namespace x_phy_wpf_ui.Controls
         }
 
         private bool _updatingAutoStart;
+        private readonly SemaphoreSlim _updateCheckGate = new(1, 1);
 
         private void SettingsComponent_Loaded(object sender, RoutedEventArgs e)
         {
-            if (AppVersionText != null)
-                AppVersionText.Text = ApplicationVersion.GetDisplayVersion();
-            if (ReleaseDateText != null)
-                ReleaseDateText.Text = ApplicationVersion.GetReleaseDateDisplay();
-            if (LastCheckedText != null)
-                LastCheckedText.Text = UpdateCheckStateStore.FormatLastCheckedDisplay(UpdateCheckStateStore.LoadLastCheckUtc());
-            UpdateCurrentStatusDisplay();
+            SyncSettingsReadOnlyLabels();
             UpdateThemeSelection();
             _updatingAutoStart = true;
             try
@@ -41,6 +38,51 @@ namespace x_phy_wpf_ui.Controls
             finally
             {
                 _updatingAutoStart = false;
+            }
+        }
+
+        /// <summary>Call when the user navigates to Settings (not from <see cref="Loaded"/>, which runs at app startup while this control is in the tree).</summary>
+        public void OnNavigatedToSettings()
+        {
+            SyncSettingsReadOnlyLabels();
+            _ = TrySettingsAutoUpdateCheckOnNavigationAsync();
+        }
+
+        private void SyncSettingsReadOnlyLabels()
+        {
+            if (AppVersionText != null)
+                AppVersionText.Text = ApplicationVersion.GetDisplayVersion();
+            if (ReleaseDateText != null)
+                ReleaseDateText.Text = ApplicationVersion.GetReleaseDateDisplay();
+            if (LastCheckedText != null)
+                LastCheckedText.Text = UpdateCheckStateStore.FormatLastCheckedDisplay(UpdateCheckStateStore.LoadLastCheckUtc());
+            UpdateCurrentStatusDisplay();
+        }
+
+        /// <summary>Runs the same update API as the button, at most once per 24h when opening Settings.</summary>
+        private async Task TrySettingsAutoUpdateCheckOnNavigationAsync()
+        {
+            if (UpdateCheckStateStore.IsSettingsAutoCheckCooldownActive())
+                return;
+
+            await _updateCheckGate.WaitAsync().ConfigureAwait(true);
+            try
+            {
+                if (UpdateCheckStateStore.IsSettingsAutoCheckCooldownActive())
+                    return;
+
+                try
+                {
+                    await RunUpdateCheckCoreAsync().ConfigureAwait(true);
+                }
+                finally
+                {
+                    UpdateCheckStateStore.RecordSettingsAutoCheckSessionCooldownUtc(DateTime.UtcNow);
+                }
+            }
+            finally
+            {
+                _updateCheckGate.Release();
             }
         }
 
@@ -121,8 +163,20 @@ namespace x_phy_wpf_ui.Controls
 
         private async void CheckUpdates_Click(object sender, RoutedEventArgs e)
         {
-            var owner = Window.GetWindow(this);
+            await _updateCheckGate.WaitAsync().ConfigureAwait(true);
+            try
+            {
+                await RunUpdateCheckCoreAsync().ConfigureAwait(true);
+            }
+            finally
+            {
+                _updateCheckGate.Release();
+            }
+        }
 
+        private async Task RunUpdateCheckCoreAsync()
+        {
+            var owner = Window.GetWindow(this);
             var service = new UpdateCheckService();
             var currentVersion = ApplicationVersion.GetDisplayVersion();
 

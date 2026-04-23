@@ -2024,6 +2024,7 @@ videoLiveFakeProportionThreshold = 0.7
             if (TopNavBar != null)
                 TopNavBar.SelectedPage = "Settings";
             SettingsComponent.Visibility = Visibility.Visible;
+            SettingsComponent.OnNavigatedToSettings();
         }
 
         private void ProfileComponent_ViewFullDetailsRequested(object sender, EventArgs e)
@@ -3482,10 +3483,18 @@ videoLiveFakeProportionThreshold = 0.7
                     string status = isExpiredFromLms ? "Expired" : (licenseInfo?.Status ?? (!string.IsNullOrEmpty(userInfo.LicenseStatus) ? userInfo.LicenseStatus : "Trial"));
                     int daysRemaining = 0;
 
-                    // Only show remaining days when we have ExpiryDate from backend; do not derive from plan name.
-                    var expiryForDays = licenseInfo?.ExpiryDate ?? (status.Equals("Trial", StringComparison.OrdinalIgnoreCase) ? userInfo.TrialEndsAt : null) ?? licenseInfo?.TrialEndsAt;
+                    bool isAdminUser = string.Equals(userInfo.UserType, "Admin", StringComparison.OrdinalIgnoreCase);
+                    // Admin: only LMS/stored ExpiryDate counts for remaining days — never TrialEndsAt fallbacks (avoids misleading Trial-style countdown).
+                    DateTime? expiryForDays;
+                    if (isAdminUser)
+                        expiryForDays = licenseInfo?.ExpiryDate;
+                    else
+                        expiryForDays = licenseInfo?.ExpiryDate ?? (status.Equals("Trial", StringComparison.OrdinalIgnoreCase) ? userInfo.TrialEndsAt : null) ?? licenseInfo?.TrialEndsAt;
                     if (expiryForDays.HasValue)
                         daysRemaining = GetRemainingWholeDaysUtc(expiryForDays.Value, DateTime.UtcNow);
+
+                    bool adminRemainingDaysUnavailable = isAdminUser && !(licenseInfo?.ExpiryDate.HasValue ?? false);
+                    BottomBar.ShowRemainingDaysAsDash = adminRemainingDaysUnavailable;
 
                     bool isCorpUser = string.Equals(userInfo.UserType, "Corp", StringComparison.OrdinalIgnoreCase);
 
@@ -3517,6 +3526,7 @@ videoLiveFakeProportionThreshold = 0.7
                     {
                         BottomBar.Status = "Expired";
                         BottomBar.RemainingDays = 0;
+                        BottomBar.ShowRemainingDaysAsDash = false;
                         BottomBar.Attempts = null;
                         if (isCorpUser)
                         {
@@ -3539,6 +3549,7 @@ videoLiveFakeProportionThreshold = 0.7
                 {
                     BottomBar.Status = "No License";
                     BottomBar.RemainingDays = 0;
+                    BottomBar.ShowRemainingDaysAsDash = false;
                     BottomBar.Attempts = null;
                     BottomBar.ShowSubscribeButton = true;
                     BottomBar.ShowContactAdminButton = false;
@@ -3555,6 +3566,7 @@ videoLiveFakeProportionThreshold = 0.7
                 {
                     BottomBar.Status = "No License";
                     BottomBar.RemainingDays = 0;
+                    BottomBar.ShowRemainingDaysAsDash = false;
                     BottomBar.ShowSubscribeButton = true;
                     BottomBar.ShowContactAdminButton = false;
                 }

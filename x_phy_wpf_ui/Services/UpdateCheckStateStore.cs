@@ -10,6 +10,10 @@ namespace x_phy_wpf_ui.Services
     {
         private const string FileName = "update-check-state.json";
 
+        /// <summary>Settings auto-check 24h gate (process lifetime only; resets when the app exits).</summary>
+        private static readonly object SessionAutoCheckLock = new object();
+        private static DateTime? _sessionLastSettingsAutoCheckUtc;
+
         private static readonly JsonSerializerSettings JsonSettings = new JsonSerializerSettings
         {
             DateTimeZoneHandling = DateTimeZoneHandling.Utc,
@@ -61,6 +65,30 @@ namespace x_phy_wpf_ui.Services
                 return null;
             var t = dto.LastCheckUtc.Value;
             return t.Kind == DateTimeKind.Utc ? t : DateTime.SpecifyKind(t.ToUniversalTime(), DateTimeKind.Utc);
+        }
+
+        /// <summary>
+        /// True when the Settings-page automatic check ran within the last 24 hours in this app session.
+        /// Manual checks do not set this. Cooldown is not persisted (new session can auto-check on first Settings visit).
+        /// </summary>
+        public static bool IsSettingsAutoCheckCooldownActive()
+        {
+            lock (SessionAutoCheckLock)
+            {
+                if (!_sessionLastSettingsAutoCheckUtc.HasValue)
+                    return false;
+                return DateTime.UtcNow - _sessionLastSettingsAutoCheckUtc.Value < TimeSpan.FromHours(24);
+            }
+        }
+
+        /// <summary>Starts the in-session 24h cooldown after a Settings automatic check attempt (success or failure).</summary>
+        public static void RecordSettingsAutoCheckSessionCooldownUtc(DateTime utcNow)
+        {
+            var utc = NormalizeUtc(utcNow);
+            lock (SessionAutoCheckLock)
+            {
+                _sessionLastSettingsAutoCheckUtc = utc;
+            }
         }
 
         /// <summary>Network or HTTP failure: record last check time only; keep prior "upgrade pending" if any.</summary>

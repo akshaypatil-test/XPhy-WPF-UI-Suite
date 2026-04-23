@@ -62,7 +62,7 @@
                                FontSize="13" 
                                FontWeight="SemiBold"
                                Foreground="{StaticResource TealColor}" VerticalAlignment="Center"/>
-                    <TextBlock Text=" Days" 
+                    <TextBlock x:Name="RemainDaysSuffixText" Text=" Days" 
                                FontSize="13" 
                                Foreground="{StaticResource TextSecondaryBrush}" VerticalAlignment="Center"/>
                 </StackPanel>

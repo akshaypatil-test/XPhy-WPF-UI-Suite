@@ -134,7 +134,7 @@ namespace x_phy_wpf_ui.Controls
                 var plan = new LicensePlan
                 {
                     PlanId = planViewModel.Plan.EffectivePlanId,
-                    Name = planViewModel.DisplayName,
+                    Name = planViewModel.Plan.Name?.Trim() ?? planViewModel.DisplayName,
                     Price = planViewModel.Plan.Price,
                     DurationDays = planViewModel.DurationDays,
                     Description = string.Join(", ", planViewModel.Features)
@@ -153,9 +153,14 @@ namespace x_phy_wpf_ui.Controls
         // ViewModel for plan display
         private class PlanViewModel
         {
+            private const string MoneyBag = "\uD83D\uDCB0"; // 💰
+            private const string Star = "\u2B50";           // ⭐
+            private const string Trophy = "\uD83C\uDFC6";  // 🏆
+
             public LicensePlanDto Plan { get; }
             public string DisplayName { get; }
-            public string PriceText { get; }
+            /// <summary>Numeric part only (e.g. "29"); "USD" is styled separately in XAML.</summary>
+            public string PriceAmount { get; }
             public string PriceSuffix { get; }
             public int DurationDays { get; }
             public List<string> Features { get; }
@@ -168,6 +173,15 @@ namespace x_phy_wpf_ui.Controls
 
             private static int _cardIndexCounter = 0;
 
+            private enum PlanUiTier
+            {
+                Monthly,
+                Quarterly,
+                Annual,
+                SixMonth,
+                Other
+            }
+
             public PlanViewModel(LicensePlanDto plan, int? currentPlanId, string currentPlanName, bool hasActivePaidPlan)
             {
                 Plan = plan;
@@ -176,96 +190,90 @@ namespace x_phy_wpf_ui.Controls
                 IsCurrentPlan = hasActivePaidPlan && (matchesById || matchesByName);
                 IsStripeButtonEnabled = !hasActivePaidPlan;
                 CardIndex = _cardIndexCounter++;
-                
-                // Display name: match reference (1-Month, 6-Months, 12-Months)
-                DisplayName = GetDisplayName(plan.Name);
-                
-                // Use the actual price from API
-                PriceText = $"${plan.Price:F0}";
-                PriceSuffix = " / per device";
-                
-                // Parse plan name to determine duration, features, and gradient (match Figma)
-                // Use explicit matching so 1-Month and 6-Month never get the same details
-                var name = (plan.Name ?? "").Trim().ToLowerInvariant();
+
+                var tier = ClassifyPlanTier(plan.Name);
+                var baseFeatures = new List<string>
+                {
+                    "Live Conferencing Video & Audio Detection",
+                    "Live Web Video & Audio Detection",
+                    "Instant Real-time Alerts",
+                    "Evidence & History Logs"
+                };
+
+                switch (tier)
+                {
+                    case PlanUiTier.Monthly:
+                        // Blank second line so title block height matches Quarterly/Annual (tag line rows).
+                        DisplayName = "MONTHLY" + Environment.NewLine + "\u00A0";
+                        PriceAmount = "29";
+                        PriceSuffix = " / device / month";
+                        DurationDays = 30;
+                        Features = new List<string>(baseFeatures);
+                        CardGradient = CreateGradientBrush("#8B2D8B", "#4A1A4A");
+                        break;
+                    case PlanUiTier.Quarterly:
+                        DisplayName = "QUARTERLY" + Environment.NewLine + $"{Star} Popular";
+                        PriceAmount = "39";
+                        PriceSuffix = " / device / 3 months";
+                        DurationDays = 90;
+                        Features = new List<string>(baseFeatures) { $"{MoneyBag} Save USD 192 per year" };
+                        CardGradient = CreateGradientBrush("#6B3A8B", "#3A1A4A");
+                        break;
+                    case PlanUiTier.Annual:
+                        DisplayName = "ANNUALLY" + Environment.NewLine + $"{Trophy} Best Value";
+                        PriceAmount = "99";
+                        PriceSuffix = " / device / year";
+                        DurationDays = 365;
+                        Features = new List<string>(baseFeatures) { $"{MoneyBag} Save USD 249 per year" };
+                        CardGradient = CreateGradientBrush("#2A5A8B", "#1A2A4A");
+                        break;
+                    case PlanUiTier.SixMonth:
+                        DisplayName = "6-MONTHS";
+                        PriceAmount = $"{plan.Price:F0}";
+                        PriceSuffix = " / device / 6 months";
+                        DurationDays = 180;
+                        Features = new List<string>(baseFeatures);
+                        CardGradient = CreateGradientBrush("#5A3A8B", "#2A1A4A");
+                        break;
+                    default:
+                        DisplayName = string.IsNullOrWhiteSpace(plan.Name) ? "PLAN" : plan.Name.Trim().ToUpperInvariant();
+                        PriceAmount = $"{plan.Price:F0}";
+                        PriceSuffix = " / per device";
+                        DurationDays = InferDurationDaysFromName(plan.Name);
+                        Features = new List<string>(baseFeatures);
+                        var gradients = new[]
+                        {
+                            CreateGradientBrush("#8B2D8B", "#4A1A4A"),
+                            CreateGradientBrush("#5A3A8B", "#2A1A4A"),
+                            CreateGradientBrush("#2A5A8B", "#1A2A4A")
+                        };
+                        CardGradient = gradients[CardIndex % 3];
+                        break;
+                }
+            }
+
+            private static PlanUiTier ClassifyPlanTier(string? planName)
+            {
+                var name = (planName ?? "").Trim().ToLowerInvariant();
                 var nameNorm = name.Replace(" ", "").Replace("-", "");
-                if (nameNorm.StartsWith("12") || name.Contains("12month") || name.Contains("year") || name.Contains("annual"))
-                {
-                    DurationDays = 365;
-                    Features = new List<string>
-                    {
-                        "Everything in Semi-Annual",
-                        "Dedicated account manager",
-                        "Advanced analytics",
-                        "Save 21%"
-                    };
-                    CardGradient = CreateGradientBrush("#2A5A8B", "#1A2A4A"); // dark teal / greenish-blue
-                }
-                else if (nameNorm.StartsWith("6") || name.Contains("6month") || name.Contains("6 month") || name.Contains("six") || name.Contains("semi"))
-                {
-                    DurationDays = 180;
-                    Features = new List<string>
-                    {
-                        "Everything in Monthly",
-                        "Priority support",
-                        "Custom scan schedules",
-                        "Save 13%"
-                    };
-                    CardGradient = CreateGradientBrush("#5A3A8B", "#2A1A4A"); // dark indigo / deep violet
-                }
-                else if (nameNorm.StartsWith("3") || name.Contains("3month") || name.Contains("3 month") || name.Contains("three"))
-                {
-                    DurationDays = 90;
-                    Features = new List<string>
-                    {
-                        "Unlimited detections",
-                        "Real-time alerts",
-                        "Advanced reporting",
-                        "Email support"
-                    };
-                    CardGradient = CreateGradientBrush("#6B3A8B", "#3A1A4A"); // dark purple
-                }
-                else if ((nameNorm == "1month" || nameNorm == "1months" || (nameNorm.StartsWith("1") && !nameNorm.StartsWith("10") && !nameNorm.StartsWith("12") && name.Contains("month"))))
-                {
-                    // 1-Month only (exclude 10-Month, 12-Month)
-                    DurationDays = 30;
-                    Features = new List<string>
-                    {
-                        "Unlimited detections",
-                        "Real-time alerts",
-                        "Advanced reporting",
-                        "Email support"
-                    };
-                    CardGradient = CreateGradientBrush("#8B2D8B", "#4A1A4A"); // deep dark purple / magenta
-                }
-                else
-                {
-                    // Default fallback - try to extract number from name
-                    var numberMatch = System.Text.RegularExpressions.Regex.Match(name, @"\d+");
-                    if (numberMatch.Success && int.TryParse(numberMatch.Value, out int months))
-                    {
-                        DurationDays = months * 30;
-                    }
-                    else
-                    {
-                        DurationDays = 30; // Default to 1 month
-                    }
-                    
-                    Features = new List<string>
-                    {
-                        "Unlimited detections",
-                        "Real-time alerts",
-                        "Advanced reporting",
-                        "Email support"
-                    };
-                    
-                    var gradients = new[]
-                    {
-                        CreateGradientBrush("#8B2D8B", "#4A1A4A"),   // dark purple/magenta
-                        CreateGradientBrush("#5A3A8B", "#2A1A4A"),   // dark indigo
-                        CreateGradientBrush("#2A5A8B", "#1A2A4A")   // dark teal
-                    };
-                    CardGradient = gradients[CardIndex % 3];
-                }
+                if (nameNorm.StartsWith("12") || name.Contains("12month") || name.Contains("12 month") || name.Contains("year") || name.Contains("annual"))
+                    return PlanUiTier.Annual;
+                if (nameNorm.StartsWith("3") || name.Contains("3month") || name.Contains("3 month") || name.Contains("three"))
+                    return PlanUiTier.Quarterly;
+                if (nameNorm.StartsWith("6") || name.Contains("6month") || name.Contains("6 month") || name.Contains("six") || name.Contains("semi"))
+                    return PlanUiTier.SixMonth;
+                if (nameNorm == "1month" || nameNorm == "1months" || (nameNorm.StartsWith("1") && !nameNorm.StartsWith("10") && !nameNorm.StartsWith("12") && name.Contains("month")))
+                    return PlanUiTier.Monthly;
+                return PlanUiTier.Other;
+            }
+
+            private static int InferDurationDaysFromName(string? planName)
+            {
+                var name = (planName ?? "").Trim().ToLowerInvariant();
+                var numberMatch = System.Text.RegularExpressions.Regex.Match(name, @"\d+");
+                if (numberMatch.Success && int.TryParse(numberMatch.Value, out int months))
+                    return Math.Max(30, months * 30);
+                return 30;
             }
 
             private LinearGradientBrush CreateGradientBrush(string color1, string color2)
@@ -278,19 +286,6 @@ namespace x_phy_wpf_ui.Controls
                 brush.GradientStops.Add(new GradientStop(
                     (Color)ColorConverter.ConvertFromString(color2), 1));
                 return brush;
-            }
-
-            private static string GetDisplayName(string planName)
-            {
-                if (string.IsNullOrWhiteSpace(planName)) return planName ?? "";
-                var n = planName.Trim();
-                if (n.Equals("3-Month", StringComparison.OrdinalIgnoreCase) || n.Equals("3 Month", StringComparison.OrdinalIgnoreCase))
-                    return "3-Months";
-                if (n.Equals("6-Month", StringComparison.OrdinalIgnoreCase) || n.Equals("6 Month", StringComparison.OrdinalIgnoreCase))
-                    return "6-Months";
-                if (n.Equals("12-Month", StringComparison.OrdinalIgnoreCase) || n.Equals("12 Month", StringComparison.OrdinalIgnoreCase))
-                    return "12-Months";
-                return n;
             }
 
             private static bool PlanNamesMatch(string planName, string currentPlanName)

@@ -4,6 +4,7 @@ using x_phy_wpf_ui.Services;
 using System.Windows.Input;
 using System.Windows.Media;
 using System.Windows.Threading;
+using System.Diagnostics;
 
 namespace x_phy_wpf_ui
 {
@@ -16,6 +17,7 @@ namespace x_phy_wpf_ui
         private Action _navigateToResultsPage;
         /// <summary>When set, "Stop & View Results" calls this (stop detection, then open results when saved) instead of only opening folder.</summary>
         private Action _stopDetectionAndOpenResults;
+        private Action _simpleAction;
 
         /// <summary>Seconds to auto-close when user collapses the details (after having expanded).</summary>
         private const int AutoCloseSecondsAfterCollapse = 10;
@@ -51,6 +53,20 @@ namespace x_phy_wpf_ui
             CompletedWithThreatContentPanel.Visibility = Visibility.Collapsed;
             TitleText.Text = title ?? "";
             MessageText.Text = message ?? "";
+            SimpleActionButton.Visibility = Visibility.Collapsed;
+            _simpleAction = null;
+        }
+
+        /// <summary>Set content for simple notification with a primary action button.</summary>
+        public void SetContentWithAction(string title, string message, string actionText, Action onAction)
+        {
+            SetContent(title, message);
+            if (onAction == null || string.IsNullOrWhiteSpace(actionText))
+                return;
+
+            _simpleAction = onAction;
+            SimpleActionButton.Content = actionText.Trim();
+            SimpleActionButton.Visibility = Visibility.Visible;
         }
 
         /// <summary>Set content for Detection Completed: message and View Result action.</summary>
@@ -317,6 +333,22 @@ namespace x_phy_wpf_ui
         private void Window_MouseLeftButtonDown(object sender, MouseButtonEventArgs e)
         {
             try { DragMove(); } catch { }
+        }
+
+        private void SimpleActionButton_Click(object sender, RoutedEventArgs e)
+        {
+            _autoCloseTimer?.Stop();
+            _autoCloseTimer = null;
+            try
+            {
+                _simpleAction?.Invoke();
+            }
+            catch (Exception ex)
+            {
+                AppDialog.Show(this, "Failed: " + ex.Message, "Error", MessageBoxImage.Warning);
+                Debug.WriteLine($"SimpleActionButton_Click failed: {ex.Message}");
+            }
+            Close();
         }
     }
 }

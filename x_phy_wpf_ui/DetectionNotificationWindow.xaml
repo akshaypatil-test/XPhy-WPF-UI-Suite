@@ -58,6 +58,30 @@
             <StackPanel x:Name="SimpleContentPanel" Grid.Row="1" Margin="20,16,20,20" Visibility="Collapsed">
                 <TextBlock x:Name="TitleText" Text="Detection started" FontWeight="Bold" FontSize="15" Foreground="#1A1A1A" Margin="0,0,0,6"/>
                 <TextBlock x:Name="MessageText" Text="Monitoring for deepfakes." FontSize="13" Foreground="#333333" TextWrapping="Wrap"/>
+                <Button x:Name="SimpleActionButton"
+                        Content="Action"
+                        Background="#2563EB" Foreground="White" FontSize="13" FontWeight="SemiBold"
+                        Padding="16,8" Margin="0,12,0,0" Cursor="Hand" BorderThickness="0"
+                        Click="SimpleActionButton_Click" HorizontalAlignment="Left" Visibility="Collapsed">
+                    <Button.Style>
+                        <Style TargetType="Button">
+                            <Setter Property="Template">
+                                <Setter.Value>
+                                    <ControlTemplate TargetType="Button">
+                                        <Border Background="{TemplateBinding Background}" CornerRadius="8" Padding="{TemplateBinding Padding}">
+                                            <ContentPresenter HorizontalAlignment="Center" VerticalAlignment="Center"/>
+                                        </Border>
+                                    </ControlTemplate>
+                                </Setter.Value>
+                            </Setter>
+                            <Style.Triggers>
+                                <Trigger Property="IsMouseOver" Value="True">
+                                    <Setter Property="Background" Value="#1D4ED8"/>
+                                </Trigger>
+                            </Style.Triggers>
+                        </Style>
+                    </Button.Style>
+                </Button>
             </StackPanel>
 
             <!-- Detection Completed: title, message, no-manipulation confidence, Close + View Result buttons -->

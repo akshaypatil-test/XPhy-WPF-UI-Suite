@@ -45,7 +45,6 @@ namespace x_phy_wpf_ui.Controls
         public void OnNavigatedToSettings()
         {
             SyncSettingsReadOnlyLabels();
-            _ = TrySettingsAutoUpdateCheckOnNavigationAsync();
         }
 
         private void SyncSettingsReadOnlyLabels()
@@ -57,33 +56,6 @@ namespace x_phy_wpf_ui.Controls
             if (LastCheckedText != null)
                 LastCheckedText.Text = UpdateCheckStateStore.FormatLastCheckedDisplay(UpdateCheckStateStore.LoadLastCheckUtc());
             UpdateCurrentStatusDisplay();
-        }
-
-        /// <summary>Runs the same update API as the button, at most once per 24h when opening Settings.</summary>
-        private async Task TrySettingsAutoUpdateCheckOnNavigationAsync()
-        {
-            if (UpdateCheckStateStore.IsSettingsAutoCheckCooldownActive())
-                return;
-
-            await _updateCheckGate.WaitAsync().ConfigureAwait(true);
-            try
-            {
-                if (UpdateCheckStateStore.IsSettingsAutoCheckCooldownActive())
-                    return;
-
-                try
-                {
-                    await RunUpdateCheckCoreAsync().ConfigureAwait(true);
-                }
-                finally
-                {
-                    UpdateCheckStateStore.RecordSettingsAutoCheckSessionCooldownUtc(DateTime.UtcNow);
-                }
-            }
-            finally
-            {
-                _updateCheckGate.Release();
-            }
         }
 
         private void AutoStartToggle_Changed(object sender, RoutedEventArgs e)

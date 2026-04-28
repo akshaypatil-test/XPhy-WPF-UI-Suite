@@ -122,6 +122,8 @@ namespace x_phy_wpf_ui
 
         /// <summary>True after we hide the window for <see cref="StartupCommandLine.StartedAsTrayAgent"/> (Windows startup shortcut).</summary>
         private bool _trayAgentStartupVisibilityApplied;
+        private readonly object _startupUpdateCheckLock = new object();
+        private bool _startupUpdateCheckQueued;
 
         /// <summary>Ref count for background blur when in-app popups/overlays are visible. Blur is applied when > 0.</summary>
         private int _blurRefCount = 0;
@@ -620,12 +622,85 @@ namespace x_phy_wpf_ui
 
             // Show system tray when user is logged in (right-click menu: detection agents, Open Results Folder, Version, Exit)
             ShowTray();
+            QueueStartupUpdateCheckIfNeeded();
             ApplyTrayAgentStartupVisibilityIfNeeded();
+        }
+
+        private void QueueStartupUpdateCheckIfNeeded()
+        {
+            lock (_startupUpdateCheckLock)
+            {
+                if (_startupUpdateCheckQueued)
+                    return;
+                _startupUpdateCheckQueued = true;
+            }
+
+            _ = RunStartupUpdateCheckAsync();
+        }
+
+        private void ResetStartupUpdateCheckQueue()
+        {
+            lock (_startupUpdateCheckLock)
+            {
+                _startupUpdateCheckQueued = false;
+            }
+        }
+
+        private async Task RunStartupUpdateCheckAsync()
+        {
+            try
+            {
+                var service = new UpdateCheckService();
+                var currentVersion = ApplicationVersion.GetDisplayVersion();
+                var result = await service.CheckAsync(currentVersion).ConfigureAwait(false);
+                if (!result.Ok)
+                {
+                    UpdateCheckStateStore.PersistFailedCheck(DateTime.UtcNow);
+                    return;
+                }
+
+                var response = result.Response;
+                var updateAvailable = response?.IsUpdateAvailable == true;
+                UpdateCheckStateStore.PersistSuccessfulCheck(DateTime.UtcNow, updateAvailable, response?.LatestVersion);
+                if (!updateAvailable)
+                    return;
+
+                Dispatcher.BeginInvoke(new Action(() =>
+                {
+                    var latestVersion = string.IsNullOrWhiteSpace(response?.LatestVersion)
+                        ? "A newer version"
+                        : "Version " + response.LatestVersion.Trim();
+                    DetectionNotificationWindow.CloseAllOpen();
+                    var popup = new DetectionNotificationWindow();
+                    var downloadUrl = response?.DownloadUrl?.Trim();
+                    if (!string.IsNullOrWhiteSpace(downloadUrl))
+                    {
+                        popup.SetContentWithAction(
+                            "Update available",
+                            latestVersion + " is available. Please download to upgrade.",
+                            "Download",
+                            () => Process.Start(new ProcessStartInfo { FileName = downloadUrl, UseShellExecute = true })
+                        );
+                        popup.ShowAtBottomRight(autoCloseSeconds: 0);
+                    }
+                    else
+                    {
+                        popup.SetContent("Update available", latestVersion + " is available. Please download to upgrade.");
+                        popup.ShowAtBottomRight(autoCloseSeconds: 8);
+                    }
+                }));
+            }
+            catch (Exception ex)
+            {
+                System.Diagnostics.Debug.WriteLine($"RunStartupUpdateCheckAsync failed: {ex.Message}");
+                UpdateCheckStateStore.PersistFailedCheck(DateTime.UtcNow);
+            }
         }
 
         private void ShowAuthView()
         {
             // After logout: go directly to Sign In (skip Welcome and Get Started)
+            ResetStartupUpdateCheckQueue();
             _signInComponent.ClearInputs();
             AuthPanel.SetContent(_signInComponent);
             AuthPanel.Visibility = Visibility.Visible;
@@ -635,6 +710,7 @@ namespace x_phy_wpf_ui
         /// <summary>Show Welcome screen (first run / session expired). Use this instead of Sign In when user is effectively logged out.</summary>
         private void ShowWelcomeView()
         {
+            ResetStartupUpdateCheckQueue();
             // If we're leaving the verification screen (e.g. restore from tray/desktop), cancel the unverified user
             if (AuthPanel.CurrentContent == _emailVerificationComponent)
                 _ = _emailVerificationComponent.CancelRegistrationIfPendingAsync();

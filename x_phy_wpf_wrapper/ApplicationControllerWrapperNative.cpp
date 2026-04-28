@@ -69,7 +69,7 @@ namespace XPhyWrapperNative {
             const char* msg = "License validation failed.";
             switch (e.reason) {
                 case edf::license_manager::LicenseValidationFailureReason::MachineLimitExceeded:
-                    msg = "Maximum no. machines granted to your license key already in use. You cannot use the application.";
+                    msg = "This license is currently in use on the maximum allowed number of devices.";
                     break;
                 case edf::license_manager::LicenseValidationFailureReason::Invalid:
                     msg = "License is invalid. You cannot use the application.";

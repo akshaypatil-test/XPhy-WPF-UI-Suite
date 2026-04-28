@@ -4,7 +4,9 @@ using System.Linq;
 using System.Threading.Tasks;
 using System.Windows;
 using System.Windows.Controls;
+using System.Windows.Controls.Primitives;
 using System.Windows.Media;
+using System.Windows.Threading;
 using x_phy_wpf_ui.Models;
 using x_phy_wpf_ui.Services;
 
@@ -96,6 +98,7 @@ namespace x_phy_wpf_ui.Controls
                 var planViewModels = _plans.Select(p => new PlanViewModel(p, currentPlanId, currentPlanName, hasActivePaidPlan)).ToList();
 
                 PlansItemsControl.ItemsSource = planViewModels;
+                UpdatePlansGridColumns(planViewModels.Count);
                 PlansScrollViewer.Visibility = Visibility.Visible;
                 StatusText.Visibility = Visibility.Collapsed;
             }
@@ -150,6 +153,39 @@ namespace x_phy_wpf_ui.Controls
             BackRequested?.Invoke(this, EventArgs.Empty);
         }
 
+        private void UpdatePlansGridColumns(int planCount)
+        {
+            Dispatcher.BeginInvoke(new Action(() =>
+            {
+                var grid = FindVisualChild<UniformGrid>(PlansItemsControl);
+                if (grid == null)
+                    return;
+
+                // Keep original behavior for 3 plans (single row), while centering 1/2 cards.
+                grid.Rows = 1;
+                grid.Columns = planCount <= 0 ? 1 : Math.Min(3, planCount);
+            }), DispatcherPriority.Loaded);
+        }
+
+        private static T? FindVisualChild<T>(DependencyObject parent) where T : DependencyObject
+        {
+            if (parent == null)
+                return null;
+
+            var childrenCount = VisualTreeHelper.GetChildrenCount(parent);
+            for (var i = 0; i < childrenCount; i++)
+            {
+                var child = VisualTreeHelper.GetChild(parent, i);
+                if (child is T typedChild)
+                    return typedChild;
+
+                var result = FindVisualChild<T>(child);
+                if (result != null)
+                    return result;
+            }
+            return null;
+        }
+
         // ViewModel for plan display
         private class PlanViewModel
         {
@@ -163,6 +199,7 @@ namespace x_phy_wpf_ui.Controls
             /// <summary>Numeric part only (e.g. "29"); "USD" is styled separately in XAML.</summary>
             public string PriceAmount { get; }
             public string PriceSuffix { get; }
+            public bool ShowPrice { get; }
             public int DurationDays { get; }
             public List<string> Features { get; }
             public Brush CardGradient { get; }
@@ -209,6 +246,7 @@ namespace x_phy_wpf_ui.Controls
                         PlanTag = "\u00A0";
                         PriceAmount = "29";
                         PriceSuffix = " / device / month";
+                        ShowPrice = true;
                         DurationDays = 30;
                         Features = new List<string>(baseFeatures);
                         CardGradient = CreateGradientBrush("#8B2D8B", "#4A1A4A");
@@ -218,6 +256,7 @@ namespace x_phy_wpf_ui.Controls
                         PlanTag = $"{Star} Popular";
                         PriceAmount = "39";
                         PriceSuffix = " / device / 3 months";
+                        ShowPrice = true;
                         DurationDays = 90;
                         Features = new List<string>(baseFeatures) { $"{MoneyBag} Save USD 192 per year" };
                         CardGradient = CreateGradientBrush("#6B3A8B", "#3A1A4A");
@@ -227,6 +266,7 @@ namespace x_phy_wpf_ui.Controls
                         PlanTag = $"{Trophy} Best Value";
                         PriceAmount = "99";
                         PriceSuffix = " / device / year";
+                        ShowPrice = true;
                         DurationDays = 365;
                         Features = new List<string>(baseFeatures) { $"{MoneyBag} Save USD 249 per year" };
                         CardGradient = CreateGradientBrush("#2A5A8B", "#1A2A4A");
@@ -236,6 +276,7 @@ namespace x_phy_wpf_ui.Controls
                         PlanTag = "\u00A0";
                         PriceAmount = $"{plan.Price:F0}";
                         PriceSuffix = " / device / 6 months";
+                        ShowPrice = true;
                         DurationDays = 180;
                         Features = new List<string>(baseFeatures);
                         CardGradient = CreateGradientBrush("#5A3A8B", "#2A1A4A");
@@ -244,7 +285,9 @@ namespace x_phy_wpf_ui.Controls
                         PlanTitle = string.IsNullOrWhiteSpace(plan.Name) ? "PLAN" : plan.Name.Trim().ToUpperInvariant();
                         PlanTag = "\u00A0";
                         PriceAmount = $"{plan.Price:F0}";
-                        PriceSuffix = " / per device";
+                        bool isCorporate = string.Equals(PlanTitle, "CORPORATE", StringComparison.OrdinalIgnoreCase);
+                        ShowPrice = !isCorporate;
+                        PriceSuffix = isCorporate ? "" : " / per device";
                         DurationDays = InferDurationDaysFromName(plan.Name);
                         Features = new List<string>(baseFeatures);
                         var gradients = new[]

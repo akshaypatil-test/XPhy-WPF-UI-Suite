@@ -292,8 +292,8 @@ namespace x_phy_wpf_ui
                 if (e != null && !string.IsNullOrEmpty(e.Message))
                 {
                     _signInComponent.SetError(e.Message);
-                    if (e.Message.IndexOf("maximum", StringComparison.OrdinalIgnoreCase) >= 0 && e.Message.IndexOf("machines", StringComparison.OrdinalIgnoreCase) >= 0)
-                        AppDialog.Show(this, e.Message, "License Error", MessageBoxImage.Error);
+                    if (IsMachineLimitExceededMessage(e.Message))
+                        AppDialog.Show(this, GetLicenseErrorDialogMessage(e.Message), GetLicenseErrorDialogTitle(e.Message), MessageBoxImage.Error);
                 }
             };
             _signInComponent.NavigateBack += (s, e) => { AuthPanel.SetContent(_launchComponent); };
@@ -354,8 +354,8 @@ namespace x_phy_wpf_ui
                 if (e != null && !string.IsNullOrEmpty(e.Message))
                 {
                     _corporateSignInComponent.SetError(e.Message);
-                    if (e.Message.IndexOf("maximum", StringComparison.OrdinalIgnoreCase) >= 0 && e.Message.IndexOf("machines", StringComparison.OrdinalIgnoreCase) >= 0)
-                        AppDialog.Show(this, e.Message, "License Error", MessageBoxImage.Error);
+                    if (IsMachineLimitExceededMessage(e.Message))
+                        AppDialog.Show(this, GetLicenseErrorDialogMessage(e.Message), GetLicenseErrorDialogTitle(e.Message), MessageBoxImage.Error);
                 }
             };
 
@@ -441,7 +441,7 @@ namespace x_phy_wpf_ui
                     if (IsMachineLimitExceededFailure(ex))
                     {
                         string msg = GetControllerInitFailureMessage(ex);
-                        AppDialog.Show(this, msg, "License Error", MessageBoxImage.Error);
+                        AppDialog.Show(this, msg, GetLicenseErrorDialogTitle(msg), MessageBoxImage.Error);
                         AuthPanel.SetContent(signInComponentOnError);
                         return;
                     }
@@ -478,7 +478,7 @@ namespace x_phy_wpf_ui
                     }
                     string errorMessage = GetControllerInitFailureMessage(ex);
                     bool isLicenseError = IsLicenseValidationFailure(ex);
-                    string title = isLicenseError ? "License Error" : "Validation Failed";
+                    string title = isLicenseError ? GetLicenseErrorDialogTitle(errorMessage) : "Validation Failed";
                     AppDialog.Show(this, errorMessage, title, MessageBoxImage.Error);
                     AuthPanel.SetContent(signInComponentOnError);
                     return;
@@ -574,7 +574,7 @@ namespace x_phy_wpf_ui
                 }
                 string message = GetControllerInitFailureMessage(ex);
                 bool isLicenseError = IsLicenseValidationFailure(ex);
-                string title = isLicenseError ? "License Error" : "Validation Failed";
+                string title = isLicenseError ? GetLicenseErrorDialogTitle(message) : "Validation Failed";
                 AppDialog.Show(this, message, title, MessageBoxImage.Error);
                 AuthPanel.SetContent(_corporateSignInComponent);
             }
@@ -1361,7 +1361,7 @@ videoLiveFakeProportionThreshold = 0.7
                 // Show error (license) or warning (other); match old app title for license errors
                 string userMessage = GetControllerInitFailureMessage(ex);
                 bool isLicenseError = IsLicenseValidationFailure(ex);
-                string title = isLicenseError ? "License Error" : "Controller Initialization Warning";
+                string title = isLicenseError ? GetLicenseErrorDialogTitle(userMessage) : "Controller Initialization Warning";
                 var icon = isLicenseError ? MessageBoxImage.Error : MessageBoxImage.Warning;
                 Dispatcher.BeginInvoke(new Action(() =>
                 {
@@ -1387,12 +1387,34 @@ videoLiveFakeProportionThreshold = 0.7
                    lower.Contains("could not verify");
         }
 
+        private const string MachineLimitDialogTitle = "License Limit Reached";
+        private const string MachineLimitDialogMessage = "This license is currently in use on the maximum allowed number of devices.";
+
+        private static bool IsMachineLimitExceededMessage(string? message)
+        {
+            var lower = (message ?? "").ToLowerInvariant();
+            if (string.IsNullOrWhiteSpace(lower))
+                return false;
+            return (lower.Contains("maximum") && lower.Contains("machines")) ||
+                   (lower.Contains("maximum") && lower.Contains("devices")) ||
+                   lower.Contains("maximum allowed number of devices");
+        }
+
+        private static string GetLicenseErrorDialogTitle(string? message)
+        {
+            return IsMachineLimitExceededMessage(message) ? MachineLimitDialogTitle : "License Error";
+        }
+
+        private static string GetLicenseErrorDialogMessage(string? message)
+        {
+            return IsMachineLimitExceededMessage(message) ? MachineLimitDialogMessage : (message ?? "");
+        }
+
         /// <summary>True when the exception indicates machine limit exceeded (Keygen). Enforced for both Active and Expired licenses.</summary>
         private static bool IsMachineLimitExceededFailure(Exception ex)
         {
             string msg = ex?.Message ?? "";
-            string lower = msg.ToLowerInvariant();
-            return lower.Contains("maximum") && lower.Contains("machines");
+            return IsMachineLimitExceededMessage(msg);
         }
 
         /// <summary>True when the exception indicates the license has expired (Keygen). Use to show expired UI instead of blocking.</summary>
@@ -1413,8 +1435,8 @@ videoLiveFakeProportionThreshold = 0.7
             string msg = ex?.Message ?? "";
             string lower = msg.ToLowerInvariant();
             // Use the exact message from native for license errors (same as x_phy_detection_program_ui)
-            if (lower.Contains("maximum") && lower.Contains("machines"))
-                return msg;
+            if (IsMachineLimitExceededMessage(lower))
+                return MachineLimitDialogMessage;
             if (lower.Contains("license is invalid"))
                 return msg;
             if (lower.Contains("activation unsuccessful"))

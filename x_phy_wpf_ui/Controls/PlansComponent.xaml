@@ -15,6 +15,7 @@
         <SolidColorBrush x:Key="BorderColor" Color="#2A2A2A"/>
         <SolidColorBrush x:Key="StripeButtonBg" Color="#FFFFFF"/>
         <SolidColorBrush x:Key="StripeButtonText" Color="#635BFF"/>
+        <BooleanToVisibilityConverter x:Key="BoolToVisibilityConverter"/>
         
         <!-- Gradient Brushes for Cards -->
         <LinearGradientBrush x:Key="Card1Gradient" StartPoint="0,0" EndPoint="1,1">
@@ -215,7 +216,8 @@
                                           Orientation="Horizontal"
                                           HorizontalAlignment="Center"
                                           VerticalAlignment="Top"
-                                          Margin="0,12,0,0">
+                                          Margin="0,12,0,0"
+                                          Visibility="{Binding ShowPrice, Converter={StaticResource BoolToVisibilityConverter}}">
                                     <TextBlock Text="USD"
                                               FontSize="20"
                                               FontWeight="SemiBold"

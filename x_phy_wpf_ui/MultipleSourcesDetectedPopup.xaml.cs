@@ -75,7 +75,6 @@ namespace x_phy_wpf_ui
             Loaded += OnLoadedPosition;
             SizeChanged += OnSizeChangedPosition;
             Show();
-            Activate();
             Dispatcher.BeginInvoke(new Action(EnsureFitsScreen), System.Windows.Threading.DispatcherPriority.Loaded);
         }
 

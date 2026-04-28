@@ -134,7 +134,7 @@ namespace x_phy_wpf_ui.Controls
                 var plan = new LicensePlan
                 {
                     PlanId = planViewModel.Plan.EffectivePlanId,
-                    Name = planViewModel.Plan.Name?.Trim() ?? planViewModel.DisplayName,
+                    Name = planViewModel.Plan.Name?.Trim() ?? planViewModel.PlanTitle,
                     Price = planViewModel.Plan.Price,
                     DurationDays = planViewModel.DurationDays,
                     Description = string.Join(", ", planViewModel.Features)
@@ -158,7 +158,8 @@ namespace x_phy_wpf_ui.Controls
             private const string Trophy = "\uD83C\uDFC6";  // 🏆
 
             public LicensePlanDto Plan { get; }
-            public string DisplayName { get; }
+            public string PlanTitle { get; }
+            public string PlanTag { get; }
             /// <summary>Numeric part only (e.g. "29"); "USD" is styled separately in XAML.</summary>
             public string PriceAmount { get; }
             public string PriceSuffix { get; }
@@ -203,8 +204,9 @@ namespace x_phy_wpf_ui.Controls
                 switch (tier)
                 {
                     case PlanUiTier.Monthly:
-                        // Blank second line so title block height matches Quarterly/Annual (tag line rows).
-                        DisplayName = "MONTHLY" + Environment.NewLine + "\u00A0";
+                        PlanTitle = "MONTHLY";
+                        // Keep second line to preserve visual alignment with plans that have tags.
+                        PlanTag = "\u00A0";
                         PriceAmount = "29";
                         PriceSuffix = " / device / month";
                         DurationDays = 30;
@@ -212,7 +214,8 @@ namespace x_phy_wpf_ui.Controls
                         CardGradient = CreateGradientBrush("#8B2D8B", "#4A1A4A");
                         break;
                     case PlanUiTier.Quarterly:
-                        DisplayName = "QUARTERLY" + Environment.NewLine + $"{Star} Popular";
+                        PlanTitle = "QUARTERLY";
+                        PlanTag = $"{Star} Popular";
                         PriceAmount = "39";
                         PriceSuffix = " / device / 3 months";
                         DurationDays = 90;
@@ -220,7 +223,8 @@ namespace x_phy_wpf_ui.Controls
                         CardGradient = CreateGradientBrush("#6B3A8B", "#3A1A4A");
                         break;
                     case PlanUiTier.Annual:
-                        DisplayName = "ANNUALLY" + Environment.NewLine + $"{Trophy} Best Value";
+                        PlanTitle = "ANNUALLY";
+                        PlanTag = $"{Trophy} Best Value";
                         PriceAmount = "99";
                         PriceSuffix = " / device / year";
                         DurationDays = 365;
@@ -228,7 +232,8 @@ namespace x_phy_wpf_ui.Controls
                         CardGradient = CreateGradientBrush("#2A5A8B", "#1A2A4A");
                         break;
                     case PlanUiTier.SixMonth:
-                        DisplayName = "6-MONTHS";
+                        PlanTitle = "6-MONTHS";
+                        PlanTag = "\u00A0";
                         PriceAmount = $"{plan.Price:F0}";
                         PriceSuffix = " / device / 6 months";
                         DurationDays = 180;
@@ -236,7 +241,8 @@ namespace x_phy_wpf_ui.Controls
                         CardGradient = CreateGradientBrush("#5A3A8B", "#2A1A4A");
                         break;
                     default:
-                        DisplayName = string.IsNullOrWhiteSpace(plan.Name) ? "PLAN" : plan.Name.Trim().ToUpperInvariant();
+                        PlanTitle = string.IsNullOrWhiteSpace(plan.Name) ? "PLAN" : plan.Name.Trim().ToUpperInvariant();
+                        PlanTag = "\u00A0";
                         PriceAmount = $"{plan.Price:F0}";
                         PriceSuffix = " / per device";
                         DurationDays = InferDurationDaysFromName(plan.Name);

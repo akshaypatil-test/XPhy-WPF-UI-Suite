@@ -672,22 +672,21 @@ namespace x_phy_wpf_ui
                         : "Version " + response.LatestVersion.Trim();
                     DetectionNotificationWindow.CloseAllOpen();
                     var popup = new DetectionNotificationWindow();
-                    var downloadUrl = response?.DownloadUrl?.Trim();
-                    if (!string.IsNullOrWhiteSpace(downloadUrl))
-                    {
-                        popup.SetContentWithAction(
-                            "Update available",
-                            latestVersion + " is available. Please download to upgrade.",
-                            "Download",
-                            () => Process.Start(new ProcessStartInfo { FileName = downloadUrl, UseShellExecute = true })
-                        );
-                        popup.ShowAtBottomRight(autoCloseSeconds: 0);
-                    }
-                    else
-                    {
-                        popup.SetContent("Update available", latestVersion + " is available. Please download to upgrade.");
-                        popup.ShowAtBottomRight(autoCloseSeconds: 8);
-                    }
+                    popup.SetContentWithAction(
+                        "Update available",
+                        latestVersion + " is available. Open Settings to continue the update.",
+                        "Open Settings",
+                        () =>
+                        {
+                            ShowInTaskbar = true;
+                            if (!IsVisible)
+                                Show();
+                            WindowState = WindowState.Normal;
+                            Activate();
+                            ShowSettingsComponent();
+                        }
+                    );
+                    popup.ShowAtBottomRight(autoCloseSeconds: 0);
                 }));
             }
             catch (Exception ex)

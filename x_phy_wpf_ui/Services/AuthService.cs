@@ -150,6 +150,43 @@ namespace x_phy_wpf_ui.Services
             }
         }
 
+        /// <summary>Returns true if this email is not already registered (same check as registration).</summary>
+        public async Task<bool> IsEmailAvailableAsync(string email)
+        {
+            try
+            {
+                var trimmed = email?.Trim() ?? "";
+                if (string.IsNullOrEmpty(trimmed))
+                    return false;
+
+                var encoded = Uri.EscapeDataString(trimmed);
+                var response = await _httpClient.GetAsync($"/api/auth/email-available?email={encoded}");
+
+                if (response.IsSuccessStatusCode)
+                {
+                    var json = await response.Content.ReadAsStringAsync();
+                    var dto = JsonConvert.DeserializeObject<EmailAvailabilityResponse>(json);
+                    return dto?.Available ?? false;
+                }
+
+                var errorJson = await response.Content.ReadAsStringAsync();
+                var errorResponse = JsonConvert.DeserializeObject<ApiErrorResponse>(errorJson);
+                throw new Exception(errorResponse?.Message ?? $"Email check failed: {response.StatusCode}");
+            }
+            catch (HttpRequestException ex)
+            {
+                throw new Exception($"Network error: {ex.Message}");
+            }
+            catch (TaskCanceledException)
+            {
+                throw new Exception("Request timeout. Please check your connection.");
+            }
+            catch (Exception ex)
+            {
+                throw new Exception($"Email check error: {ex.Message}");
+            }
+        }
+
         public async Task<RegisterResponse> RegisterCorpUserAsync(
             string username,
             string password,

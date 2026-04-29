@@ -176,6 +176,13 @@ namespace x_phy_wpf_ui.Models
         public DateTime? TrialEndsAt { get; set; }
     }
 
+    /// <summary>GET /api/auth/email-available — matches backend EmailAvailabilityResponse.</summary>
+    public class EmailAvailabilityResponse
+    {
+        [JsonProperty("available")]
+        public bool Available { get; set; }
+    }
+
     public class VerifyEmailRequest
     {
         public string Email { get; set; } = string.Empty;

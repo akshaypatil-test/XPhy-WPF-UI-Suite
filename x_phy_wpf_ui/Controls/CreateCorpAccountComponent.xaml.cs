@@ -1,5 +1,6 @@
 using System;
 using System.Text.RegularExpressions;
+using System.Threading.Tasks;
 using System.Windows;
 using System.Windows.Controls;
 using System.Windows.Data;
@@ -544,7 +545,7 @@ namespace x_phy_wpf_ui.Controls
             UpdateNextButtonState();
         }
 
-        private void Next_Click(object sender, RoutedEventArgs e)
+        private async void Next_Click(object sender, RoutedEventArgs e)
         {
             if (_currentStep == 1)
             {
@@ -553,8 +554,47 @@ namespace x_phy_wpf_ui.Controls
                 ValidateEmail();
                 ValidatePassword();
                 ValidateConfirmPassword();
+                bool step1Valid = _isFirstNameValid && _isLastNameValid && _isEmailValid && _isPasswordValid && _isConfirmPasswordValid;
+                if (!step1Valid)
+                {
+                    UpdateNextButtonState();
+                    return;
+                }
+
+                var email = EmailTextBox.Text.Trim();
+                object nextOriginalContent = NextButton.Content;
+                NextButton.IsEnabled = false;
+                NextButton.Content = "Please wait...";
+
+                try
+                {
+                    bool available = await _authService.IsEmailAvailableAsync(email);
+                    if (!available)
+                    {
+                        _isEmailValid = false;
+                        EmailErrorText.Text = "This email is already registered.";
+                        EmailErrorText.Visibility = Visibility.Visible;
+                        UpdateNextButtonState();
+                        return;
+                    }
+
+                    _currentStep = 2;
+                }
+                catch (Exception ex)
+                {
+                    EmailErrorText.Text = ToUserFriendlyEmailCheckError(ex.Message);
+                    EmailErrorText.Visibility = Visibility.Visible;
+                    UpdateNextButtonState();
+                    return;
+                }
+                finally
+                {
+                    NextButton.Content = nextOriginalContent ?? "Next";
+                }
+
+                UpdateStepVisibility();
+                UpdateStepIndicator();
                 UpdateNextButtonState();
-                _currentStep = 2;
             }
             else if (_currentStep == 2)
             {
@@ -563,12 +603,17 @@ namespace x_phy_wpf_ui.Controls
                 ValidateCountryCode();
                 ValidateContactNumber();
                 ValidateOrderNumber();
-                UpdateNextButtonState();
+                bool step2Valid = _isOrganizationNameValid && _isContactPersonNameValid && _isCountryCodeValid && _isContactNumberValid && _isOrderNumberValid;
+                if (!step2Valid)
+                {
+                    UpdateNextButtonState();
+                    return;
+                }
                 _currentStep = 3;
+                UpdateStepVisibility();
+                UpdateStepIndicator();
+                UpdateNextButtonState();
             }
-            UpdateStepVisibility();
-            UpdateStepIndicator();
-            UpdateNextButtonState();
         }
 
         private void Back_Click(object sender, RoutedEventArgs e)
@@ -650,6 +695,18 @@ namespace x_phy_wpf_ui.Controls
 
         private void ShowError(string message) { ErrorMessageText.Text = message; ErrorMessageText.Visibility = Visibility.Visible; }
 
+        private static string ToUserFriendlyEmailCheckError(string message)
+        {
+            if (string.IsNullOrWhiteSpace(message))
+                return "Could not verify email. Please try again.";
+            var m = message.Trim();
+            if (m.IndexOf("Network error", StringComparison.OrdinalIgnoreCase) >= 0)
+                return "Please check your internet connection and try again.";
+            if (m.IndexOf("timeout", StringComparison.OrdinalIgnoreCase) >= 0)
+                return "Request timed out. Please check your connection and try again.";
+            return "Could not verify email. Please try again.";
+        }
+
         private static string ToUserFriendlyError(string message)
         {
             if (string.IsNullOrWhiteSpace(message)) return "Something went wrong. Please try again or contact support.";
@@ -672,6 +729,9 @@ namespace x_phy_wpf_ui.Controls
                 return "Request timed out. Please check your connection and try again.";
             if (m.IndexOf("Registration error:", StringComparison.OrdinalIgnoreCase) >= 0)
                 return "We couldn't complete registration. Please check your details and try again, or contact support.";
+            if (m.IndexOf("Username already exists", StringComparison.OrdinalIgnoreCase) >= 0 ||
+                m.IndexOf("already registered", StringComparison.OrdinalIgnoreCase) >= 0)
+                return "This email is already registered. Please sign in or use a different email.";
             return "Something went wrong. Please try again or contact support.";
         }
 

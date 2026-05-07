@@ -1,6 +1,4 @@
 using System;
-using System.IO;
-using System.Text.RegularExpressions;
 using System.Windows;
 using System.Windows.Controls;
 using System.Windows.Documents;
@@ -28,38 +26,7 @@ namespace InstallerUI.Views
 
         private void LoadEulaContent()
         {
-            // Try EULA from dependencies (e.g. X-PHY_DFD_EULA content); fallback to EULA.rtf or embedded text.
-            var baseDir = AppDomain.CurrentDomain.BaseDirectory;
-            var paths = new[]
-            {
-                Path.Combine(baseDir, "EULA.txt"),
-                Path.Combine(baseDir, "EULA.rtf"),
-                Path.Combine(baseDir, "..", "..", "..", "dependencies", "eula", "EULA.rtf")
-            };
-            foreach (var path in paths)
-            {
-                var full = Path.GetFullPath(path);
-                if (!File.Exists(full)) continue;
-                try
-                {
-                    var text = File.ReadAllText(full);
-                    if (full.EndsWith(".rtf", StringComparison.OrdinalIgnoreCase))
-                        text = StripRtf(text);
-                    LicenseText.Text = text;
-                    return;
-                }
-                catch { /* try next */ }
-            }
             LicenseText.Text = GetDefaultEulaText();
-        }
-
-        private static string StripRtf(string rtf)
-        {
-            if (string.IsNullOrEmpty(rtf)) return "";
-            var t = Regex.Replace(rtf, @"\\[a-z]+\d*\s?", " ");
-            t = Regex.Replace(t, @"[{}]", "");
-            t = Regex.Replace(t, @"\s+", " ").Trim();
-            return t.Length > 0 ? t : "X-PHY Deepfake Detector - End User License Agreement. See the full EULA in the application folder after installation.";
         }
 
         private static string GetDefaultEulaText()

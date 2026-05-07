@@ -8,6 +8,12 @@
     <RootNamespace>InstallerUI</RootNamespace>
     <ApplicationManifest>app.manifest</ApplicationManifest>
     <LangVersion>9.0</LangVersion>
+    <EmbeddedMsiPath>..\X-PHY-Setup-WPF-UI-CPU\Release\X-PHY-Setup-WPF-UI-CPU.msi</EmbeddedMsiPath>
+    <GenerateSupportedRuntime>false</GenerateSupportedRuntime>
+  </PropertyGroup>
+  <PropertyGroup Condition="'$(Configuration)' == 'Release'">
+    <DebugSymbols>false</DebugSymbols>
+    <DebugType>none</DebugType>
   </PropertyGroup>
   <ItemGroup>
     <None Remove="x-phy-inverted-logo.png" />
@@ -20,7 +26,10 @@
       <Link>x-phy.png</Link>
     </Resource>
     <Resource Include="x-phy-inverted-logo.png" />
-    <None Include="EULA.txt" CopyToOutputDirectory="PreserveNewest" />
-    <None Include="..\dependencies\eula\EULA.rtf" Link="EULA.rtf" CopyToOutputDirectory="PreserveNewest" Condition="Exists('..\dependencies\eula\EULA.rtf')" />
+  </ItemGroup>
+  <ItemGroup Condition="Exists('$(EmbeddedMsiPath)')">
+    <EmbeddedResource Include="$(EmbeddedMsiPath)">
+      <LogicalName>InstallerUI.Payload.X-PHY-Setup-WPF-UI-CPU.msi</LogicalName>
+    </EmbeddedResource>
   </ItemGroup>
 </Project>

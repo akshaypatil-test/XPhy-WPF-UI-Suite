@@ -58,37 +58,34 @@ Use this only if your team wants the vdproj always aligned without running the s
    - From `XPhy-WPF-UI-Suite`, build **`x_phy_wpf_wrapper`** (native), **`x_phy_wpf_ui`** and **`InstallerUI`** as you normally do (e.g. **Release** in Visual Studio, or `dotnet build` / MSBuild on the relevant `.csproj` / `.vcxproj`).
 3. **Build the MSI** using **Visual Studio** with the **Microsoft Visual Studio Installer Projects** extension: build the **`X-PHY-Setup-WPF-UI-CPU`** project (or build the whole **`XPhy-WPF-UI-Suite.sln`** in **Release**). The `.vdproj` is not built with `dotnet` alone; use Visual Studio (or `devenv.com` if your pipeline supports it).
 
-Ship the **MSI** from the setup project’s output folder together with **`InstallerUI.exe`** if your layout bundles them side by side.
+`InstallerUI` now embeds the MSI payload for release distribution. Ship a single EXE artifact.
 
-## 4. DigitalOcean Spaces — installer ZIP and `version.json`
+## 4. DigitalOcean Spaces — installer EXE and `version.json`
 
-After the MSI sits **next to** `InstallerUI.exe`, publish the bootstrap folder and point the global manifest at the new build.
+After building the installer, publish one EXE and point the global manifest at the new build.
 
-**1. Prepare the folder**
+**1. Build installer EXE**
 
-- Build **InstallerUI** in **Release**. Typical output: **`InstallerUI\bin\Release\net48\`**.
-- Copy the built **`.msi`** into that **`net48`** folder beside **`InstallerUI.exe`** (same folder you ship to users).
+- Build **InstallerUI** in **Release**. Typical output: **`InstallerUI\bin\Release\net48\InstallerUI.exe`**.
+- Rename the output EXE to release naming format: **`x-phy-dfd-v{version}.exe`**.
+- Example: if `<Version>` is `2.3`, final filename is **`x-phy-dfd-v2.3.exe`**.
 
-**2. Zip**
-
-- Zip the **entire contents** of that **`net48`** Release folder (everything the user needs to run the installer).
-- Name the archive **`x-phy-dfd-release-v{version}.zip`**, where **`{version}`** is the same value as `<Version>` in `Directory.Build.props` (example: `2.0.2` → `x-phy-dfd-release-v2.0.2.zip`).
-
-**3. Upload to Spaces**
+**2. Upload to Spaces**
 
 - In your **DigitalOcean Space** (example: bucket **`xphy-dfd-releases`**, region **`sgp1`**), create or use a folder **`v{version}/`** (example: **`v2.0.2/`**).
-- Upload **`x-phy-dfd-release-v{version}.zip`** into that folder.
+- Upload **`x-phy-dfd-v{version}.exe`** into that folder.
+- Set object **Content-Type / MIME type** to **`application/octet-stream`**.
 - Ensure objects are **public** (or served via a public CDN URL) if clients download without auth.
 
-**4. Update `version.json`**
+**3. Update `version.json`**
 
 - Edit the manifest at the URL configured as **`AppUpdate:VersionManifestUrl`** in **XPhy.Licensing.Api** (example: `https://xphy-dfd-releases.sgp1.digitaloceanspaces.com/version.json` at the **root** of the Space).
-- Set **`version`** to the new semver and **`url`** to the **direct HTTPS URL of the zip** under `v{version}/` (not a folder listing URL), for example:
+- Set **`version`** to the new semver and **`url`** to the **direct HTTPS URL of the EXE** under `v{version}/` (not a folder listing URL), for example:
 
 ```json
 {
-  "version": "2.0.2",
-  "url": "https://xphy-dfd-releases.sgp1.digitaloceanspaces.com/v2.0.2/x-phy-dfd-release-v2.0.2.zip",
+  "version": "2.3",
+  "url": "https://xphy-dfd-releases.sgp1.digitaloceanspaces.com/v2.3/x-phy-dfd-v2.3.exe",
   "mandatory": false,
   "releaseNotes": ""
 }
@@ -116,6 +113,6 @@ Commit at least:
 | 3 | Build app projects (Release as appropriate) |
 | 4 | Build **`X-PHY-Setup-WPF-UI-CPU`** in Visual Studio |
 | 5 | Commit props + vdproj (+ any project changes) |
-| 6 | Zip **`InstallerUI\bin\Release\net48\`** → **`x-phy-dfd-release-v{version}.zip`**, MSI next to **`InstallerUI.exe`** |
-| 7 | Upload zip to Space under **`v{version}/`** |
-| 8 | Update root **`version.json`**: **`version`**, **`url`** (HTTPS link to that zip) — §4 |
+| 6 | Build **`InstallerUI\bin\Release\net48\InstallerUI.exe`** and rename to **`x-phy-dfd-v{version}.exe`** |
+| 7 | Upload EXE to Space under **`v{version}/`** with MIME type **`application/octet-stream`** |
+| 8 | Update root **`version.json`**: **`version`**, **`url`** (HTTPS link to that EXE) — §4 |

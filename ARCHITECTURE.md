@@ -1,6 +1,6 @@
 # XPhy WPF UI Suite — Architecture
 
-Windows desktop **X-PHY Deepfake Detector**: WPF app + native wrapper + WPF bootstrap installer + Visual Studio **MSI** (`XPhy-WPF-UI-Suite.sln`). Shipping **version**: `Directory.Build.props` (sync vdproj per **`VERSION-BUMP.md`**).
+Windows desktop **X-PHY Deepfake Detector**: WPF app + native wrapper + WPF bootstrap installer + Visual Studio **MSI** (`XPhy-WPF-UI-Suite.sln`). Shipping **version**: `Directory.Build.props` (sync vdproj per **`VERSION-BUMP.md`**). Public distribution artifact is a single installer EXE.
 
 ## Projects
 
@@ -8,7 +8,7 @@ Windows desktop **X-PHY Deepfake Detector**: WPF app + native wrapper + WPF boot
 |---------|------|
 | **x_phy_wpf_ui** | .NET 4.8 WPF, x64. UI, licensing HTTP → **XPhy.Licensing.Api**, Stripe in **WebView2**, MaterialDesign, Newtonsoft.Json, SQLite. |
 | **x_phy_wpf_wrapper** | C++/CLI x64 DLL: .NET ↔ native **detection** (`detection_program_lib`), OpenCV/TensorFlow via **vcpkg**, models → `bin\x_phy_wpf_wrapper\x64\...\`. |
-| **InstallerUI** | WPF setup wizard; runs **`msiexec /i … /quiet /norestart INSTALLDIR=…`** (`InstallerViewModel`). Success: exit **0** or **3010**. MSI beside exe. Admin manifest. |
+| **InstallerUI** | WPF setup wizard; runs **`msiexec /i … /quiet /norestart INSTALLDIR=…`** (`InstallerViewModel`). Success: exit **0** or **3010**. MSI is embedded in installer EXE for shipping. Admin manifest. |
 | **X-PHY-Setup-WPF-UI-CPU** | **.vdproj** MSI: one **INSTALLDIR**, files from wrapper + WPF outputs. New NuGet DLLs → add to vdproj manually. |
 
 ## Flow
@@ -22,7 +22,7 @@ Windows desktop **X-PHY Deepfake Detector**: WPF app + native wrapper + WPF boot
 1. Wrapper **Release \| x64**, then **x_phy_wpf_ui** **Release \| x64** (not Any CPU/Debug for production MSI paths).
 2. Build MSI in **Visual Studio** (Installer Projects extension). Shortcut / launch target: **`x_phy_wpf_ui.exe`** — keep vdproj and **`InstallerViewModel`** in sync if the exe name changes.
 3. End users: **.NET 4.8** + **WebView2** for Stripe.
-4. Optional: ship **`InstallerUI`** `net48` Release folder as a zip to **DigitalOcean Spaces** and update root **`version.json`** (see **`VERSION-BUMP.md`** §4).
+4. Publish single-file installer **`x-phy-dfd-v{version}.exe`** (example: **`x-phy-dfd-v2.3.exe`**) to **DigitalOcean Spaces** and update root **`version.json`** to point directly to that EXE (see **`VERSION-BUMP.md`** §4).
 
 ## Further reading
 

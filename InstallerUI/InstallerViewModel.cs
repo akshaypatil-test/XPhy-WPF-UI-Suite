@@ -38,6 +38,7 @@ namespace InstallerUI
         private string _installPathError;
         private bool _msiComplete;
         private int _msiExitCode = -1;
+        private const string EmbeddedMsiResourceName = "InstallerUI.Payload.X-PHY-Setup-WPF-UI-CPU.msi";
 
         public InstallerViewModel()
         {
@@ -589,8 +590,10 @@ namespace InstallerUI
             if (!File.Exists(msiPath))
                 msiPath = Path.Combine(exeDir, "X-PHY-Setup.msi");
             if (!File.Exists(msiPath))
+                msiPath = ExtractEmbeddedMsiToTemp();
+            if (!File.Exists(msiPath))
             {
-                FinishWithFailure("Setup package not found. Expected X-PHY-Setup-WPF-UI-CPU.msi or X-PHY-Setup.msi next to the installer.");
+                FinishWithFailure("Setup package not found. Expected external MSI next to installer or embedded MSI payload.");
                 return;
             }
 
@@ -657,6 +660,7 @@ namespace InstallerUI
                     process.WaitForExit();
                     var exitCode = process.ExitCode;
                     process.Dispose();
+                    CleanupExtractedMsiIfTemp(msiPath);
 
                     dispatcher.BeginInvoke(new Action(() =>
                     {
@@ -703,6 +707,55 @@ namespace InstallerUI
             if (exitCode == InstallerVersionCheck.MsiExitNewerOrSameProductExists)
                 return InstallerVersionCheck.GetDowngradeBlockedMessage();
             return $"Installation failed (exit code: {exitCode}). Please try again or contact support.";
+        }
+
+        /// <summary>
+        /// Extract bundled MSI payload from InstallerUI.exe into a unique temp directory.
+        /// Returns null when payload is not embedded.
+        /// </summary>
+        private static string ExtractEmbeddedMsiToTemp()
+        {
+            try
+            {
+                var asm = typeof(InstallerViewModel).Assembly;
+                using (var resourceStream = asm.GetManifestResourceStream(EmbeddedMsiResourceName))
+                {
+                    if (resourceStream == null) return null;
+
+                    var tempDir = Path.Combine(Path.GetTempPath(), "XPHYInstaller", Guid.NewGuid().ToString("N"));
+                    Directory.CreateDirectory(tempDir);
+                    var extractedMsiPath = Path.Combine(tempDir, "X-PHY-Setup-WPF-UI-CPU.msi");
+
+                    using (var fileStream = new FileStream(extractedMsiPath, FileMode.Create, FileAccess.Write, FileShare.None))
+                    {
+                        resourceStream.CopyTo(fileStream);
+                    }
+
+                    return extractedMsiPath;
+                }
+            }
+            catch
+            {
+                return null;
+            }
+        }
+
+        /// <summary>Best-effort cleanup for extracted temporary MSI payload.</summary>
+        private static void CleanupExtractedMsiIfTemp(string extractedMsiPath)
+        {
+            if (string.IsNullOrWhiteSpace(extractedMsiPath)) return;
+            try
+            {
+                var tempRoot = Path.Combine(Path.GetTempPath(), "XPHYInstaller").TrimEnd('\\', '/');
+                var fullMsiPath = Path.GetFullPath(extractedMsiPath);
+                if (!fullMsiPath.StartsWith(tempRoot, StringComparison.OrdinalIgnoreCase)) return;
+
+                if (File.Exists(fullMsiPath)) File.Delete(fullMsiPath);
+                var parent = Path.GetDirectoryName(fullMsiPath);
+                if (!string.IsNullOrEmpty(parent) && Directory.Exists(parent))
+                    Directory.Delete(parent, recursive: false);
+            }
+            catch { /* ignore cleanup failures */ }
         }
 
         private void LaunchInstalledApp()

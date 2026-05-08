@@ -1845,7 +1845,7 @@
         {
         "Name" = "8:X-PHY Deepfake Detector"
         "ProductName" = "8:X-PHY Deepfake Detector"
-        "ProductCode" = "8:{BC6E1E0B-3CCC-4C6B-B9F4-70BD374B00DD}"
+        "ProductCode" = "8:{E8595119-21C4-40C7-8AD7-62769CC7689D}"
         "PackageCode" = "8:{769E7146-E50A-4291-97B3-036AFAE583C0}"
         "UpgradeCode" = "8:{4CB7122A-6498-4470-A970-2BDDEC90BE00}"
         "AspNetVersion" = "8:"
@@ -1853,7 +1853,7 @@
         "RemovePreviousVersions" = "11:TRUE"
         "DetectNewerInstalledVersion" = "11:TRUE"
         "InstallAllUsers" = "11:TRUE"
-        "ProductVersion" = "8:2.3"
+        "ProductVersion" = "8:2.4"
         "Manufacturer" = "8:X-PHY"
         "ARPHELPTELEPHONE" = "8:"
         "ARPHELPLINK" = "8:"

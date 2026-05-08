@@ -18,11 +18,13 @@ namespace x_phy_wpf_ui.Services
         private static readonly string TokenFilePath = Path.Combine(AppDataDirectory, "tokens.json");
 
         private static readonly string InstallIdentityFilePath = Path.Combine(AppDataDirectory, "install_identity.txt");
+        private static readonly string LastSeenVersionFilePath = Path.Combine(AppDataDirectory, "last_seen_version.txt");
 
         /// <summary>
         /// Call once at app startup. If the current app install is different from the one that
         /// last saved tokens (e.g. after uninstall + reinstall), clears stored tokens so the user
-        /// must log in again. Uses app directory creation time so a new install (new folder) is detected.
+        /// must log in again. Also clears on app version change (upgrade path) to avoid stale session state.
+        /// Uses app directory creation time so a new install (new folder) is detected.
         /// </summary>
         public static void ClearTokensIfNewInstall()
         {
@@ -40,32 +42,52 @@ namespace x_phy_wpf_ui.Services
                 DateTime appDirCreated = Directory.GetCreationTimeUtc(appDir);
                 string normalizedPath = Path.GetFullPath(appDir).TrimEnd(Path.DirectorySeparatorChar, Path.AltDirectorySeparatorChar);
                 string currentIdentity = normalizedPath + "\n" + appDirCreated.Ticks;
+                string currentVersion = ApplicationVersion.GetDisplayVersion().Trim();
 
                 if (!Directory.Exists(AppDataDirectory))
                 {
                     Directory.CreateDirectory(AppDataDirectory);
                     File.WriteAllText(InstallIdentityFilePath, currentIdentity);
+                    File.WriteAllText(LastSeenVersionFilePath, currentVersion);
                     return;
                 }
 
                 if (!File.Exists(InstallIdentityFilePath))
                 {
                     File.WriteAllText(InstallIdentityFilePath, currentIdentity);
-                    return;
                 }
 
+                bool identityChanged = false;
                 string storedIdentity = File.ReadAllText(InstallIdentityFilePath).Trim();
-                if (string.Equals(storedIdentity, currentIdentity, StringComparison.Ordinal))
-                    return;
+                if (!string.Equals(storedIdentity, currentIdentity, StringComparison.Ordinal))
+                    identityChanged = true;
 
-                // Identity changed (reinstall or new app folder): clear tokens and update identity
-                if (File.Exists(TokenFilePath))
+                bool versionChanged = false;
+                if (File.Exists(LastSeenVersionFilePath))
+                {
+                    string previousVersion = (File.ReadAllText(LastSeenVersionFilePath) ?? string.Empty).Trim();
+                    versionChanged = !string.Equals(previousVersion, currentVersion, StringComparison.OrdinalIgnoreCase);
+                }
+                else
+                {
+                    // First run after introducing this tracking file.
+                    File.WriteAllText(LastSeenVersionFilePath, currentVersion);
+                }
+
+                // Identity changed (reinstall/new app folder) or version changed (upgrade): clear tokens.
+                if ((identityChanged || versionChanged) && File.Exists(TokenFilePath))
                 {
                     File.Delete(TokenFilePath);
-                    System.Diagnostics.Debug.WriteLine("Tokens cleared: new install detected (app directory identity changed).");
+                    string reason = identityChanged && versionChanged
+                        ? "install identity + version changed"
+                        : identityChanged
+                            ? "install identity changed"
+                            : "version changed";
+                    System.Diagnostics.Debug.WriteLine($"Tokens cleared: {reason}.");
                 }
 
                 File.WriteAllText(InstallIdentityFilePath, currentIdentity);
+                File.WriteAllText(LastSeenVersionFilePath, currentVersion);
             }
             catch (Exception ex)
             {

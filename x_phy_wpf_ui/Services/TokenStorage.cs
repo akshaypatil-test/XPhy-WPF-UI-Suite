@@ -70,8 +70,9 @@ namespace x_phy_wpf_ui.Services
                 }
                 else
                 {
-                    // First run after introducing this tracking file.
-                    File.WriteAllText(LastSeenVersionFilePath, currentVersion);
+                    // Migration case: if tokens already exist but version-tracking file does not,
+                    // treat as version-changed so stale pre-upgrade session is cleared once.
+                    versionChanged = File.Exists(TokenFilePath);
                 }
 
                 // Identity changed (reinstall/new app folder) or version changed (upgrade): clear tokens.
